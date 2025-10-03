@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 class SQANTI3ToBigBed:
-    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, github_repo=None, github_branch="main", enable_trix=False, star_sj=None, two_bit_file=None):
+    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, github_repo=None, github_branch="main", enable_trix=False, star_sj=None, two_bit_file=None, validate_only=False, dry_run=False):
         self.gtf_file = gtf_file
         self.classification_file = classification_file
         self.output_dir = Path(output_dir)
@@ -40,6 +40,8 @@ class SQANTI3ToBigBed:
         self.star_sj = star_sj
         self.star_bigbed = None
         self.two_bit_file = two_bit_file
+        self.validate_only = validate_only
+        self.dry_run = dry_run
         
         # Create output directory (handles both relative and absolute paths)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -155,8 +157,7 @@ class SQANTI3ToBigBed:
         try:
             df = pd.read_csv(self.classification_file, sep='\t')
             logger.info(f"Found {len(df)} transcripts with {len(df.columns)} columns")
-            
-            # Store column information for filter values
+            # Store column information for filter values (expects standard SQANTI3 columns)
             self.columns = df.columns.tolist()
             self.classification_data = df.set_index('isoform').to_dict('index')
             
@@ -763,6 +764,11 @@ class SQANTI3ToBigBed:
             
             if not self.parse_classification_file():
                 return False
+
+            # If only validating inputs, also check tools and files then exit
+            if self.validate_only:
+                logger.info("Validation successful: tools present, inputs readable, classification parsed.")
+                return True
             
             genepred_file = self.convert_gtf_to_genepred()
             if not genepred_file:
@@ -775,6 +781,12 @@ class SQANTI3ToBigBed:
             
             # Add classification data to BED file
             bed_file = self.add_classification_data_to_bed(bed_file)
+
+            # Exit early after preparing enhanced BED if dry-run requested
+            if self.dry_run:
+                logger.info("Dry run complete: generated intermediate BED with classification/colors.")
+                logger.info(f"Intermediate BED: {bed_file}")
+                return True
 
             # Optionally generate Trix index (after name encoding)
             if self.enable_trix:
@@ -824,6 +836,8 @@ def main():
     parser.add_argument('--github-branch', default='main', help='GitHub branch (default: main)')
     parser.add_argument('--enable-trix', action='store_true', help='Generate Trix (.ix/.ixx) text index for fast search')
     parser.add_argument('--star-sj', help='Optional: STAR SJ.out.tab to convert into a splice junction track')
+    parser.add_argument('--validate-only', action='store_true', help='Validate tools and inputs only, then exit')
+    parser.add_argument('--dry-run', action='store_true', help='Prepare intermediates (BED with classification) and exit before bigBed/hub generation')
     
     args = parser.parse_args()
     
@@ -847,7 +861,9 @@ def main():
         args.github_branch,
         enable_trix=args.enable_trix,
         star_sj=args.star_sj,
-        two_bit_file=args.twobit
+        two_bit_file=args.twobit,
+        validate_only=args.validate_only,
+        dry_run=args.dry_run
     )
     success = converter.run()
     

@@ -131,6 +131,28 @@ This generates hub files with GitHub raw URLs (`https://raw.githubusercontent.co
   ```
   - This creates `{genome}_star_sj.bb` and adds a `STAR Junctions` track.
 
+### Validation and Dry Run
+
+- **Validate only**: check tools and inputs, parse classification, then exit.
+```bash
+python sqanti3_to_UCSC.py \
+    --gtf your_corrected.gtf \
+    --classification your_classification.txt \
+    --output output_directory \
+    --genome hg38 \
+    --validate-only
+```
+
+- **Dry run**: process up to the enhanced BED (with colors and encoded names), skip bigBed/hub creation.
+```bash
+python sqanti3_to_UCSC.py \
+    --gtf your_corrected.gtf \
+    --classification your_classification.txt \
+    --output output_directory \
+    --genome hg38 \
+    --dry-run
+```
+
 ### Command Line Arguments
 
 | Argument | Required | Description |
@@ -208,7 +230,7 @@ Upload all generated files to a web-accessible location (e.g., GitHub Pages, you
 python SQANTI3.py -g reference.gtf -j reference.gff3 -o output_dir input.fasta
 ```
 
-### 2. Run SQANTI-browser
+### 2. Run the converter
 
 ```bash
 python sqanti3_to_UCSC.py \

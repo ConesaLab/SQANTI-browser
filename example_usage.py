@@ -74,6 +74,15 @@ def run_example():
     print("- Enable Trix text index (requires ixIxx in PATH): add --enable-trix")
     print("- Add STAR splice junctions track from SJ.out.tab: --star-sj <path>")
     print("- Use a genome .2bit to compute chrom.sizes: --twobit <genome.2bit>")
+    print("- Validate tools/inputs only (no outputs): --validate-only")
+    print("- Dry run (build enhanced BED, skip bigBed/hub): --dry-run")
+    print()
+    print("Run with SQANTI3 example dataset (after copying example data):")
+    print(f"python {main_script} \\")
+    print(f"    --gtf {example_gtf} \\")
+    print(f"    --classification {example_classification} \\")
+    print(f"    --output {output_dir} \\")
+    print(f"    --genome {genome}")
     print()
     
     # Show help
