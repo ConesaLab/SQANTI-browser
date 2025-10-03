@@ -428,7 +428,7 @@ class SQANTI3ToBigBed:
             raise e
 
     def _create_category_bigbeds(self, enhanced_bed_file: str, chrom_sizes_file: str) -> None:
-        """Create per-structural-category bigBeds from the enhanced BED (BED12) to allow hubCheck-compliant filtering by toggling tracks."""
+        """Create per-structural-category bigBeds from the enhanced BED, as bed12+1 with an explicit exons field."""
         categories = [
             'full-splice_match',
             'incomplete-splice_match',
@@ -440,6 +440,26 @@ class SQANTI3ToBigBed:
             'intergenic',
             'genic_intron'
         ]
+        # Create autoSql schema for bed12+1 (exons)
+        cat_as_path = os.path.join(self.temp_dir, 'sqanti3_cat.as')
+        with open(cat_as_path, 'w') as asf:
+            asf.write("table sqanti3Cat\n")
+            asf.write('"SQANTI3 category tracks with exon count"\n')
+            asf.write("(\n")
+            asf.write("    string chrom;        \"Reference sequence chromosome or scaffold\"\n")
+            asf.write("    uint   chromStart;   \"Start position in chromosome\"\n")
+            asf.write("    uint   chromEnd;     \"End position in chromosome\"\n")
+            asf.write("    string name;         \"Name of item\"\n")
+            asf.write("    uint   score;        \"Score (0-1000)\"\n")
+            asf.write("    char[1] strand;      \"+ or -\"\n")
+            asf.write("    uint   thickStart;   \"Start of thick display\"\n")
+            asf.write("    uint   thickEnd;     \"End of thick display\"\n")
+            asf.write("    uint   itemRgb;      \"Item color packed as R*256^2+G*256+B\"\n")
+            asf.write("    int    blockCount;   \"Number of blocks\"\n")
+            asf.write("    int[blockCount] blockSizes;  \"Comma separated list of block sizes\"\n")
+            asf.write("    int[blockCount] chromStarts; \"Start positions relative to chromStart\"\n")
+            asf.write("    uint   exons;        \"Exon count\"\n")
+            asf.write(")\n")
         # Prepare temp files per category
         cat_to_temp = {cat: os.path.join(self.temp_dir, f"cat_{cat}.bed") for cat in categories}
         # Write entries per category
@@ -464,12 +484,27 @@ class SQANTI3ToBigBed:
                         data = self.classification_data.get(tid, {})
                         struct_cat = data.get('structural_category', '')
                     if struct_cat in outputs:
-                        # Force each category track to use its category color
+                        # Set category color, packed as uint for itemRgb per AS
                         try:
-                            parts[8] = self._get_rgb_color(struct_cat) or '0'
+                            rgb = self._get_rgb_color(struct_cat) or '0,0,0'
+                            r, g, b = [int(x) for x in rgb.split(',')]
+                            parts[8] = str((r << 16) + (g << 8) + b)
                         except Exception:
                             parts[8] = '0'
-                        outputs[struct_cat].write('\t'.join(parts) + '\n')
+                        # Append explicit exons field (13th column)
+                        exons_val = None
+                        tid2 = parts[3].split('|', 1)[0]
+                        d2 = self.classification_data.get(tid2, {})
+                        try:
+                            exons_val = int(float(d2.get('exons', '')))
+                        except Exception:
+                            exons_val = None
+                        if exons_val is None:
+                            try:
+                                exons_val = int(parts[9])
+                            except Exception:
+                                exons_val = 0
+                        outputs[struct_cat].write('\t'.join(parts[:12] + [str(exons_val)]) + '\n')
             finally:
                 for fh in outputs.values():
                     fh.close()
@@ -484,7 +519,7 @@ class SQANTI3ToBigBed:
             env["LC_COLLATE"] = "C"
             subprocess.run(['sort','-k1,1','-k2,2n', bed_path, '-o', sorted_path], check=True, capture_output=True, text=True, env=env)
             out_bb = self.output_dir / f"{self.genome}_sqanti3_{cat}.bb"
-            subprocess.run(['bedToBigBed', sorted_path, chrom_sizes_file, str(out_bb)], check=True, capture_output=True, text=True)
+            subprocess.run(['bedToBigBed', '-as='+cat_as_path, '-type=bed12+1', sorted_path, chrom_sizes_file, str(out_bb)], check=True, capture_output=True, text=True)
             self.category_bigbeds[cat] = out_bb
 
     def add_classification_data_to_bed(self, bed_file):
@@ -878,7 +913,9 @@ class SQANTI3ToBigBed:
             f.write(f"html {self._get_github_raw_url(transcripts_html_name)}\n")
             # Enable search on name; fielded filters are added below when 12+ is enabled
             f.write(f"searchIndex name\n")
-            # Do not emit filter/filterByRange to satisfy hubCheck. Provide per-category child tracks instead.
+            # Add exon range control bound to built-in BED12 field blockCount
+            f.write(f"filterByRange.blockCount 0:100\n")
+            f.write(f"filterLabel.blockCount Number of exons\n")
             
             # Add Trix search index if present
             trix_ix = genome_dir / 'trix.ix'
@@ -933,13 +970,16 @@ class SQANTI3ToBigBed:
                     f.write(f"bigDataUrl {self._get_github_raw_url(bb_path.name)}\n")
                     f.write(f"shortLabel {short}\n")
                     f.write(f"longLabel SQANTI3 {cat} transcripts\n")
-                    f.write(f"type bigBed 12\n")
+                    f.write(f"type bigBed 12 + 1\n")
                     f.write(f"visibility hide\n")
                     f.write(f"group transcripts\n")
                     f.write(f"itemRgb on\n")
                     # Omit useScore/scoreFilter directives for hubCheck compatibility
                     f.write(f"priority 3\n")
                     f.write(f"html {self._get_github_raw_url(cat_html_name)}\n")
+                    # Add per-field range control for exon count
+                    f.write(f"filterByRange.exons 0:100\n")
+                    f.write(f"filterLabel.exons Number of exons\n")
         
         # Create simple HTML description
         html_file = self.output_dir / f"{hub_name}.html"
