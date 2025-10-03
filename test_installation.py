@@ -151,6 +151,9 @@ def main():
         print("🎉 All tests passed! Your system is ready for SQANTI3 to UCSC integration.")
         print("\nYou can now run:")
         print("  python sqanti3_to_UCSC.py --help")
+        # Optional tools
+        if shutil.which('ixIxx') is None:
+            print("\nNote: Optional Trix index tool 'ixIxx' not found. If you plan to use --enable-trix,\nplease install UCSC 'ixIxx' or ensure it's in your PATH.")
     else:
         print("❌ Some tests failed. Please fix the issues above before proceeding.")
         print("\nCommon solutions:")

@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 class SQANTI3ToBigBed:
-    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, github_repo=None, github_branch="main"):
+    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, github_repo=None, github_branch="main", enable_trix=False, star_sj=None, two_bit_file=None):
         self.gtf_file = gtf_file
         self.classification_file = classification_file
         self.output_dir = Path(output_dir)
@@ -36,6 +36,10 @@ class SQANTI3ToBigBed:
         self.github_repo = github_repo
         self.github_branch = github_branch
         self.temp_dir = None
+        self.enable_trix = enable_trix
+        self.star_sj = star_sj
+        self.star_bigbed = None
+        self.two_bit_file = two_bit_file
         
         # Create output directory (handles both relative and absolute paths)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -47,6 +51,9 @@ class SQANTI3ToBigBed:
     def _check_dependencies(self):
         """Check if required UCSC tools are available"""
         required_tools = ['gtfToGenePred', 'genePredToBed', 'bedToBigBed']
+        # twoBitInfo required only if using --twobit
+        if self.two_bit_file:
+            required_tools.append('twoBitInfo')
         missing_tools = []
         
         for tool in required_tools:
@@ -106,6 +113,39 @@ class SQANTI3ToBigBed:
             
         except Exception as e:
             logger.error(f"Error extracting chromosome sizes: {e}")
+            return None
+
+    def extract_chrom_sizes_from_twobit(self):
+        """Use twoBitInfo to compute chromosome sizes from a .2bit file"""
+        if not self.two_bit_file:
+            return None
+        logger.info("Extracting chromosome sizes from 2bit file using twoBitInfo...")
+        try:
+            # Run twoBitInfo and capture output
+            result = subprocess.run(['twoBitInfo', self.two_bit_file, 'stdout'], capture_output=True, text=True, check=True)
+            lines = result.stdout.strip().split('\n')
+            sizes = []
+            for line in lines:
+                parts = line.strip().split()
+                if len(parts) >= 2:
+                    chrom = parts[0]
+                    try:
+                        size = int(parts[1])
+                    except ValueError:
+                        continue
+                    sizes.append((chrom, size))
+            # Sort by size descending (as in UCSC examples). Sorting is not strictly required by bedToBigBed.
+            sizes.sort(key=lambda x: x[1], reverse=True)
+            chrom_sizes_file = os.path.join(self.temp_dir, 'chrom.sizes')
+            with open(chrom_sizes_file, 'w') as out:
+                for chrom, size in sizes:
+                    out.write(f"{chrom}\t{size}\n")
+            logger.info(f"Chrom sizes written from 2bit: {chrom_sizes_file}")
+            return chrom_sizes_file
+        except subprocess.CalledProcessError as e:
+            logger.error(f"twoBitInfo failed: {e}")
+            if e.stderr:
+                logger.error(e.stderr)
             return None
     
     def parse_classification_file(self):
@@ -242,10 +282,14 @@ class SQANTI3ToBigBed:
         logger.info("Converting BED to standard bigBed format with smart name encoding for filtering...")
         
         try:
-            # Determine chromosome sizes source: use provided --chrom-sizes if present, otherwise extract from GTF
+            # Determine chromosome sizes source: priority --chrom-sizes > --twobit > GTF-derived
             if self.chrom_sizes_file and os.path.exists(self.chrom_sizes_file):
                 chrom_sizes_file = self.chrom_sizes_file
                 logger.info(f"Using provided chrom.sizes file: {chrom_sizes_file}")
+            elif self.two_bit_file:
+                chrom_sizes_file = self.extract_chrom_sizes_from_twobit()
+                if not chrom_sizes_file:
+                    raise Exception("twoBitInfo failed to generate chrom.sizes")
             else:
                 chrom_sizes_file = self.extract_chrom_sizes()
                 if not chrom_sizes_file:
@@ -412,6 +456,82 @@ class SQANTI3ToBigBed:
         logger.info(f"Classification data added: {processed_count} processed, {missing_count} missing from classification")
         return enhanced_bed_file
 
+    def _generate_trix_index(self, enhanced_bed_file, genome_dir):
+        """Generate Trix (.ix/.ixx) text index for fast search if ixIxx is available"""
+        ixixx_path = shutil.which('ixIxx')
+        if not ixixx_path:
+            logger.warning("ixIxx not found; skipping Trix index generation")
+            return False
+
+        try:
+            trix_input = os.path.join(self.temp_dir, 'trix_input.txt')
+            with open(enhanced_bed_file, 'r') as bed_in, open(trix_input, 'w') as t_out:
+                for line in bed_in:
+                    parts = line.rstrip('\t\n').split('\t')
+                    if len(parts) >= 4:
+                        name = parts[3]
+                        # id, description, synonyms
+                        t_out.write(f"{name}\t{name}\t{name}\n")
+
+            ix_path = os.path.join(genome_dir, 'trix.ix')
+            ixx_path = os.path.join(genome_dir, 'trix.ixx')
+            cmd = ['ixIxx', trix_input, ix_path, ixx_path]
+            subprocess.run(cmd, check=True, capture_output=True, text=True)
+            logger.info(f"Trix index generated: {ix_path}, {ixx_path}")
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to generate Trix index: {e}")
+            return False
+
+    def _create_star_sj_bigbed(self, sj_file):
+        """Convert STAR SJ.out.tab to bigBed splice junction track"""
+        try:
+            if not os.path.exists(sj_file):
+                logger.error(f"STAR SJ file not found: {sj_file}")
+                return None
+
+            # Determine chromosome sizes source
+            if self.chrom_sizes_file and os.path.exists(self.chrom_sizes_file):
+                chrom_sizes_file = self.chrom_sizes_file
+            else:
+                chrom_sizes_file = self.extract_chrom_sizes()
+                if not chrom_sizes_file:
+                    raise Exception("Could not determine chromosome sizes for STAR junctions")
+
+            # Create BED6 from SJ.out.tab
+            bed6_path = os.path.join(self.temp_dir, 'SJ.out.bed')
+            strand_map = {'0':'.', '1':'+', '2':'-'}
+            with open(sj_file, 'r') as sj_in, open(bed6_path, 'w') as bed_out:
+                for idx, line in enumerate(sj_in, 1):
+                    parts = line.strip().split('\t')
+                    if len(parts) < 4:
+                        continue
+                    chrom = parts[0]
+                    start = int(parts[1]) - 1
+                    end = int(parts[2])
+                    strand_code = parts[3]
+                    strand = strand_map.get(strand_code, '.')
+                    name = f"j_{idx}"
+                    score = '1000'
+                    bed_out.write(f"{chrom}\t{start}\t{end}\t{name}\t{score}\t{strand}\n")
+
+            # Sort BED
+            sorted_bed_path = os.path.join(self.temp_dir, 'SJ.out.sorted.bed')
+            env = os.environ.copy()
+            env["LC_COLLATE"] = "C"
+            sort_cmd = ['sort', '-k1,1', '-k2,2n', bed6_path, '-o', sorted_bed_path]
+            subprocess.run(sort_cmd, check=True, capture_output=True, text=True, env=env)
+
+            # Create bigBed (type bed6)
+            star_bb = self.output_dir / f"{self.genome}_star_sj.bb"
+            cmd = ['bedToBigBed', sorted_bed_path, chrom_sizes_file, str(star_bb)]
+            subprocess.run(cmd, check=True, capture_output=True, text=True)
+            logger.info(f"STAR junctions bigBed created: {star_bb}")
+            return star_bb
+        except Exception as e:
+            logger.error(f"Failed to create STAR junctions bigBed: {e}")
+            return None
+
     def create_autosql_schema(self):
         """Create autoSql schema file for bigBed 12 + format"""
         logger.info("Creating autoSql schema for bigBed 12 + format...")
@@ -485,11 +605,25 @@ class SQANTI3ToBigBed:
         with open(genomes_file, 'w') as f:
             f.write(f"genome {self.genome}\n")
             f.write(f"trackDb {self.genome}/trackDb.txt\n")
+            # reference groups file for multi-track organization
+            f.write(f"groups {self.genome}/groups.txt\n")
         
         # Create genome-specific directory and trackDb.txt
         genome_dir = self.output_dir / self.genome
         genome_dir.mkdir(exist_ok=True)
         
+        # Create groups.txt for organizing tracks
+        groups_file = genome_dir / "groups.txt"
+        with open(groups_file, 'w') as gf:
+            gf.write("name transcripts\n")
+            gf.write("label Transcripts\n")
+            gf.write("priority 1\n")
+            gf.write("defaultIsClosed 0\n\n")
+            gf.write("name junctions\n")
+            gf.write("label Splice Junctions\n")
+            gf.write("priority 2\n")
+            gf.write("defaultIsClosed 0\n")
+
         trackdb_file = genome_dir / "trackDb.txt"
         with open(trackdb_file, 'w') as f:
             f.write(f"track {self.genome}_sqanti3\n")
@@ -498,6 +632,7 @@ class SQANTI3ToBigBed:
             f.write(f"longLabel SQANTI3 Transcriptome Analysis Results\n")
             f.write(f"type bigBed\n")
             f.write(f"visibility dense\n")
+            f.write(f"group transcripts\n")
             f.write(f"itemRgb on\n")
             f.write(f"color 107,174,214\n")
             f.write(f"priority 1\n")
@@ -508,10 +643,22 @@ class SQANTI3ToBigBed:
             f.write(f"filterValues name\n")
             f.write(f"filterLabel.name Transcript classification (use search to filter by category, length, etc.)\n")
             
-            # Add helpful filtering instructions
-            
-            # Add composite track structure for better organization
-            # Removed compositeTrack and allButtonPair to avoid autoSql expectations
+            # Add Trix search index if present
+            trix_ix = genome_dir / 'trix.ix'
+            if os.path.exists(trix_ix):
+                f.write(f"searchTrix trix.ix\n")
+
+            # Append STAR junctions track if generated
+            if self.star_bigbed and os.path.exists(self.star_bigbed):
+                f.write("\n")
+                f.write(f"track {self.genome}_star_sj\n")
+                f.write(f"bigDataUrl {self._get_github_raw_url(self.star_bigbed.name)}\n")
+                f.write(f"shortLabel STAR Junctions\n")
+                f.write(f"longLabel STAR splice junctions (SJ.out.tab)\n")
+                f.write(f"type bigBed 6\n")
+                f.write(f"visibility dense\n")
+                f.write(f"group junctions\n")
+                f.write(f"priority 2\n")
         
         # Create simple HTML description
         html_file = self.output_dir / f"{hub_name}.html"
@@ -628,12 +775,22 @@ class SQANTI3ToBigBed:
             
             # Add classification data to BED file
             bed_file = self.add_classification_data_to_bed(bed_file)
-            
-            # Create bigBed 12 + file
+
+            # Optionally generate Trix index (after name encoding)
+            if self.enable_trix:
+                genome_dir = self.output_dir / self.genome
+                genome_dir.mkdir(exist_ok=True)
+                self._generate_trix_index(bed_file, genome_dir)
+
+            # Create bigBed file
             bigbed_file = self.create_bigbed_file(bed_file)
             if not bigbed_file:
                 return False
             
+            # Optionally create STAR junctions track
+            if self.star_sj:
+                self.star_bigbed = self._create_star_sj_bigbed(self.star_sj)
+
             if not self.create_hub_files(bigbed_file):
                 return False
             
@@ -662,8 +819,11 @@ def main():
     parser.add_argument('--output', required=True, help='Output directory')
     parser.add_argument('--genome', required=True, help='Genome assembly name (e.g., hg38, mm10)')
     parser.add_argument('--chrom-sizes', help='Optional: Path to chromosome sizes file')
+    parser.add_argument('--twobit', help='Optional: Genome .2bit file to compute chrom.sizes via twoBitInfo')
     parser.add_argument('--github-repo', help='GitHub repository (format: username/repository) for raw URLs')
     parser.add_argument('--github-branch', default='main', help='GitHub branch (default: main)')
+    parser.add_argument('--enable-trix', action='store_true', help='Generate Trix (.ix/.ixx) text index for fast search')
+    parser.add_argument('--star-sj', help='Optional: STAR SJ.out.tab to convert into a splice junction track')
     
     args = parser.parse_args()
     
@@ -677,7 +837,18 @@ def main():
         sys.exit(1)
     
     # Run conversion
-    converter = SQANTI3ToBigBed(args.gtf, args.classification, args.output, args.genome, args.chrom_sizes, args.github_repo, args.github_branch)
+    converter = SQANTI3ToBigBed(
+        args.gtf,
+        args.classification,
+        args.output,
+        args.genome,
+        args.chrom_sizes,
+        args.github_repo,
+        args.github_branch,
+        enable_trix=args.enable_trix,
+        star_sj=args.star_sj,
+        two_bit_file=args.twobit
+    )
     success = converter.run()
     
     if not success:

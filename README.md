@@ -75,6 +75,20 @@ python sqanti3_to_UCSC.py \
     --genome hg38 \
     --chrom-sizes /path/to/chrom.sizes
 ```
+Alternatively, if you have a genome `.2bit` file, you can derive `chrom.sizes` using `twoBitInfo` automatically:
+
+```bash
+python sqanti3_to_UCSC.py \
+    --gtf your_transcriptome_corrected.gtf \
+    --classification your_transcriptome_classification.txt \
+    --output output_directory \
+    --genome hg38 \
+    --twobit /path/to/genome.2bit
+```
+Priority order for chromosome sizes resolution:
+- `--chrom-sizes` (highest)
+- `--twobit` (via twoBitInfo)
+- Extract from GTF (fallback)
 
 ### GitHub Integration (Recommended for UCSC Genome Browser)
 
@@ -91,6 +105,32 @@ python sqanti3_to_UCSC.py \
 
 This generates hub files with GitHub raw URLs (`https://raw.githubusercontent.com/...`), ready to use directly in UCSC Genome Browser without manual editing.
 
+### Optional Enhancements
+
+- **Trix Text Index** (faster text search)
+  - Generate a Trix text index by adding `--enable-trix` (requires UCSC `ixIxx` in PATH):
+  ```bash
+  python sqanti3_to_UCSC.py \
+      --gtf your_corrected.gtf \
+      --classification your_classification.txt \
+      --output output_directory \
+      --genome hg38 \
+      --enable-trix
+  ```
+  - This produces `genome/trix.ix` and `genome/trix.ixx` and wires `searchTrix trix.ix` in `trackDb.txt`.
+
+- **STAR Splice Junctions Track**
+  - Convert STAR `SJ.out.tab` into a bigBed junctions track and include it in the hub:
+  ```bash
+  python sqanti3_to_UCSC.py \
+      --gtf your_corrected.gtf \
+      --classification your_classification.txt \
+      --output output_directory \
+      --genome hg38 \
+      --star-sj path/to/SJ.out.tab
+  ```
+  - This creates `{genome}_star_sj.bb` and adds a `STAR Junctions` track.
+
 ### Command Line Arguments
 
 | Argument | Required | Description |
@@ -102,6 +142,8 @@ This generates hub files with GitHub raw URLs (`https://raw.githubusercontent.co
 | `--chrom-sizes` | No | Optional path to chromosome sizes file |
 | `--github-repo` | No | GitHub repository (format: username/repository) for automatic raw URL generation |
 | `--github-branch` | No | GitHub branch (default: main) |
+| `--enable-trix` | No | Generate Trix (.ix/.ixx) text index if `ixIxx` is available |
+| `--star-sj` | No | Path to STAR `SJ.out.tab` to add a splice junctions track |
 
 **Output Directory Flexibility:**
 - **Relative paths**: `./my_project`, `../analysis`
@@ -166,7 +208,7 @@ Upload all generated files to a web-accessible location (e.g., GitHub Pages, you
 python SQANTI3.py -g reference.gtf -j reference.gff3 -o output_dir input.fasta
 ```
 
-### 2. Convert to bigBed
+### 2. Run SQANTI-browser
 
 ```bash
 python sqanti3_to_UCSC.py \

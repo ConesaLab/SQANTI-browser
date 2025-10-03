@@ -70,6 +70,11 @@ def run_example():
     print(f"    --genome <genome_assembly> \\")
     print(f"    --github-repo <username/repository>")
     print()
+    print("Optional enhancements:")
+    print("- Enable Trix text index (requires ixIxx in PATH): add --enable-trix")
+    print("- Add STAR splice junctions track from SJ.out.tab: --star-sj <path>")
+    print("- Use a genome .2bit to compute chrom.sizes: --twobit <genome.2bit>")
+    print()
     
     # Show help
     print("For detailed help and all options:")
