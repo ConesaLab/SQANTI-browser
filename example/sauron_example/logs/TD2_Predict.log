@@ -1,0 +1,14 @@
+INFO:
+Step 1: Running PSAURON. This can take awhile, set -v to track progress.
+Citation: M. J. Sommer, A. Zimin, S. L. Salzberg, PSAURON: a tool for assessing protein annotation across a broad range of species. NAR Genom. Bioinform. 7, lqae189 (2025).
+Retaining long ORFs using strict length threshold, retaining if >= 100000 nucleotides
+Loading transcripts at /home/pabloati/Programs/sqanti3/pablo_tests/qc_trial/TD2/longest_orfs.cds
+Loaded 9167 sequences.
+Done.
+Step 2: No homology search results provided, skipping
+Done.
+Step 3: Deciding upon final ORFs
+Loading LongOrfs output from /home/pabloati/Programs/sqanti3/pablo_tests/qc_trial/TD2
+Selecting single best ORF per transcript
+Writing final output to current working directory
+

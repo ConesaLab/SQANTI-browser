@@ -1,0 +1,27 @@
+[WARNING:2025-09-08 11:48:54,118] Output directory qc_trial already exists. Overwriting!
+[INFO:2025-09-08 11:48:54,118] Write arguments to /home/pabloati/Programs/sqanti3/pablo_tests/qc_trial/isoforms.qc_params.txt
+[INFO:2025-09-08 11:48:54,118] Initialising QC pipeline.
+[INFO:2025-09-08 11:48:54,119] Parsing provided files
+[INFO:2025-09-08 11:48:54,119] Reading genome fasta ../data/reference/GRCh38.p13_chr22.fasta
+[INFO:2025-09-08 11:48:54,325] **** Correcting sequences
+[INFO:2025-09-08 11:48:54,325] Error corrected FASTA /home/pabloati/Programs/sqanti3/pablo_tests/qc_trial/isoforms_corrected.fasta already exists. Using it...
+[INFO:2025-09-08 11:48:54,325] **** Predicting ORF sequences...
+[INFO:2025-09-08 11:48:54,325] Running TD2 ORF search on /home/pabloati/Programs/sqanti3/pablo_tests/qc_trial/isoforms_corrected.fasta...
+[INFO:2025-09-08 11:48:55,754] Running TD2 ORF prediction on /home/pabloati/Programs/sqanti3/pablo_tests/qc_trial/isoforms_corrected.fasta...
+[INFO:2025-09-08 11:49:42,465] **** Parsing Reference Transcriptome....
+[INFO:2025-09-08 11:49:42,465] qc_trial/refAnnotation_isoforms.genePred already exists. Using it.
+[INFO:2025-09-08 11:49:42,578] /home/pabloati/Programs/sqanti3/pablo_tests/qc_trial/isoforms_corrected.genePred already exists. Using it.
+[INFO:2025-09-08 11:49:42,578] **** Parsing Isoforms.
+[INFO:2025-09-08 11:49:42,699] No short-reads or coverage provided. Skipping short-read coverage calculation.
+[INFO:2025-09-08 11:49:42,699] TSS ratio will not be calculated since SR information was not provided
+[INFO:2025-09-08 11:49:42,699] **** Performing Classification of Isoforms
+[INFO:2025-09-08 11:49:52,645] Number of classified isoforms: 3925
+[INFO:2025-09-08 11:49:52,657] After classify fsm: 3925
+[INFO:2025-09-08 11:49:52,657] Full-length read abundance files not provided.
+[INFO:2025-09-08 11:49:52,657] RT-switching computation
+[INFO:2025-09-08 11:49:52,879] After RTS classification: 3925
+[INFO:2025-09-08 11:49:52,879] Isoforms expression files not provided.
+[INFO:2025-09-08 11:49:53,000] Writing output files
+[INFO:2025-09-08 11:49:54,026] **** Generating SQANTI3 report.
+[ERROR:2025-09-08 11:49:56,465] Something went wrong during SQANTI3 report
+[ERROR:2025-09-08 11:49:56,465] For more inflo, check /home/pabloati/Programs/sqanti3/pablo_tests/qc_trial/logs/final_report.log

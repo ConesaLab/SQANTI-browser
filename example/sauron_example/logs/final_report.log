@@ -1,0 +1,109 @@
+ERROR:
+Details: Command '/home/pabloati/miniforge3/envs/sqanti3/bin/Rscript /home/pabloati/Programs/sqanti3/src/utilities/report_qc/SQANTI3_report.R /home/pabloati/Programs/sqanti3/pablo_tests/qc_trial/isoforms_classification.txt /home/pabloati/Programs/sqanti3/pablo_tests/qc_trial/isoforms_junctions.txt /home/pabloati/Programs/sqanti3/src/utilities False html' returned non-zero exit status 1.
+INFO:
+
+ERROR:
+Loading required package: Biobase
+Loading required package: BiocGenerics
+
+Attaching package: ‘BiocGenerics’
+
+The following object is masked from ‘package:gridExtra’:
+
+    combine
+
+The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
+    match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+    Position, rank, rbind, Reduce, rownames, sapply, setdiff, sort,
+    table, tapply, union, unique, unsplit, which.max, which.min
+
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+Loading required package: splines
+Loading required package: Matrix
+
+Attaching package: ‘Matrix’
+
+The following object is masked from ‘package:reshape’:
+
+    expand
+
+
+Attaching package: ‘plyr’
+
+The following objects are masked from ‘package:reshape’:
+
+    rename, round_any
+
+
+Attaching package: ‘plotly’
+
+The following objects are masked from ‘package:plyr’:
+
+    arrange, mutate, rename, summarise
+
+The following object is masked from ‘package:reshape’:
+
+    rename
+
+The following object is masked from ‘package:ggplot2’:
+
+    last_plot
+
+The following object is masked from ‘package:stats’:
+
+    filter
+
+The following object is masked from ‘package:graphics’:
+
+    layout
+
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:plyr’:
+
+    arrange, count, desc, failwith, id, mutate, rename, summarise,
+    summarize
+
+The following object is masked from ‘package:Biobase’:
+
+    combine
+
+The following objects are masked from ‘package:BiocGenerics’:
+
+    combine, intersect, setdiff, union
+
+The following object is masked from ‘package:gridExtra’:
+
+    combine
+
+The following object is masked from ‘package:reshape’:
+
+    rename
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Error in `$<-.data.frame`(`*tmp*`, orf_type, value = integer(0)) : 
+  replacement has 0 rows, data has 3925
+Calls: $<- -> $<-.data.frame
+Execution halted
+
