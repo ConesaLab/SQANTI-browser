@@ -38,7 +38,7 @@ else
 fi
 
 # Required tools
-TOOLS=("gtfToGenePred" "genePredToBed" "bedToBigBed")
+TOOLS=("gtfToGenePred" "genePredToBed" "bedToBigBed" "hubCheck")
 
 # Create installation directory
 INSTALL_DIR="/usr/local/bin"
@@ -95,6 +95,10 @@ echo ""
 echo "Next steps:"
 echo "1. Install Python dependencies: pip install -r requirements.txt"
 echo "2. Run the converter: python sqanti3_to_UCSC.py --help"
+echo ""
+echo "Hub troubleshooting (optional):"
+echo "- Validate a hub locally with UCSC hubCheck:"
+echo "  hubCheck -noTracks /path/to/hub.txt"
 echo ""
 echo "If you installed to ~/bin, remember to add it to your PATH:"
 echo "export PATH=\"$INSTALL_DIR:\$PATH\""

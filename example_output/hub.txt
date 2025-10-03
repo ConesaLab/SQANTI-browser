@@ -1,6 +1,6 @@
 hub example_output_hg38_SQANTI3_Hub
 shortLabel example_output_hg38_SQANTI3_Hub
 longLabel SQANTI3 Transcriptome Analysis for hg38
-genomesFile genomes.txt
-email sqanti3_user@users.noreply.github.com
-descriptionUrl example_output_hg38_SQANTI3_Hub.html
+genomesFile https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/genomes.txt
+email carolinamonzo@users.noreply.github.com
+descriptionUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/example_output_hg38_SQANTI3_Hub.html

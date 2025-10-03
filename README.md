@@ -131,6 +131,18 @@ This generates hub files with GitHub raw URLs (`https://raw.githubusercontent.co
   ```
   - This creates `{genome}_star_sj.bb` and adds a `STAR Junctions` track.
 
+- **bigBed 12+ with fielded filters**
+  - Enable fielded filters and numeric ranges with `--bb12plus`:
+  ```bash
+  python sqanti3_to_UCSC.py \
+      --gtf your_corrected.gtf \
+      --classification your_classification.txt \
+      --output output_directory \
+      --genome hg38 \
+      --bb12plus
+  ```
+  - Adds per-field `filter` and `filterByRange` controls for structural codes, subcategory, coding, FSM, length, exons, coverage, expression.
+
 ### Validation and Dry Run
 
 - **Validate only**: check tools and inputs, parse classification, then exit.
@@ -242,10 +254,13 @@ python sqanti3_to_UCSC.py \
 
 ### 3. Upload and View
 
-1. Upload the `hub_output` directory to your web server
-2. Add the hub to UCSC Genome Browser using the URL to `hub.txt`
-3. Navigate to your region of interest
-4. View and filter transcripts by structural category
+1. Upload the `hub_output` directory to your web server (for example, your GitHub repository)
+2. Check that the paths in your `hub.txt` file correspond to where your files are accessible in the web
+3. Go to https://genome.ucsc.edu/index.html
+4. Click on My Data -> Track Hubs -> My Hubs and add the link to your publicly available hub.txt file into the URL window.
+4. Click on Add Hub.
+5. Navigate to your region of interest
+6. View and filter transcripts by structural category
 
 ### Debug Mode
 
@@ -283,6 +298,17 @@ output_directory/
 │   └── trackDb.txt
 └── hg38_SQANTI3_Hub.html
 ```
+
+### Public Hub Readiness Checklist
+
+- Edit `hub.txt` shortLabel/longLabel to be descriptive.
+- Ensure `email` is valid and monitored.
+- Provide meaningful HTML pages:
+  - Top-level hub description (about/usage): `{output}_{genome}_SQANTI3_Hub.html`.
+  - Per-track HTML entries (auto-generated; edit as needed for clarity and references).
+- Verify `genomes.txt` references `trackDb.txt` and `groups.txt` correctly.
+- Host all files at stable URLs (e.g., GitHub Pages or institutional web).
+- Test the hub URL in UCSC (My Data → Track Hubs → My Hubs) and confirm filters/search.
 
 ## License
 
