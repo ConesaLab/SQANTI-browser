@@ -2,7 +2,7 @@ track hg38_sqanti3
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3.bb
 shortLabel SQANTI3 Transcripts
 longLabel SQANTI3 Transcriptome Analysis Results
-type bigBed 12 +
+type bigBed 12 + 8
 visibility dense
 group transcripts
 itemRgb on
@@ -12,12 +12,13 @@ html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg3
 searchIndex name
 filterByRange.blockCount 0:100
 filterLabel.blockCount Number of exons
+searchTrix trix.ix
 
 track hg38_sqanti3_full-splice_match
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_full-splice_match.bb
 shortLabel SQANTI3 full-splice_match
 longLabel SQANTI3 full-splice_match transcripts
-type bigBed 12 +
+type bigBed 12 + 39
 visibility hide
 group transcripts
 itemRgb on
@@ -30,7 +31,7 @@ track hg38_sqanti3_incomplete-splice_match
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_incomplete-splice_match.bb
 shortLabel SQANTI3 incomplete-splice_match
 longLabel SQANTI3 incomplete-splice_match transcripts
-type bigBed 12 +
+type bigBed 12 + 39
 visibility hide
 group transcripts
 itemRgb on
@@ -43,7 +44,7 @@ track hg38_sqanti3_novel_in_catalog
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_novel_in_catalog.bb
 shortLabel SQANTI3 novel_in_catalog
 longLabel SQANTI3 novel_in_catalog transcripts
-type bigBed 12 +
+type bigBed 12 + 39
 visibility hide
 group transcripts
 itemRgb on
@@ -56,7 +57,7 @@ track hg38_sqanti3_novel_not_in_catalog
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_novel_not_in_catalog.bb
 shortLabel SQANTI3 novel_not_in_catalog
 longLabel SQANTI3 novel_not_in_catalog transcripts
-type bigBed 12 +
+type bigBed 12 + 39
 visibility hide
 group transcripts
 itemRgb on
@@ -69,7 +70,7 @@ track hg38_sqanti3_genic
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_genic.bb
 shortLabel SQANTI3 genic
 longLabel SQANTI3 genic transcripts
-type bigBed 12 +
+type bigBed 12 + 39
 visibility hide
 group transcripts
 itemRgb on
@@ -82,7 +83,7 @@ track hg38_sqanti3_antisense
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_antisense.bb
 shortLabel SQANTI3 antisense
 longLabel SQANTI3 antisense transcripts
-type bigBed 12 +
+type bigBed 12 + 39
 visibility hide
 group transcripts
 itemRgb on
@@ -95,7 +96,7 @@ track hg38_sqanti3_fusion
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_fusion.bb
 shortLabel SQANTI3 fusion
 longLabel SQANTI3 fusion transcripts
-type bigBed 12 +
+type bigBed 12 + 39
 visibility hide
 group transcripts
 itemRgb on
@@ -108,7 +109,7 @@ track hg38_sqanti3_intergenic
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_intergenic.bb
 shortLabel SQANTI3 intergenic
 longLabel SQANTI3 intergenic transcripts
-type bigBed 12 +
+type bigBed 12 + 39
 visibility hide
 group transcripts
 itemRgb on
@@ -121,7 +122,7 @@ track hg38_sqanti3_genic_intron
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_genic_intron.bb
 shortLabel SQANTI3 genic_intron
 longLabel SQANTI3 genic_intron transcripts
-type bigBed 12 +
+type bigBed 12 + 39
 visibility hide
 group transcripts
 itemRgb on
