@@ -1,6 +1,6 @@
-# SQANTI3 to UCSC Genome Browser Hub Integration Tool
+# SQANTI-browser
 
-This tool integrates SQANTI3 transcriptome analysis results with the UCSC Genome Browser using hub functionality. It converts SQANTI3 output files (`*_corrected.gtf` and `*_classification.txt`) into bigBed format and creates all necessary hub files for visualization in the UCSC Genome Browser.
+SQANTI-browser converts SQANTI3 transcriptome analysis outputs into UCSC Genome Browser track hubs. It takes SQANTI3 `*_corrected.gtf` and `*_classification.txt`, produces bigBed files, and generates all hub configuration needed for immediate visualization in the UCSC Genome Browser.
 
 ## Features
 
