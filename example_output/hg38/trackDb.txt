@@ -2,7 +2,7 @@ track hg38_sqanti3
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3.bb
 shortLabel SQANTI3 Transcripts
 longLabel SQANTI3 Transcriptome Analysis Results
-type bigBed 12 + 8
+type bigBed
 visibility dense
 group transcripts
 itemRgb on

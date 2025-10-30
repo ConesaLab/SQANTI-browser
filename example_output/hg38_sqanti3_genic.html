@@ -3,16 +3,2350 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>hg38 SQANTI3 genic</title>
+    <title>hg38 SQANTI3 genic Transcripts</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }
-        h1 { color: #333; }
-        ul { list-style-type: disc; margin-left: 20px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; margin: 20px; background-color: #f8f9fa; color: #212529; }
+        h1, h2, h3 { color: #343a40; }
+        #container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        #filter-controls { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px; padding: 20px; background-color: #f1f3f5; border-radius: 6px; }
+        .filter-group { display: flex; flex-direction: column; }
+        label { font-weight: 500; margin-bottom: 5px; color: #495057; }
+        input, select { padding: 8px 10px; border-radius: 4px; border: 1px solid #ced4da; font-size: 14px; }
+        input:focus, select:focus { border-color: #80bdff; outline: 0; box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); }
+        #button-container { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px; }
+        .button, button { text-decoration: none; display: inline-block; text-align: center; padding: 10px 15px; font-size: 15px; font-weight: 500; border-radius: 5px; border: none; cursor: pointer; }
+        #preview-filters { background-color: #17a2b8; color: white; }
+        #preview-filters:hover { background-color: #138496; }
+        #toggle-table { background-color: #ffc107; color: #212529; }
+        #toggle-table:hover { background-color: #e0a800; }
+        a.button.disabled { background-color: #6c757d; color: white; cursor: not-allowed; opacity: 0.65; }
+        #apply-filters-ucsc { background-color: #28a745; color: white; }
+        #apply-filters-ucsc:hover { background-color: #218838; }
+        #reset-filters-ucsc { background-color: #dc3545; color: white; }
+        #reset-filters-ucsc:hover { background-color: #c82333; }
+        #results-count { font-size: 1.1em; font-weight: 500; margin-bottom: 15px; color: #495057; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #dee2e6; }
+        thead th { background-color: #e9ecef; color: #495057; }
+        tbody tr:nth-child(even) { background-color: #f8f9fa; }
+        tbody tr:hover { background-color: #e2e6ea; }
     </style>
-    </head>
+    <script>
+        const transcripts = [
+  {
+    "isoform": "PB.3855.1",
+    "exons": 1,
+    "length": 4870,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 119.0889,
+    "associated_gene": "ENSG00000100380.14"
+  },
+  {
+    "isoform": "PB.8657.1",
+    "exons": 1,
+    "length": 4796,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 38.77875,
+    "associated_gene": "ENSG00000286129.1"
+  },
+  {
+    "isoform": "PB.15802.1",
+    "exons": 1,
+    "length": 2302,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 42.604600000000005,
+    "associated_gene": "ENSG00000100147.14"
+  },
+  {
+    "isoform": "PB.23026.1",
+    "exons": 1,
+    "length": 2214,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 43.97795,
+    "associated_gene": "ENSG00000169184.6"
+  },
+  {
+    "isoform": "PB.23058.5",
+    "exons": 1,
+    "length": 2138,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 67.69765,
+    "associated_gene": "ENSG00000100345.22"
+  },
+  {
+    "isoform": "PB.23068.2",
+    "exons": 2,
+    "length": 2113,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000189060.6"
+  },
+  {
+    "isoform": "PB.23113.1",
+    "exons": 1,
+    "length": 2078,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 29.61495,
+    "associated_gene": "ENSG00000226328.7"
+  },
+  {
+    "isoform": "PB.23141.1",
+    "exons": 1,
+    "length": 2170,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 43.142399999999995,
+    "associated_gene": "ENSG00000251322.9"
+  },
+  {
+    "isoform": "PB.23142.1",
+    "exons": 1,
+    "length": 2187,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 109.1313,
+    "associated_gene": "ENSG00000251322.9"
+  },
+  {
+    "isoform": "PB.30459.1",
+    "exons": 1,
+    "length": 2033,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 43.01515,
+    "associated_gene": "ENSG00000100083.19"
+  },
+  {
+    "isoform": "PB.30468.1",
+    "exons": 1,
+    "length": 1997,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 92.0841,
+    "associated_gene": "ENSG00000100142.16"
+  },
+  {
+    "isoform": "PB.30503.1",
+    "exons": 1,
+    "length": 2066,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 66.92685,
+    "associated_gene": "ENSG00000130540.14"
+  },
+  {
+    "isoform": "PB.30516.4",
+    "exons": 1,
+    "length": 2010,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 35.819500000000005,
+    "associated_gene": "ENSG00000130638.17"
+  },
+  {
+    "isoform": "PB.37827.1",
+    "exons": 1,
+    "length": 1889,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 107.122,
+    "associated_gene": "ENSG00000185837.3"
+  },
+  {
+    "isoform": "PB.37828.1",
+    "exons": 1,
+    "length": 1934,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 101.8668,
+    "associated_gene": "ENSG00000099968.18"
+  },
+  {
+    "isoform": "PB.37847.1",
+    "exons": 1,
+    "length": 1904,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 226.9695,
+    "associated_gene": "ENSG00000241973.11"
+  },
+  {
+    "isoform": "PB.37894.3",
+    "exons": 1,
+    "length": 3817,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 828.2155,
+    "associated_gene": "ENSG00000100234.12"
+  },
+  {
+    "isoform": "PB.37918.1",
+    "exons": 2,
+    "length": 1934,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 1306.005,
+    "associated_gene": "ENSG00000189060.6"
+  },
+  {
+    "isoform": "PB.37919.1",
+    "exons": 1,
+    "length": 1882,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 83.86185,
+    "associated_gene": "ENSG00000100116.17"
+  },
+  {
+    "isoform": "PB.37927.1",
+    "exons": 1,
+    "length": 1874,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 219.7185,
+    "associated_gene": "ENSG00000213923.13"
+  },
+  {
+    "isoform": "PB.37929.1",
+    "exons": 1,
+    "length": 1893,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 104.7194,
+    "associated_gene": "ENSG00000244627.5"
+  },
+  {
+    "isoform": "PB.37949.1",
+    "exons": 1,
+    "length": 1968,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 86.8219,
+    "associated_gene": "ENSG00000100403.12"
+  },
+  {
+    "isoform": "PB.37957.1",
+    "exons": 1,
+    "length": 1970,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 25.13272,
+    "associated_gene": "ENSG00000183066.14"
+  },
+  {
+    "isoform": "PB.37968.1",
+    "exons": 1,
+    "length": 1944,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 124.6235,
+    "associated_gene": "ENSG00000188636.4"
+  },
+  {
+    "isoform": "PB.37989.1",
+    "exons": 1,
+    "length": 1893,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 82.03755000000001,
+    "associated_gene": "ENSG00000100239.16"
+  },
+  {
+    "isoform": "PB.45403.1",
+    "exons": 1,
+    "length": 1852,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 47.325050000000005,
+    "associated_gene": "ENSG00000100014.20_ENSG00000258555.6"
+  },
+  {
+    "isoform": "PB.45409.1",
+    "exons": 1,
+    "length": 1838,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000100104.13"
+  },
+  {
+    "isoform": "PB.45424.1",
+    "exons": 1,
+    "length": 1798,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 76.832,
+    "associated_gene": "ENSG00000184117.12"
+  },
+  {
+    "isoform": "PB.45433.2",
+    "exons": 1,
+    "length": 1850,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 83.07225,
+    "associated_gene": "ENSG00000183963.19"
+  },
+  {
+    "isoform": "PB.45449.1",
+    "exons": 1,
+    "length": 1799,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 72.521645,
+    "associated_gene": "ENSG00000100320.23"
+  },
+  {
+    "isoform": "PB.45453.1",
+    "exons": 1,
+    "length": 1764,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 90.82805,
+    "associated_gene": "ENSG00000100345.22"
+  },
+  {
+    "isoform": "PB.45497.1",
+    "exons": 1,
+    "length": 1768,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 158.3075,
+    "associated_gene": "ENSG00000184068.2"
+  },
+  {
+    "isoform": "PB.45502.1",
+    "exons": 2,
+    "length": 1811,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 225.126,
+    "associated_gene": "ENSG00000251913.1"
+  },
+  {
+    "isoform": "PB.45514.1",
+    "exons": 1,
+    "length": 1860,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 74.68525,
+    "associated_gene": "ENSG00000100376.12"
+  },
+  {
+    "isoform": "PB.52899.1",
+    "exons": 1,
+    "length": 1723,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 154.221,
+    "associated_gene": "ENSG00000183597.16"
+  },
+  {
+    "isoform": "PB.52950.1",
+    "exons": 1,
+    "length": 1705,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 23.73695,
+    "associated_gene": "ENSG00000099995.19"
+  },
+  {
+    "isoform": "PB.52977.1",
+    "exons": 1,
+    "length": 1643,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000100360.15"
+  },
+  {
+    "isoform": "PB.60611.1",
+    "exons": 1,
+    "length": 1493,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 27.6344,
+    "associated_gene": "ENSG00000100034.14"
+  },
+  {
+    "isoform": "PB.60654.1",
+    "exons": 1,
+    "length": 1509,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 34.79935,
+    "associated_gene": "ENSG00000100220.12"
+  },
+  {
+    "isoform": "PB.60674.1",
+    "exons": 2,
+    "length": 1585,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 945.314,
+    "associated_gene": "ENSG00000189060.6"
+  },
+  {
+    "isoform": "PB.60674.2",
+    "exons": 2,
+    "length": 1625,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 0.15478219,
+    "associated_gene": "ENSG00000189060.6"
+  },
+  {
+    "isoform": "PB.60674.3",
+    "exons": 2,
+    "length": 1572,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000189060.6"
+  },
+  {
+    "isoform": "PB.60707.2",
+    "exons": 1,
+    "length": 1575,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 33.45815,
+    "associated_gene": "ENSG00000183864.5"
+  },
+  {
+    "isoform": "PB.68205.1",
+    "exons": 1,
+    "length": 1518,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 64.986,
+    "associated_gene": "ENSG00000099910.17"
+  },
+  {
+    "isoform": "PB.68240.1",
+    "exons": 1,
+    "length": 1476,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000185340.15"
+  },
+  {
+    "isoform": "PB.68254.1",
+    "exons": 1,
+    "length": 1388,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 58.86845,
+    "associated_gene": "ENSG00000183963.19"
+  },
+  {
+    "isoform": "PB.68345.1",
+    "exons": 1,
+    "length": 1385,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 55.847,
+    "associated_gene": "ENSG00000075234.17"
+  },
+  {
+    "isoform": "PB.75666.1",
+    "exons": 1,
+    "length": 1180,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 44.781200000000005,
+    "associated_gene": "ENSG00000177663.14"
+  },
+  {
+    "isoform": "PB.75676.2",
+    "exons": 1,
+    "length": 1351,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 51.06675,
+    "associated_gene": "ENSG00000100084.14"
+  },
+  {
+    "isoform": "PB.75697.1",
+    "exons": 1,
+    "length": 1294,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 209.7805,
+    "associated_gene": "ENSG00000100023.20"
+  },
+  {
+    "isoform": "PB.75718.1",
+    "exons": 1,
+    "length": 1186,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 32.68955,
+    "associated_gene": "ENSG00000226471.6"
+  },
+  {
+    "isoform": "PB.75738.1",
+    "exons": 1,
+    "length": 1224,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 85.15115,
+    "associated_gene": "ENSG00000100281.14"
+  },
+  {
+    "isoform": "PB.75739.1",
+    "exons": 1,
+    "length": 1196,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 79.6526,
+    "associated_gene": "ENSG00000100284.22"
+  },
+  {
+    "isoform": "PB.75775.1",
+    "exons": 1,
+    "length": 1273,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 46.1245,
+    "associated_gene": "ENSG00000100324.14"
+  },
+  {
+    "isoform": "PB.75811.1",
+    "exons": 1,
+    "length": 1272,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 125.793,
+    "associated_gene": "ENSG00000100376.12"
+  },
+  {
+    "isoform": "PB.83096.1",
+    "exons": 1,
+    "length": 977,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 137.7601,
+    "associated_gene": "ENSG00000100181.22"
+  },
+  {
+    "isoform": "PB.83124.2",
+    "exons": 1,
+    "length": 1057,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 56.4685,
+    "associated_gene": "ENSG00000230513.2"
+  },
+  {
+    "isoform": "PB.83187.1",
+    "exons": 1,
+    "length": 977,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 10.91075,
+    "associated_gene": "ENSG00000233360.4"
+  },
+  {
+    "isoform": "PB.83219.1",
+    "exons": 1,
+    "length": 1083,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 63.2042,
+    "associated_gene": "ENSG00000100354.21"
+  },
+  {
+    "isoform": "PB.83254.1",
+    "exons": 1,
+    "length": 1044,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 413.678,
+    "associated_gene": "ENSG00000100364.19"
+  },
+  {
+    "isoform": "PB.88785.2",
+    "exons": 1,
+    "length": 3922,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 48.33335,
+    "associated_gene": "ENSG00000099991.18"
+  },
+  {
+    "isoform": "PB.88792.2",
+    "exons": 1,
+    "length": 3923,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 49.3274,
+    "associated_gene": "ENSG00000180957.18"
+  },
+  {
+    "isoform": "PB.96075.1",
+    "exons": 1,
+    "length": 764,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 112.01175,
+    "associated_gene": "ENSG00000283809.1_ENSG00000284294.1"
+  },
+  {
+    "isoform": "PB.96089.1",
+    "exons": 1,
+    "length": 953,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 104.4336,
+    "associated_gene": "ENSG00000223553.6"
+  },
+  {
+    "isoform": "PB.96105.1",
+    "exons": 1,
+    "length": 872,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000100038.20"
+  },
+  {
+    "isoform": "PB.96147.1",
+    "exons": 1,
+    "length": 807,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 230.6885,
+    "associated_gene": "ENSG00000100234.12"
+  },
+  {
+    "isoform": "PB.96168.1",
+    "exons": 1,
+    "length": 916,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 79.743,
+    "associated_gene": "ENSG00000100124.15"
+  },
+  {
+    "isoform": "PB.96173.1",
+    "exons": 1,
+    "length": 865,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 199.510055,
+    "associated_gene": "ENSG00000213923.13"
+  },
+  {
+    "isoform": "PB.96189.1",
+    "exons": 1,
+    "length": 930,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 230.7025,
+    "associated_gene": "ENSG00000196236.13"
+  },
+  {
+    "isoform": "PB.96194.1",
+    "exons": 1,
+    "length": 774,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 40.1316,
+    "associated_gene": "ENSG00000196419.13"
+  },
+  {
+    "isoform": "PB.103705.1",
+    "exons": 1,
+    "length": 647,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 160.89954999999998,
+    "associated_gene": "ENSG00000099937.11"
+  },
+  {
+    "isoform": "PB.103714.1",
+    "exons": 1,
+    "length": 663,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 213.3525,
+    "associated_gene": "ENSG00000100034.14"
+  },
+  {
+    "isoform": "PB.103785.1",
+    "exons": 1,
+    "length": 708,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 39.1381,
+    "associated_gene": "ENSG00000100321.15"
+  },
+  {
+    "isoform": "PB.103800.1",
+    "exons": 1,
+    "length": 703,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 34.56915,
+    "associated_gene": "ENSG00000184208.12"
+  },
+  {
+    "isoform": "PB.103825.1",
+    "exons": 1,
+    "length": 555,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 191.79,
+    "associated_gene": "ENSG00000224271.7"
+  },
+  {
+    "isoform": "PB.111564.1",
+    "exons": 1,
+    "length": 446,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 224.055,
+    "associated_gene": "ENSG00000070010.19"
+  },
+  {
+    "isoform": "PB.111576.1",
+    "exons": 1,
+    "length": 450,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000183506.17"
+  },
+  {
+    "isoform": "PB.111623.1",
+    "exons": 1,
+    "length": 549,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 432.037,
+    "associated_gene": "ENSG00000221963.6"
+  },
+  {
+    "isoform": "PB.111672.1",
+    "exons": 1,
+    "length": 493,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 577.8655,
+    "associated_gene": "ENSG00000100138.15"
+  },
+  {
+    "isoform": "PB.111673.1",
+    "exons": 1,
+    "length": 438,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 45.9498,
+    "associated_gene": "ENSG00000100138.15"
+  },
+  {
+    "isoform": "PB.118863.1",
+    "exons": 1,
+    "length": 275,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000223875.2"
+  },
+  {
+    "isoform": "PB.118877.1",
+    "exons": 1,
+    "length": 83,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 4835.175,
+    "associated_gene": "ENSG00000203618.6"
+  },
+  {
+    "isoform": "PB.118879.1",
+    "exons": 1,
+    "length": 329,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 409.848,
+    "associated_gene": "ENSG00000099889.14"
+  },
+  {
+    "isoform": "PB.118935.1",
+    "exons": 1,
+    "length": 271,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 602.4315,
+    "associated_gene": "ENSG00000198089.16"
+  },
+  {
+    "isoform": "PB.118938.1",
+    "exons": 1,
+    "length": 275,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000100220.12"
+  },
+  {
+    "isoform": "PB.118948.1",
+    "exons": 1,
+    "length": 131,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 624.075,
+    "associated_gene": "ENSG00000100348.10"
+  },
+  {
+    "isoform": "PB.118994.1",
+    "exons": 1,
+    "length": 309,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 789.1099999999999,
+    "associated_gene": "ENSG00000100395.15"
+  },
+  {
+    "isoform": "PB.124860.2",
+    "exons": 1,
+    "length": 3652,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000054611.14"
+  },
+  {
+    "isoform": "PB.130860.1",
+    "exons": 1,
+    "length": 3356,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 45.12865,
+    "associated_gene": "ENSG00000197077.14"
+  },
+  {
+    "isoform": "PB.130882.2",
+    "exons": 1,
+    "length": 3353,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 96.3006,
+    "associated_gene": "ENSG00000241878.11"
+  },
+  {
+    "isoform": "PB.130883.1",
+    "exons": 1,
+    "length": 3378,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 43.26885,
+    "associated_gene": "ENSG00000183530.14"
+  },
+  {
+    "isoform": "PB.130898.2",
+    "exons": 1,
+    "length": 3374,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 318.5045,
+    "associated_gene": "ENSG00000100083.19"
+  },
+  {
+    "isoform": "PB.130916.1",
+    "exons": 1,
+    "length": 3297,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 82.9213,
+    "associated_gene": "ENSG00000100351.17"
+  },
+  {
+    "isoform": "PB.130953.1",
+    "exons": 1,
+    "length": 3140,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 24.8014,
+    "associated_gene": "ENSG00000213279.2"
+  },
+  {
+    "isoform": "PB.130959.1",
+    "exons": 1,
+    "length": 3209,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 34.8212,
+    "associated_gene": "ENSG00000205593.12"
+  },
+  {
+    "isoform": "PB.137332.1",
+    "exons": 1,
+    "length": 2996,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 136.10514999999998,
+    "associated_gene": "ENSG00000128294.16"
+  },
+  {
+    "isoform": "PB.137356.1",
+    "exons": 2,
+    "length": 3001,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 220.564,
+    "associated_gene": "ENSG00000183530.14"
+  },
+  {
+    "isoform": "PB.137395.1",
+    "exons": 1,
+    "length": 3159,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 119.4775,
+    "associated_gene": "ENSG00000183864.5"
+  },
+  {
+    "isoform": "PB.143810.1",
+    "exons": 1,
+    "length": 2849,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 64.9319,
+    "associated_gene": "ENSG00000099889.14"
+  },
+  {
+    "isoform": "PB.143856.1",
+    "exons": 1,
+    "length": 2805,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 66.2353,
+    "associated_gene": "ENSG00000187860.11"
+  },
+  {
+    "isoform": "PB.143900.1",
+    "exons": 1,
+    "length": 2839,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 363.7735,
+    "associated_gene": "ENSG00000100354.21"
+  },
+  {
+    "isoform": "PB.143925.1",
+    "exons": 1,
+    "length": 2901,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 130.90375,
+    "associated_gene": "ENSG00000226328.7"
+  },
+  {
+    "isoform": "PB.150499.1",
+    "exons": 1,
+    "length": 2706,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 85.8378,
+    "associated_gene": "ENSG00000099942.13"
+  },
+  {
+    "isoform": "PB.150538.1",
+    "exons": 1,
+    "length": 2827,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 37.91,
+    "associated_gene": "ENSG00000100036.13"
+  },
+  {
+    "isoform": "PB.150588.1",
+    "exons": 1,
+    "length": 2748,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 118.2995,
+    "associated_gene": "ENSG00000100372.15"
+  },
+  {
+    "isoform": "PB.157394.1",
+    "exons": 1,
+    "length": 2637,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 51.7872,
+    "associated_gene": "ENSG00000185838.14"
+  },
+  {
+    "isoform": "PB.157420.1",
+    "exons": 1,
+    "length": 2519,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 78.9006,
+    "associated_gene": "ENSG00000099991.18"
+  },
+  {
+    "isoform": "PB.157441.1",
+    "exons": 1,
+    "length": 2557,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 210.076,
+    "associated_gene": "ENSG00000100263.14"
+  },
+  {
+    "isoform": "PB.157453.1",
+    "exons": 1,
+    "length": 2496,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 46.68725,
+    "associated_gene": "ENSG00000100003.18"
+  },
+  {
+    "isoform": "PB.157462.1",
+    "exons": 1,
+    "length": 2550,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 7.7613,
+    "associated_gene": "ENSG00000228839.5"
+  },
+  {
+    "isoform": "PB.157497.1",
+    "exons": 1,
+    "length": 2601,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 104.12865,
+    "associated_gene": "ENSG00000196588.20"
+  },
+  {
+    "isoform": "PB.157511.1",
+    "exons": 1,
+    "length": 2622,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 140.29950000000002,
+    "associated_gene": "ENSG00000198911.12"
+  },
+  {
+    "isoform": "PB.164518.1",
+    "exons": 1,
+    "length": 2395,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 168.15249999999995,
+    "associated_gene": "ENSG00000100084.14"
+  }
+];
+        const trackName = `hg38_sqanti3_genic`;
+    </script>
+</head>
 <body>
-    <h1>SQANTI3 genic (hg38)</h1>
-    <p>This track shows only transcripts in the <strong>genic</strong> structural category.</p>
-    <p>Colors follow the SQANTI3 palette. Use the track display settings to adjust visibility and score (exon count) range.</p>
+<div id="container">
+    <h1>SQANTI3 Transcripts: genic</h1>
+    <p>This page provides interactive filtering for the <strong>113</strong> transcripts in the <strong>genic</strong> structural category for genome <strong>hg38</strong>.</p>
+    
+    <div id="filter-controls">
+        <div class="filter-group">
+            <label for="min-exons">Min Exons</label>
+            <input type="number" id="min-exons" placeholder="e.g. 1">
+        </div>
+        <div class="filter-group">
+            <label for="max-exons">Max Exons</label>
+            <input type="number" id="max-exons" placeholder="e.g. 10">
+        </div>
+        <div class="filter-group">
+            <label for="min-tss">Min Distance to TSS</label>
+            <input type="number" id="min-tss" placeholder="e.g. -10000">
+        </div>
+        <div class="filter-group">
+            <label for="max-tss">Max Distance to TSS</label>
+            <input type="number" id="max-tss" placeholder="e.g. 10000">
+        </div>
+        <div class="filter-group">
+            <label for="coding-status">Coding Status</label>
+            <select id="coding-status"><option value="all">All</option><option value="coding">coding</option><option value="non_coding">non_coding</option></select>
+        </div>
+        <div class="filter-group">
+            <label for="gene-search">Associated Gene</label>
+            <input type="text" id="gene-search" placeholder="e.g. ENSG...">
+        </div>
+        <div id="button-container">
+            <button id="preview-filters">Preview Filters in Table</button>
+            <button id="toggle-table">Show/Hide Transcript Table</button>
+            <a id="apply-filters-ucsc" class="button" href="#" target="_top">Apply to Browser View</a>
+            <a id="reset-filters-ucsc" class="button" href="#" target="_top">Reset Browser View</a>
+        </div>
+    </div>
+    
+    <h3 id="results-count">Showing 113 transcripts.</h3>
+    <div id="table-wrapper" style="display: none;">
+        <div id="results-container"></div>
+    </div>
+</div>
+
+<script>
+    const transcripts = [
+  {
+    "isoform": "PB.3855.1",
+    "exons": 1,
+    "length": 4870,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 119.0889,
+    "associated_gene": "ENSG00000100380.14"
+  },
+  {
+    "isoform": "PB.8657.1",
+    "exons": 1,
+    "length": 4796,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 38.77875,
+    "associated_gene": "ENSG00000286129.1"
+  },
+  {
+    "isoform": "PB.15802.1",
+    "exons": 1,
+    "length": 2302,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 42.604600000000005,
+    "associated_gene": "ENSG00000100147.14"
+  },
+  {
+    "isoform": "PB.23026.1",
+    "exons": 1,
+    "length": 2214,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 43.97795,
+    "associated_gene": "ENSG00000169184.6"
+  },
+  {
+    "isoform": "PB.23058.5",
+    "exons": 1,
+    "length": 2138,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 67.69765,
+    "associated_gene": "ENSG00000100345.22"
+  },
+  {
+    "isoform": "PB.23068.2",
+    "exons": 2,
+    "length": 2113,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000189060.6"
+  },
+  {
+    "isoform": "PB.23113.1",
+    "exons": 1,
+    "length": 2078,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 29.61495,
+    "associated_gene": "ENSG00000226328.7"
+  },
+  {
+    "isoform": "PB.23141.1",
+    "exons": 1,
+    "length": 2170,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 43.142399999999995,
+    "associated_gene": "ENSG00000251322.9"
+  },
+  {
+    "isoform": "PB.23142.1",
+    "exons": 1,
+    "length": 2187,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 109.1313,
+    "associated_gene": "ENSG00000251322.9"
+  },
+  {
+    "isoform": "PB.30459.1",
+    "exons": 1,
+    "length": 2033,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 43.01515,
+    "associated_gene": "ENSG00000100083.19"
+  },
+  {
+    "isoform": "PB.30468.1",
+    "exons": 1,
+    "length": 1997,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 92.0841,
+    "associated_gene": "ENSG00000100142.16"
+  },
+  {
+    "isoform": "PB.30503.1",
+    "exons": 1,
+    "length": 2066,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 66.92685,
+    "associated_gene": "ENSG00000130540.14"
+  },
+  {
+    "isoform": "PB.30516.4",
+    "exons": 1,
+    "length": 2010,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 35.819500000000005,
+    "associated_gene": "ENSG00000130638.17"
+  },
+  {
+    "isoform": "PB.37827.1",
+    "exons": 1,
+    "length": 1889,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 107.122,
+    "associated_gene": "ENSG00000185837.3"
+  },
+  {
+    "isoform": "PB.37828.1",
+    "exons": 1,
+    "length": 1934,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 101.8668,
+    "associated_gene": "ENSG00000099968.18"
+  },
+  {
+    "isoform": "PB.37847.1",
+    "exons": 1,
+    "length": 1904,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 226.9695,
+    "associated_gene": "ENSG00000241973.11"
+  },
+  {
+    "isoform": "PB.37894.3",
+    "exons": 1,
+    "length": 3817,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 828.2155,
+    "associated_gene": "ENSG00000100234.12"
+  },
+  {
+    "isoform": "PB.37918.1",
+    "exons": 2,
+    "length": 1934,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 1306.005,
+    "associated_gene": "ENSG00000189060.6"
+  },
+  {
+    "isoform": "PB.37919.1",
+    "exons": 1,
+    "length": 1882,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 83.86185,
+    "associated_gene": "ENSG00000100116.17"
+  },
+  {
+    "isoform": "PB.37927.1",
+    "exons": 1,
+    "length": 1874,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 219.7185,
+    "associated_gene": "ENSG00000213923.13"
+  },
+  {
+    "isoform": "PB.37929.1",
+    "exons": 1,
+    "length": 1893,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 104.7194,
+    "associated_gene": "ENSG00000244627.5"
+  },
+  {
+    "isoform": "PB.37949.1",
+    "exons": 1,
+    "length": 1968,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 86.8219,
+    "associated_gene": "ENSG00000100403.12"
+  },
+  {
+    "isoform": "PB.37957.1",
+    "exons": 1,
+    "length": 1970,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 25.13272,
+    "associated_gene": "ENSG00000183066.14"
+  },
+  {
+    "isoform": "PB.37968.1",
+    "exons": 1,
+    "length": 1944,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 124.6235,
+    "associated_gene": "ENSG00000188636.4"
+  },
+  {
+    "isoform": "PB.37989.1",
+    "exons": 1,
+    "length": 1893,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 82.03755000000001,
+    "associated_gene": "ENSG00000100239.16"
+  },
+  {
+    "isoform": "PB.45403.1",
+    "exons": 1,
+    "length": 1852,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 47.325050000000005,
+    "associated_gene": "ENSG00000100014.20_ENSG00000258555.6"
+  },
+  {
+    "isoform": "PB.45409.1",
+    "exons": 1,
+    "length": 1838,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000100104.13"
+  },
+  {
+    "isoform": "PB.45424.1",
+    "exons": 1,
+    "length": 1798,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 76.832,
+    "associated_gene": "ENSG00000184117.12"
+  },
+  {
+    "isoform": "PB.45433.2",
+    "exons": 1,
+    "length": 1850,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 83.07225,
+    "associated_gene": "ENSG00000183963.19"
+  },
+  {
+    "isoform": "PB.45449.1",
+    "exons": 1,
+    "length": 1799,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 72.521645,
+    "associated_gene": "ENSG00000100320.23"
+  },
+  {
+    "isoform": "PB.45453.1",
+    "exons": 1,
+    "length": 1764,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 90.82805,
+    "associated_gene": "ENSG00000100345.22"
+  },
+  {
+    "isoform": "PB.45497.1",
+    "exons": 1,
+    "length": 1768,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 158.3075,
+    "associated_gene": "ENSG00000184068.2"
+  },
+  {
+    "isoform": "PB.45502.1",
+    "exons": 2,
+    "length": 1811,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 225.126,
+    "associated_gene": "ENSG00000251913.1"
+  },
+  {
+    "isoform": "PB.45514.1",
+    "exons": 1,
+    "length": 1860,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 74.68525,
+    "associated_gene": "ENSG00000100376.12"
+  },
+  {
+    "isoform": "PB.52899.1",
+    "exons": 1,
+    "length": 1723,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 154.221,
+    "associated_gene": "ENSG00000183597.16"
+  },
+  {
+    "isoform": "PB.52950.1",
+    "exons": 1,
+    "length": 1705,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 23.73695,
+    "associated_gene": "ENSG00000099995.19"
+  },
+  {
+    "isoform": "PB.52977.1",
+    "exons": 1,
+    "length": 1643,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000100360.15"
+  },
+  {
+    "isoform": "PB.60611.1",
+    "exons": 1,
+    "length": 1493,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 27.6344,
+    "associated_gene": "ENSG00000100034.14"
+  },
+  {
+    "isoform": "PB.60654.1",
+    "exons": 1,
+    "length": 1509,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 34.79935,
+    "associated_gene": "ENSG00000100220.12"
+  },
+  {
+    "isoform": "PB.60674.1",
+    "exons": 2,
+    "length": 1585,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 945.314,
+    "associated_gene": "ENSG00000189060.6"
+  },
+  {
+    "isoform": "PB.60674.2",
+    "exons": 2,
+    "length": 1625,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 0.15478219,
+    "associated_gene": "ENSG00000189060.6"
+  },
+  {
+    "isoform": "PB.60674.3",
+    "exons": 2,
+    "length": 1572,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000189060.6"
+  },
+  {
+    "isoform": "PB.60707.2",
+    "exons": 1,
+    "length": 1575,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 33.45815,
+    "associated_gene": "ENSG00000183864.5"
+  },
+  {
+    "isoform": "PB.68205.1",
+    "exons": 1,
+    "length": 1518,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 64.986,
+    "associated_gene": "ENSG00000099910.17"
+  },
+  {
+    "isoform": "PB.68240.1",
+    "exons": 1,
+    "length": 1476,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000185340.15"
+  },
+  {
+    "isoform": "PB.68254.1",
+    "exons": 1,
+    "length": 1388,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 58.86845,
+    "associated_gene": "ENSG00000183963.19"
+  },
+  {
+    "isoform": "PB.68345.1",
+    "exons": 1,
+    "length": 1385,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 55.847,
+    "associated_gene": "ENSG00000075234.17"
+  },
+  {
+    "isoform": "PB.75666.1",
+    "exons": 1,
+    "length": 1180,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 44.781200000000005,
+    "associated_gene": "ENSG00000177663.14"
+  },
+  {
+    "isoform": "PB.75676.2",
+    "exons": 1,
+    "length": 1351,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 51.06675,
+    "associated_gene": "ENSG00000100084.14"
+  },
+  {
+    "isoform": "PB.75697.1",
+    "exons": 1,
+    "length": 1294,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 209.7805,
+    "associated_gene": "ENSG00000100023.20"
+  },
+  {
+    "isoform": "PB.75718.1",
+    "exons": 1,
+    "length": 1186,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 32.68955,
+    "associated_gene": "ENSG00000226471.6"
+  },
+  {
+    "isoform": "PB.75738.1",
+    "exons": 1,
+    "length": 1224,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 85.15115,
+    "associated_gene": "ENSG00000100281.14"
+  },
+  {
+    "isoform": "PB.75739.1",
+    "exons": 1,
+    "length": 1196,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 79.6526,
+    "associated_gene": "ENSG00000100284.22"
+  },
+  {
+    "isoform": "PB.75775.1",
+    "exons": 1,
+    "length": 1273,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 46.1245,
+    "associated_gene": "ENSG00000100324.14"
+  },
+  {
+    "isoform": "PB.75811.1",
+    "exons": 1,
+    "length": 1272,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 125.793,
+    "associated_gene": "ENSG00000100376.12"
+  },
+  {
+    "isoform": "PB.83096.1",
+    "exons": 1,
+    "length": 977,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 137.7601,
+    "associated_gene": "ENSG00000100181.22"
+  },
+  {
+    "isoform": "PB.83124.2",
+    "exons": 1,
+    "length": 1057,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 56.4685,
+    "associated_gene": "ENSG00000230513.2"
+  },
+  {
+    "isoform": "PB.83187.1",
+    "exons": 1,
+    "length": 977,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 10.91075,
+    "associated_gene": "ENSG00000233360.4"
+  },
+  {
+    "isoform": "PB.83219.1",
+    "exons": 1,
+    "length": 1083,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 63.2042,
+    "associated_gene": "ENSG00000100354.21"
+  },
+  {
+    "isoform": "PB.83254.1",
+    "exons": 1,
+    "length": 1044,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 413.678,
+    "associated_gene": "ENSG00000100364.19"
+  },
+  {
+    "isoform": "PB.88785.2",
+    "exons": 1,
+    "length": 3922,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 48.33335,
+    "associated_gene": "ENSG00000099991.18"
+  },
+  {
+    "isoform": "PB.88792.2",
+    "exons": 1,
+    "length": 3923,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 49.3274,
+    "associated_gene": "ENSG00000180957.18"
+  },
+  {
+    "isoform": "PB.96075.1",
+    "exons": 1,
+    "length": 764,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 112.01175,
+    "associated_gene": "ENSG00000283809.1_ENSG00000284294.1"
+  },
+  {
+    "isoform": "PB.96089.1",
+    "exons": 1,
+    "length": 953,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 104.4336,
+    "associated_gene": "ENSG00000223553.6"
+  },
+  {
+    "isoform": "PB.96105.1",
+    "exons": 1,
+    "length": 872,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000100038.20"
+  },
+  {
+    "isoform": "PB.96147.1",
+    "exons": 1,
+    "length": 807,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 230.6885,
+    "associated_gene": "ENSG00000100234.12"
+  },
+  {
+    "isoform": "PB.96168.1",
+    "exons": 1,
+    "length": 916,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 79.743,
+    "associated_gene": "ENSG00000100124.15"
+  },
+  {
+    "isoform": "PB.96173.1",
+    "exons": 1,
+    "length": 865,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 199.510055,
+    "associated_gene": "ENSG00000213923.13"
+  },
+  {
+    "isoform": "PB.96189.1",
+    "exons": 1,
+    "length": 930,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 230.7025,
+    "associated_gene": "ENSG00000196236.13"
+  },
+  {
+    "isoform": "PB.96194.1",
+    "exons": 1,
+    "length": 774,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 40.1316,
+    "associated_gene": "ENSG00000196419.13"
+  },
+  {
+    "isoform": "PB.103705.1",
+    "exons": 1,
+    "length": 647,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 160.89954999999998,
+    "associated_gene": "ENSG00000099937.11"
+  },
+  {
+    "isoform": "PB.103714.1",
+    "exons": 1,
+    "length": 663,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 213.3525,
+    "associated_gene": "ENSG00000100034.14"
+  },
+  {
+    "isoform": "PB.103785.1",
+    "exons": 1,
+    "length": 708,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 39.1381,
+    "associated_gene": "ENSG00000100321.15"
+  },
+  {
+    "isoform": "PB.103800.1",
+    "exons": 1,
+    "length": 703,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 34.56915,
+    "associated_gene": "ENSG00000184208.12"
+  },
+  {
+    "isoform": "PB.103825.1",
+    "exons": 1,
+    "length": 555,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 191.79,
+    "associated_gene": "ENSG00000224271.7"
+  },
+  {
+    "isoform": "PB.111564.1",
+    "exons": 1,
+    "length": 446,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 224.055,
+    "associated_gene": "ENSG00000070010.19"
+  },
+  {
+    "isoform": "PB.111576.1",
+    "exons": 1,
+    "length": 450,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000183506.17"
+  },
+  {
+    "isoform": "PB.111623.1",
+    "exons": 1,
+    "length": 549,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 432.037,
+    "associated_gene": "ENSG00000221963.6"
+  },
+  {
+    "isoform": "PB.111672.1",
+    "exons": 1,
+    "length": 493,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 577.8655,
+    "associated_gene": "ENSG00000100138.15"
+  },
+  {
+    "isoform": "PB.111673.1",
+    "exons": 1,
+    "length": 438,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 45.9498,
+    "associated_gene": "ENSG00000100138.15"
+  },
+  {
+    "isoform": "PB.118863.1",
+    "exons": 1,
+    "length": 275,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000223875.2"
+  },
+  {
+    "isoform": "PB.118877.1",
+    "exons": 1,
+    "length": 83,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 4835.175,
+    "associated_gene": "ENSG00000203618.6"
+  },
+  {
+    "isoform": "PB.118879.1",
+    "exons": 1,
+    "length": 329,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 409.848,
+    "associated_gene": "ENSG00000099889.14"
+  },
+  {
+    "isoform": "PB.118935.1",
+    "exons": 1,
+    "length": 271,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 602.4315,
+    "associated_gene": "ENSG00000198089.16"
+  },
+  {
+    "isoform": "PB.118938.1",
+    "exons": 1,
+    "length": 275,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000100220.12"
+  },
+  {
+    "isoform": "PB.118948.1",
+    "exons": 1,
+    "length": 131,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 624.075,
+    "associated_gene": "ENSG00000100348.10"
+  },
+  {
+    "isoform": "PB.118994.1",
+    "exons": 1,
+    "length": 309,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 789.1099999999999,
+    "associated_gene": "ENSG00000100395.15"
+  },
+  {
+    "isoform": "PB.124860.2",
+    "exons": 1,
+    "length": 3652,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "ENSG00000054611.14"
+  },
+  {
+    "isoform": "PB.130860.1",
+    "exons": 1,
+    "length": 3356,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 45.12865,
+    "associated_gene": "ENSG00000197077.14"
+  },
+  {
+    "isoform": "PB.130882.2",
+    "exons": 1,
+    "length": 3353,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 96.3006,
+    "associated_gene": "ENSG00000241878.11"
+  },
+  {
+    "isoform": "PB.130883.1",
+    "exons": 1,
+    "length": 3378,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 43.26885,
+    "associated_gene": "ENSG00000183530.14"
+  },
+  {
+    "isoform": "PB.130898.2",
+    "exons": 1,
+    "length": 3374,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 318.5045,
+    "associated_gene": "ENSG00000100083.19"
+  },
+  {
+    "isoform": "PB.130916.1",
+    "exons": 1,
+    "length": 3297,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 82.9213,
+    "associated_gene": "ENSG00000100351.17"
+  },
+  {
+    "isoform": "PB.130953.1",
+    "exons": 1,
+    "length": 3140,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 24.8014,
+    "associated_gene": "ENSG00000213279.2"
+  },
+  {
+    "isoform": "PB.130959.1",
+    "exons": 1,
+    "length": 3209,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 34.8212,
+    "associated_gene": "ENSG00000205593.12"
+  },
+  {
+    "isoform": "PB.137332.1",
+    "exons": 1,
+    "length": 2996,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 136.10514999999998,
+    "associated_gene": "ENSG00000128294.16"
+  },
+  {
+    "isoform": "PB.137356.1",
+    "exons": 2,
+    "length": 3001,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 220.564,
+    "associated_gene": "ENSG00000183530.14"
+  },
+  {
+    "isoform": "PB.137395.1",
+    "exons": 1,
+    "length": 3159,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 119.4775,
+    "associated_gene": "ENSG00000183864.5"
+  },
+  {
+    "isoform": "PB.143810.1",
+    "exons": 1,
+    "length": 2849,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 64.9319,
+    "associated_gene": "ENSG00000099889.14"
+  },
+  {
+    "isoform": "PB.143856.1",
+    "exons": 1,
+    "length": 2805,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 66.2353,
+    "associated_gene": "ENSG00000187860.11"
+  },
+  {
+    "isoform": "PB.143900.1",
+    "exons": 1,
+    "length": 2839,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 363.7735,
+    "associated_gene": "ENSG00000100354.21"
+  },
+  {
+    "isoform": "PB.143925.1",
+    "exons": 1,
+    "length": 2901,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 130.90375,
+    "associated_gene": "ENSG00000226328.7"
+  },
+  {
+    "isoform": "PB.150499.1",
+    "exons": 1,
+    "length": 2706,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 85.8378,
+    "associated_gene": "ENSG00000099942.13"
+  },
+  {
+    "isoform": "PB.150538.1",
+    "exons": 1,
+    "length": 2827,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 37.91,
+    "associated_gene": "ENSG00000100036.13"
+  },
+  {
+    "isoform": "PB.150588.1",
+    "exons": 1,
+    "length": 2748,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 118.2995,
+    "associated_gene": "ENSG00000100372.15"
+  },
+  {
+    "isoform": "PB.157394.1",
+    "exons": 1,
+    "length": 2637,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 51.7872,
+    "associated_gene": "ENSG00000185838.14"
+  },
+  {
+    "isoform": "PB.157420.1",
+    "exons": 1,
+    "length": 2519,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 78.9006,
+    "associated_gene": "ENSG00000099991.18"
+  },
+  {
+    "isoform": "PB.157441.1",
+    "exons": 1,
+    "length": 2557,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 210.076,
+    "associated_gene": "ENSG00000100263.14"
+  },
+  {
+    "isoform": "PB.157453.1",
+    "exons": 1,
+    "length": 2496,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 46.68725,
+    "associated_gene": "ENSG00000100003.18"
+  },
+  {
+    "isoform": "PB.157462.1",
+    "exons": 1,
+    "length": 2550,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 7.7613,
+    "associated_gene": "ENSG00000228839.5"
+  },
+  {
+    "isoform": "PB.157497.1",
+    "exons": 1,
+    "length": 2601,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 104.12865,
+    "associated_gene": "ENSG00000196588.20"
+  },
+  {
+    "isoform": "PB.157511.1",
+    "exons": 1,
+    "length": 2622,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 140.29950000000002,
+    "associated_gene": "ENSG00000198911.12"
+  },
+  {
+    "isoform": "PB.164518.1",
+    "exons": 1,
+    "length": 2395,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 168.15249999999995,
+    "associated_gene": "ENSG00000100084.14"
+  }
+];
+    const trackName = `hg38_sqanti3_genic`;
+</script>
+<script src="track_viewer.js" defer></script>
+
 </body>
 </html>

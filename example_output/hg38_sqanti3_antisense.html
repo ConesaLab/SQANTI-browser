@@ -3,16 +3,610 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>hg38 SQANTI3 antisense</title>
+    <title>hg38 SQANTI3 antisense Transcripts</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }
-        h1 { color: #333; }
-        ul { list-style-type: disc; margin-left: 20px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; margin: 20px; background-color: #f8f9fa; color: #212529; }
+        h1, h2, h3 { color: #343a40; }
+        #container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        #filter-controls { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px; padding: 20px; background-color: #f1f3f5; border-radius: 6px; }
+        .filter-group { display: flex; flex-direction: column; }
+        label { font-weight: 500; margin-bottom: 5px; color: #495057; }
+        input, select { padding: 8px 10px; border-radius: 4px; border: 1px solid #ced4da; font-size: 14px; }
+        input:focus, select:focus { border-color: #80bdff; outline: 0; box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); }
+        #button-container { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px; }
+        .button, button { text-decoration: none; display: inline-block; text-align: center; padding: 10px 15px; font-size: 15px; font-weight: 500; border-radius: 5px; border: none; cursor: pointer; }
+        #preview-filters { background-color: #17a2b8; color: white; }
+        #preview-filters:hover { background-color: #138496; }
+        #toggle-table { background-color: #ffc107; color: #212529; }
+        #toggle-table:hover { background-color: #e0a800; }
+        a.button.disabled { background-color: #6c757d; color: white; cursor: not-allowed; opacity: 0.65; }
+        #apply-filters-ucsc { background-color: #28a745; color: white; }
+        #apply-filters-ucsc:hover { background-color: #218838; }
+        #reset-filters-ucsc { background-color: #dc3545; color: white; }
+        #reset-filters-ucsc:hover { background-color: #c82333; }
+        #results-count { font-size: 1.1em; font-weight: 500; margin-bottom: 15px; color: #495057; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #dee2e6; }
+        thead th { background-color: #e9ecef; color: #495057; }
+        tbody tr:nth-child(even) { background-color: #f8f9fa; }
+        tbody tr:hover { background-color: #e2e6ea; }
     </style>
-    </head>
+    <script>
+        const transcripts = [
+  {
+    "isoform": "PB.8718.1",
+    "exons": 3,
+    "length": 4245,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 11.351685,
+    "associated_gene": "novelGene_ENSG00000100344.11_AS"
+  },
+  {
+    "isoform": "PB.15815.1",
+    "exons": 1,
+    "length": 2366,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 18.5889,
+    "associated_gene": "novelGene_ENSG00000223730.1_AS"
+  },
+  {
+    "isoform": "PB.22994.1",
+    "exons": 2,
+    "length": 2134,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 61.938,
+    "associated_gene": "novelGene_ENSG00000236499.2_AS"
+  },
+  {
+    "isoform": "PB.45380.1",
+    "exons": 1,
+    "length": 1846,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 71.0206,
+    "associated_gene": "novelGene_ENSG00000099937.11_AS"
+  },
+  {
+    "isoform": "PB.45383.1",
+    "exons": 1,
+    "length": 1791,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 60.2701,
+    "associated_gene": "novelGene_ENSG00000237476.1_AS"
+  },
+  {
+    "isoform": "PB.53057.1",
+    "exons": 1,
+    "length": 1713,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 123.51665,
+    "associated_gene": "novelGene_ENSG00000279345.1_AS"
+  },
+  {
+    "isoform": "PB.68181.1",
+    "exons": 1,
+    "length": 1472,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 63.515550000000005,
+    "associated_gene": "novelGene_ENSG00000235992.1_AS"
+  },
+  {
+    "isoform": "PB.75694.1",
+    "exons": 1,
+    "length": 1318,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 69.9462,
+    "associated_gene": "novelGene_ENSG00000161179.14_AS"
+  },
+  {
+    "isoform": "PB.75781.3",
+    "exons": 1,
+    "length": 1177,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 31.53095,
+    "associated_gene": "novelGene_ENSG00000172404.5_AS"
+  },
+  {
+    "isoform": "PB.83195.1",
+    "exons": 2,
+    "length": 1020,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 264.6185,
+    "associated_gene": "novelGene_ENSG00000128346.11_AS"
+  },
+  {
+    "isoform": "PB.83241.2",
+    "exons": 1,
+    "length": 1085,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "novelGene_ENSG00000183569.18_AS"
+  },
+  {
+    "isoform": "PB.96068.1",
+    "exons": 3,
+    "length": 794,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 0.0,
+    "associated_gene": "novelGene_ENSG00000286406.1_AS"
+  },
+  {
+    "isoform": "PB.103747.1",
+    "exons": 1,
+    "length": 582,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.65745,
+    "associated_gene": "novelGene_ENSG00000240591.2_AS"
+  },
+  {
+    "isoform": "PB.103781.1",
+    "exons": 1,
+    "length": 577,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 311.7095,
+    "associated_gene": "novelGene_ENSG00000100242.15_AS"
+  },
+  {
+    "isoform": "PB.111550.1",
+    "exons": 1,
+    "length": 538,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 200.2355,
+    "associated_gene": "novelGene_ENSG00000206195.11_AS"
+  },
+  {
+    "isoform": "PB.111581.1",
+    "exons": 1,
+    "length": 475,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "novelGene_ENSG00000275004.4_AS"
+  },
+  {
+    "isoform": "PB.111694.1",
+    "exons": 2,
+    "length": 376,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "novelGene_ENSG00000188511.12_AS"
+  },
+  {
+    "isoform": "PB.111702.1",
+    "exons": 1,
+    "length": 462,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 477.9725,
+    "associated_gene": "novelGene_ENSG00000100239.16_AS"
+  },
+  {
+    "isoform": "PB.118973.1",
+    "exons": 1,
+    "length": 238,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 1207.155,
+    "associated_gene": "novelGene_ENSG00000100201.23_AS"
+  },
+  {
+    "isoform": "PB.119028.1",
+    "exons": 2,
+    "length": 351,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 183.532,
+    "associated_gene": "novelGene_ENSG00000188511.12_AS"
+  },
+  {
+    "isoform": "PB.130820.1",
+    "exons": 1,
+    "length": 3312,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 212.4045,
+    "associated_gene": "novelGene_ENSG00000015475.19_AS"
+  },
+  {
+    "isoform": "PB.150536.1",
+    "exons": 1,
+    "length": 2682,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 126.8321,
+    "associated_gene": "novelGene_ENSG00000100003.18_AS_novelGene_ENSG00000249590.7_AS"
+  },
+  {
+    "isoform": "PB.150623.1",
+    "exons": 1,
+    "length": 2687,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 109.8405,
+    "associated_gene": "novelGene_ENSG00000100416.15_AS"
+  },
+  {
+    "isoform": "PB.157388.1",
+    "exons": 1,
+    "length": 2514,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 18.93745,
+    "associated_gene": "novelGene_ENSG00000233471.2_AS"
+  },
+  {
+    "isoform": "PB.164510.1",
+    "exons": 1,
+    "length": 2412,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 81.55449999999999,
+    "associated_gene": "novelGene_ENSG00000215270.3_AS"
+  },
+  {
+    "isoform": "PB.164521.5",
+    "exons": 1,
+    "length": 2356,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 111.6561,
+    "associated_gene": "novelGene_ENSG00000236540.7_AS"
+  }
+];
+        const trackName = `hg38_sqanti3_antisense`;
+    </script>
+</head>
 <body>
-    <h1>SQANTI3 antisense (hg38)</h1>
-    <p>This track shows only transcripts in the <strong>antisense</strong> structural category.</p>
-    <p>Colors follow the SQANTI3 palette. Use the track display settings to adjust visibility and score (exon count) range.</p>
+<div id="container">
+    <h1>SQANTI3 Transcripts: antisense</h1>
+    <p>This page provides interactive filtering for the <strong>26</strong> transcripts in the <strong>antisense</strong> structural category for genome <strong>hg38</strong>.</p>
+    
+    <div id="filter-controls">
+        <div class="filter-group">
+            <label for="min-exons">Min Exons</label>
+            <input type="number" id="min-exons" placeholder="e.g. 1">
+        </div>
+        <div class="filter-group">
+            <label for="max-exons">Max Exons</label>
+            <input type="number" id="max-exons" placeholder="e.g. 10">
+        </div>
+        <div class="filter-group">
+            <label for="min-tss">Min Distance to TSS</label>
+            <input type="number" id="min-tss" placeholder="e.g. -10000">
+        </div>
+        <div class="filter-group">
+            <label for="max-tss">Max Distance to TSS</label>
+            <input type="number" id="max-tss" placeholder="e.g. 10000">
+        </div>
+        <div class="filter-group">
+            <label for="coding-status">Coding Status</label>
+            <select id="coding-status"><option value="all">All</option><option value="coding">coding</option><option value="non_coding">non_coding</option></select>
+        </div>
+        <div class="filter-group">
+            <label for="gene-search">Associated Gene</label>
+            <input type="text" id="gene-search" placeholder="e.g. ENSG...">
+        </div>
+        <div id="button-container">
+            <button id="preview-filters">Preview Filters in Table</button>
+            <button id="toggle-table">Show/Hide Transcript Table</button>
+            <a id="apply-filters-ucsc" class="button" href="#" target="_top">Apply to Browser View</a>
+            <a id="reset-filters-ucsc" class="button" href="#" target="_top">Reset Browser View</a>
+        </div>
+    </div>
+    
+    <h3 id="results-count">Showing 26 transcripts.</h3>
+    <div id="table-wrapper" style="display: none;">
+        <div id="results-container"></div>
+    </div>
+</div>
+
+<script>
+    const transcripts = [
+  {
+    "isoform": "PB.8718.1",
+    "exons": 3,
+    "length": 4245,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 11.351685,
+    "associated_gene": "novelGene_ENSG00000100344.11_AS"
+  },
+  {
+    "isoform": "PB.15815.1",
+    "exons": 1,
+    "length": 2366,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 18.5889,
+    "associated_gene": "novelGene_ENSG00000223730.1_AS"
+  },
+  {
+    "isoform": "PB.22994.1",
+    "exons": 2,
+    "length": 2134,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 61.938,
+    "associated_gene": "novelGene_ENSG00000236499.2_AS"
+  },
+  {
+    "isoform": "PB.45380.1",
+    "exons": 1,
+    "length": 1846,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 71.0206,
+    "associated_gene": "novelGene_ENSG00000099937.11_AS"
+  },
+  {
+    "isoform": "PB.45383.1",
+    "exons": 1,
+    "length": 1791,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 60.2701,
+    "associated_gene": "novelGene_ENSG00000237476.1_AS"
+  },
+  {
+    "isoform": "PB.53057.1",
+    "exons": 1,
+    "length": 1713,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 123.51665,
+    "associated_gene": "novelGene_ENSG00000279345.1_AS"
+  },
+  {
+    "isoform": "PB.68181.1",
+    "exons": 1,
+    "length": 1472,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 63.515550000000005,
+    "associated_gene": "novelGene_ENSG00000235992.1_AS"
+  },
+  {
+    "isoform": "PB.75694.1",
+    "exons": 1,
+    "length": 1318,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 69.9462,
+    "associated_gene": "novelGene_ENSG00000161179.14_AS"
+  },
+  {
+    "isoform": "PB.75781.3",
+    "exons": 1,
+    "length": 1177,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 31.53095,
+    "associated_gene": "novelGene_ENSG00000172404.5_AS"
+  },
+  {
+    "isoform": "PB.83195.1",
+    "exons": 2,
+    "length": 1020,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 264.6185,
+    "associated_gene": "novelGene_ENSG00000128346.11_AS"
+  },
+  {
+    "isoform": "PB.83241.2",
+    "exons": 1,
+    "length": 1085,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "novelGene_ENSG00000183569.18_AS"
+  },
+  {
+    "isoform": "PB.96068.1",
+    "exons": 3,
+    "length": 794,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 0.0,
+    "associated_gene": "novelGene_ENSG00000286406.1_AS"
+  },
+  {
+    "isoform": "PB.103747.1",
+    "exons": 1,
+    "length": 582,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.65745,
+    "associated_gene": "novelGene_ENSG00000240591.2_AS"
+  },
+  {
+    "isoform": "PB.103781.1",
+    "exons": 1,
+    "length": 577,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 311.7095,
+    "associated_gene": "novelGene_ENSG00000100242.15_AS"
+  },
+  {
+    "isoform": "PB.111550.1",
+    "exons": 1,
+    "length": 538,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 200.2355,
+    "associated_gene": "novelGene_ENSG00000206195.11_AS"
+  },
+  {
+    "isoform": "PB.111581.1",
+    "exons": 1,
+    "length": 475,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "novelGene_ENSG00000275004.4_AS"
+  },
+  {
+    "isoform": "PB.111694.1",
+    "exons": 2,
+    "length": 376,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 0.0,
+    "associated_gene": "novelGene_ENSG00000188511.12_AS"
+  },
+  {
+    "isoform": "PB.111702.1",
+    "exons": 1,
+    "length": 462,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 477.9725,
+    "associated_gene": "novelGene_ENSG00000100239.16_AS"
+  },
+  {
+    "isoform": "PB.118973.1",
+    "exons": 1,
+    "length": 238,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 1207.155,
+    "associated_gene": "novelGene_ENSG00000100201.23_AS"
+  },
+  {
+    "isoform": "PB.119028.1",
+    "exons": 2,
+    "length": 351,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 183.532,
+    "associated_gene": "novelGene_ENSG00000188511.12_AS"
+  },
+  {
+    "isoform": "PB.130820.1",
+    "exons": 1,
+    "length": 3312,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 212.4045,
+    "associated_gene": "novelGene_ENSG00000015475.19_AS"
+  },
+  {
+    "isoform": "PB.150536.1",
+    "exons": 1,
+    "length": 2682,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 126.8321,
+    "associated_gene": "novelGene_ENSG00000100003.18_AS_novelGene_ENSG00000249590.7_AS"
+  },
+  {
+    "isoform": "PB.150623.1",
+    "exons": 1,
+    "length": 2687,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 109.8405,
+    "associated_gene": "novelGene_ENSG00000100416.15_AS"
+  },
+  {
+    "isoform": "PB.157388.1",
+    "exons": 1,
+    "length": 2514,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 18.93745,
+    "associated_gene": "novelGene_ENSG00000233471.2_AS"
+  },
+  {
+    "isoform": "PB.164510.1",
+    "exons": 1,
+    "length": 2412,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "non_coding",
+    "iso_exp": 81.55449999999999,
+    "associated_gene": "novelGene_ENSG00000215270.3_AS"
+  },
+  {
+    "isoform": "PB.164521.5",
+    "exons": 1,
+    "length": 2356,
+    "diff_to_TSS": null,
+    "diff_to_TTS": null,
+    "coding": "coding",
+    "iso_exp": 111.6561,
+    "associated_gene": "novelGene_ENSG00000236540.7_AS"
+  }
+];
+    const trackName = `hg38_sqanti3_antisense`;
+</script>
+<script src="track_viewer.js" defer></script>
+
 </body>
 </html>

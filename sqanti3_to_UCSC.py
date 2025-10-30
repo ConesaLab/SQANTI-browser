@@ -21,6 +21,7 @@ from pathlib import Path
 import pandas as pd
 import logging
 from collections import defaultdict
+import json
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -1076,12 +1077,71 @@ class SQANTI3ToBigBed:
                     # Create per-category HTML description
                     cat_html_name = f"{self.genome}_sqanti3_{cat}.html"
                     try:
+                        # 1. Read the HTML template
+                        template_path = Path(__file__).parent / 'track_template.html'
+                        if not template_path.exists():
+                            logger.warning(f"Template file not found at {template_path}, falling back to basic HTML.")
+                            raise FileNotFoundError("track_template.html not found")
+                        
+                        with open(template_path, 'r') as f_template:
+                            html_content = f_template.read()
+
+                        # 2. Prepare data for template replacement
+                        category_data = []
+                        
+                        def safe_int(val):
+                            try: return int(float(val))
+                            except (ValueError, TypeError, AttributeError): return None
+
+                        def safe_float(val):
+                            try: return float(val)
+                            except (ValueError, TypeError, AttributeError): return None
+
+                        for transcript_id, data in self.classification_data.items():
+                            if data.get('structural_category') == cat:
+                                filtered_data = {
+                                    'isoform': transcript_id,
+                                    'exons': safe_int(data.get('exons')),
+                                    'length': safe_int(data.get('length')),
+                                    'diff_to_TSS': safe_int(data.get('diff_to_TSS')),
+                                    'diff_to_TTS': safe_int(data.get('diff_to_TTS')),
+                                    'coding': data.get('coding', 'unknown'),
+                                    'iso_exp': safe_float(data.get('iso_exp')),
+                                    'associated_gene': data.get('associated_gene', 'unknown'),
+                                }
+                                category_data.append(filtered_data)
+                        
+                        json_data = json.dumps(category_data, indent=2)
+
+                        # 3. Prepare dropdown options for coding status
+                        coding_stati = sorted(list(set(d.get('coding') for d in category_data if d.get('coding'))))
+                        options_html = '<option value="all">All</option>'
+                        for status in coding_stati:
+                            options_html += f'<option value="{status}">{status}</option>'
+
+                        # 4. Replace placeholders in the template
+                        html_content = html_content.replace('%%TITLE%%', f"{self.genome} SQANTI3 {cat} Transcripts")
+                        html_content = html_content.replace('%%CATEGORY_DATA%%', json_data)
+                        html_content = html_content.replace('%%CATEGORY_NAME%%', cat)
+                        html_content = html_content.replace('%%TRANSCRIPT_COUNT%%', str(len(category_data)))
+                        html_content = html_content.replace('%%GENOME%%', self.genome)
+                        html_content = html_content.replace('%%CODING_OPTIONS%%', options_html)
+                        html_content = html_content.replace('%%TRACK_NAME%%', f"{self.genome}_sqanti3_{cat}")
+
+                        # 5. Write the final HTML
                         with open(self.output_dir / cat_html_name, 'w') as ch:
-                            ch.write(f"""<!DOCTYPE html>
-<html lang=\"en\">
+                            ch.write(html_content)
+
+                    except Exception as e:
+                        logger.warning(f"Could not create interactive HTML for category {cat}: {e}")
+                        # Fallback to original simple HTML
+                        try:
+                            with open(self.output_dir / cat_html_name, 'w') as ch:
+                                ch.write(f'''<!DOCTYPE html>
+<html lang="en">
 <head>
-    <meta charset=\"UTF-8\">
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{self.genome} SQANTI3 {cat}</title>
     <style>
         body {{ font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }}
@@ -1094,9 +1154,10 @@ class SQANTI3ToBigBed:
     <p>This track shows only transcripts in the <strong>{cat}</strong> structural category.</p>
     <p>Colors follow the SQANTI3 palette. Use the track display settings to adjust visibility and score (exon count) range.</p>
 </body>
-</html>""")
-                    except Exception:
-                        pass
+</html>''')
+                        except Exception:
+                            pass # Final fallback, do nothing
+
                     f.write("\n")
                     track_name = f"{self.genome}_sqanti3_{cat}"
                     short = f"SQANTI3 {cat}"
@@ -1118,8 +1179,8 @@ class SQANTI3ToBigBed:
         
         # Create simple HTML description
         html_file = self.output_dir / f"{hub_name}.html"
-        with open(html_file, 'w') as f:
-            f.write(f"""<!DOCTYPE html>
+        with open(html_file, 'w') as f_html:
+            f_html.write(f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1209,6 +1270,17 @@ class SQANTI3ToBigBed:
 </body>
 </html>""")
         
+        # Copy the track_viewer.js file to the output directory
+        try:
+            viewer_js_source = Path(__file__).parent / 'track_viewer.js'
+            if viewer_js_source.exists():
+                shutil.copy2(viewer_js_source, self.output_dir / 'track_viewer.js')
+                logger.info("Copied track_viewer.js to output directory.")
+            else:
+                logger.warning("track_viewer.js not found, interactive features may not work.")
+        except Exception as e:
+            logger.error(f"Error copying track_viewer.js: {e}")
+
         logger.info("Hub files created successfully")
         return True
     
