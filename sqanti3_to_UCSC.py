@@ -233,12 +233,20 @@ class SQANTI3ToBigBed:
     
 
     
-    def _get_github_raw_url(self, filename):
-        """Generate GitHub raw URL for a file if GitHub repo is specified"""
+    def _get_github_raw_url(self, filename, subdir=None):
+        """Generate a raw GitHub URL for a file."""
         if self.github_repo:
-            return f"https://raw.githubusercontent.com/{self.github_repo}/{self.github_branch}/{filename}"
+            base_url = f"https://raw.githubusercontent.com/{self.github_repo}/{self.github_branch}"
+            if subdir:
+                return f"{base_url}/{subdir}/{filename}"
+            else:
+                return f"{base_url}/{filename}"
         else:
-            return filename
+            # Fallback to relative paths if no GitHub repo is provided
+            if subdir:
+                return f"{subdir}/{filename}"
+            else:
+                return filename
     
     def copy_classification_file(self):
         """Copy the original classification file to the output directory"""
@@ -945,9 +953,9 @@ class SQANTI3ToBigBed:
         genomes_file = self.output_dir / "genomes.txt"
         with open(genomes_file, 'w', newline='\n') as f:
             f.write(f"genome {self.genome}\n")
-            f.write(f"trackDb {self.genome}/trackDb.txt\n")
+            f.write(f"trackDb {self._get_github_raw_url('trackDb.txt', subdir=self.genome)}\n")
             # reference groups file for multi-track organization
-            f.write(f"groups {self.genome}/groups.txt\n")
+            f.write(f"groups {self._get_github_raw_url('groups.txt', subdir=self.genome)}\n")
         
         # Create genome-specific directory and trackDb.txt
         genome_dir = self.output_dir / self.genome
@@ -1037,6 +1045,15 @@ class SQANTI3ToBigBed:
             f.write(f"longLabel SQANTI3 Transcriptome Analysis Results\n")
             if self.bb12plus:
                 f.write(f"type bigBed 12 + 8\n")
+                # Add filters for the 8 extra fields
+                f.write("filter.structCat on\n")
+                f.write("filter.subcategory on\n")
+                f.write("filter.coding on\n")
+                f.write("filter.fsmClass on\n")
+                f.write("filterByRange.length 0:50000\n")
+                f.write("filterByRange.exons 0:100\n")
+                f.write("filterByRange.coverage 0:1000\n")
+                f.write("filterByRange.expression 0:1000\n")
             else:
                 f.write(f"type bigBed\n")
             f.write(f"visibility dense\n")
@@ -1055,7 +1072,7 @@ class SQANTI3ToBigBed:
             # Add Trix search index if present
             trix_ix = genome_dir / 'trix.ix'
             if os.path.exists(trix_ix):
-                f.write(f"searchTrix trix.ix\n")
+                f.write(f"searchTrix {self._get_github_raw_url('trix.ix', subdir=self.genome)}\n")
 
             # Append STAR junctions track if generated
             if self.star_bigbed and os.path.exists(self.star_bigbed):
@@ -1078,10 +1095,14 @@ class SQANTI3ToBigBed:
                     cat_html_name = f"{self.genome}_sqanti3_{cat}.html"
                     try:
                         # 1. Read the HTML template
-                        template_path = Path(__file__).parent / 'track_template.html'
+                        script_dir = Path(__file__).parent
+                        template_path = script_dir / 'track_template.html'
                         if not template_path.exists():
-                            logger.warning(f"Template file not found at {template_path}, falling back to basic HTML.")
-                            raise FileNotFoundError("track_template.html not found")
+                            # Try relative to current working directory as fallback
+                            template_path = Path('track_template.html')
+                            if not template_path.exists():
+                                logger.warning(f"Template file not found at {script_dir / 'track_template.html'} or track_template.html, falling back to basic HTML.")
+                                raise FileNotFoundError("track_template.html not found")
                         
                         with open(template_path, 'r') as f_template:
                             html_content = f_template.read()
@@ -1128,7 +1149,12 @@ class SQANTI3ToBigBed:
                         html_content = html_content.replace('%%CODING_OPTIONS%%', options_html)
                         html_content = html_content.replace('%%TRACK_NAME%%', f"{self.genome}_sqanti3_{cat}")
 
-                        # 5. Write the final HTML
+                        # 5. Add relative path for track_viewer.js (UCSC CSP blocks jsDelivr)
+                        # track_viewer.js is copied to the output directory, so use relative path
+                        track_viewer_url = 'track_viewer.js'
+                        html_content = html_content.replace('%%TRACK_VIEWER_URL%%', track_viewer_url)
+
+                        # 6. Write the final HTML
                         with open(self.output_dir / cat_html_name, 'w') as ch:
                             ch.write(html_content)
 
@@ -1173,6 +1199,14 @@ class SQANTI3ToBigBed:
                     # Omit useScore/scoreFilter directives for hubCheck compatibility
                     f.write(f"priority 3\n")
                     f.write(f"html {self._get_github_raw_url(cat_html_name)}\n")
+                    # Add filters for the extra fields in the category tracks
+                    f.write("filter.subcategory on\n")
+                    f.write("filter.coding on\n")
+                    f.write("filter.fsmClass on\n")
+                    f.write("filterByRange.length 0:50000\n")
+                    f.write("filterByRange.exons 0:100\n")
+                    f.write("filterByRange.coverage 0:1000\n")
+                    f.write("filterByRange.expression 0:1000\n")
                     # Exon range label via blockCount
                     f.write(f"filterByRange.blockCount 0:100\n")
                     f.write(f"filterLabel.blockCount Number of exons\n")
@@ -1270,16 +1304,14 @@ class SQANTI3ToBigBed:
 </body>
 </html>""")
         
-        # Copy the track_viewer.js file to the output directory
+        # Clean up the track_viewer.js file as it's no longer used
         try:
-            viewer_js_source = Path(__file__).parent / 'track_viewer.js'
-            if viewer_js_source.exists():
-                shutil.copy2(viewer_js_source, self.output_dir / 'track_viewer.js')
-                logger.info("Copied track_viewer.js to output directory.")
-            else:
-                logger.warning("track_viewer.js not found, interactive features may not work.")
+            viewer_js_to_remove = self.output_dir / 'track_viewer.js'
+            if viewer_js_to_remove.exists():
+                viewer_js_to_remove.unlink()
+                logger.info("Removed unused track_viewer.js from output directory.")
         except Exception as e:
-            logger.error(f"Error copying track_viewer.js: {e}")
+            logger.warning(f"Could not remove track_viewer.js: {e}")
 
         logger.info("Hub files created successfully")
         return True

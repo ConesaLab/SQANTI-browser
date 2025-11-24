@@ -1,138 +1,129 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const controls = {
+    const body = document.body;
+    const trackName = body.dataset.trackName;
+    let transcripts = [];
+    try {
+        // Parse the JSON data from the data attribute
+        transcripts = JSON.parse(body.dataset.transcripts);
+    } catch (e) {
+        console.error("Error parsing transcript data:", e);
+        // Display an error message to the user
+        const container = document.getElementById('container');
+        if (container) {
+            container.innerHTML = '<h1>Error</h1><p>Could not load transcript data. Please check the data source.</p>';
+        }
+        return; // Stop execution if data is invalid
+    }
+
+    // DOM element references
+    const elements = {
         minExons: document.getElementById('min-exons'),
         maxExons: document.getElementById('max-exons'),
-        minTSS: document.getElementById('min-tss'),
-        maxTSS: document.getElementById('max-tss'),
-        coding: document.getElementById('coding-status'),
-        gene: document.getElementById('gene-search')
+        minTss: document.getElementById('min-tss'),
+        maxTss: document.getElementById('max-tss'),
+        codingStatus: document.getElementById('coding-status'),
+        geneSearch: document.getElementById('gene-search'),
+        previewButton: document.getElementById('preview-filters'),
+        toggleButton: document.getElementById('toggle-table'),
+        applyButton: document.getElementById('apply-filters-ucsc'),
+        resetButton: document.getElementById('reset-filters-ucsc'),
+        resultsCount: document.getElementById('results-count'),
+        tableWrapper: document.getElementById('table-wrapper'),
+        resultsContainer: document.getElementById('results-container'),
     };
 
-    const resultsContainer = document.getElementById('results-container');
-    const resultsCount = document.getElementById('results-count');
-    const tableWrapper = document.getElementById('table-wrapper');
-    const applyLink = document.getElementById('apply-filters-ucsc');
-    const resetLink = document.getElementById('reset-filters-ucsc');
+    // --- UTILITY FUNCTIONS ---
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const hgsid = urlParams.get('hgsid');
-    const ucscHost = 'https://genome.ucsc.edu';
-    let tableRendered = false;
-
-    // These variables are expected to be defined in the HTML before this script is loaded
-    // const transcripts = [...];
-    // const trackName = '...';
-
-    function renderTable(data) {
-        if (!data || data.length === 0) {
-            resultsContainer.innerHTML = '<p>No transcripts match the current filters.</p>';
-            return;
-        }
-        let tableHTML = `
-            <table>
-                <thead>
-                    <tr>
-                        <th>Isoform</th><th>Associated Gene</th><th>Exons</th><th>Length</th>
-                        <th>Diff to TSS</th><th>Diff to TTS</th><th>Coding</th><th>Isoform Exp</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-        data.forEach(t => {
-            tableHTML += `
-                <tr>
-                    <td>${t.isoform || 'N/A'}</td><td>${t.associated_gene || 'N/A'}</td>
-                    <td>${t.exons !== null ? t.exons : 'N/A'}</td><td>${t.length !== null ? t.length : 'N/A'}</td>
-                    <td>${t.diff_to_TSS !== null ? t.diff_to_TSS : 'N/A'}</td><td>${t.diff_to_TTS !== null ? t.diff_to_TTS : 'N/A'}</td>
-                    <td>${t.coding || 'N/A'}</td><td>${t.iso_exp !== null ? t.iso_exp.toFixed(2) : 'N/A'}</td>
-                </tr>`;
-        });
-        tableHTML += '</tbody></table>';
-        resultsContainer.innerHTML = tableHTML;
-        tableRendered = true;
-    }
-
-    function getFilteredIsoforms() {
-        const getVal = (el) => el.value;
-        const getInt = (el) => el.value ? parseInt(el.value, 10) : null;
-        const filters = {
-            minExons: getInt(controls.minExons), maxExons: getInt(controls.maxExons),
-            minTSS: getInt(controls.minTSS), maxTSS: getInt(controls.maxTSS),
-            coding: getVal(controls.coding), gene: getVal(controls.gene).toLowerCase().trim()
-        };
-        return transcripts.filter(t => {
-            if (filters.minExons !== null && (t.exons === null || t.exons < filters.minExons)) return false;
-            if (filters.maxExons !== null && (t.exons === null || t.exons > filters.maxExons)) return false;
-            if (filters.minTSS !== null && (t.diff_to_TSS === null || t.diff_to_TSS < filters.minTSS)) return false;
-            if (filters.maxTSS !== null && (t.diff_to_TSS === null || t.diff_to_TSS > filters.maxTSS)) return false;
-            if (filters.coding !== 'all' && t.coding !== filters.coding) return false;
-            if (filters.gene && (!t.associated_gene || !t.associated_gene.toLowerCase().includes(filters.gene))) return false;
-            return true;
-        });
-    }
-    
-    function updateUCSCLink() {
-        if (!hgsid) return;
-        const filteredData = getFilteredIsoforms();
-        const isoform_ids = filteredData.map(t => t.isoform);
-        const ucscUrl = new URL(`${ucscHost}/cgi-bin/hgTracks`);
-        ucscUrl.searchParams.set('hgsid', hgsid);
-
-        if (isoform_ids.length === 0) {
-            ucscUrl.searchParams.set(trackName, 'hide');
-        } else {
-            const filterText = isoform_ids.join(' ');
-            if (filterText.length > 4000) { // Increased limit for modern browsers
-                applyLink.classList.add('disabled');
-                applyLink.href = '#';
-                resultsCount.innerHTML = `Preview: Showing ${filteredData.length} of ${transcripts.length} transcripts. <strong style="color: red;">(Filter too broad to apply to UCSC view)</strong>`;
-                return;
-            }
-            ucscUrl.searchParams.set(`hg_t_${trackName}_filter`, 'on');
-            ucscUrl.searchParams.set(`hg_t_${trackName}_filter_text`, filterText);
-        }
-        applyLink.classList.remove('disabled');
-        applyLink.href = ucscUrl.toString();
-    }
-
-    function previewFilters() {
-        tableWrapper.style.display = 'block';
-        const filteredData = getFilteredIsoforms();
-        resultsCount.textContent = `Preview: Showing ${filteredData.length} of ${transcripts.length} transcripts.`;
-        renderTable(filteredData);
-        updateUCSCLink();
-    }
-    
-    function toggleTable() {
-        const isHidden = tableWrapper.style.display === 'none';
-        tableWrapper.style.display = isHidden ? 'block' : 'none';
-        if (isHidden && !tableRendered) {
-            renderTable(transcripts);
-        }
-    }
-
-    // --- Attach Event Listeners ---
-    document.getElementById('preview-filters').addEventListener('click', previewFilters);
-    document.getElementById('toggle-table').addEventListener('click', toggleTable);
-    Object.values(controls).forEach(el => {
-        if (el) el.addEventListener('input', updateUCSCLink)
+    // Get filter values from the input controls
+    const getFilterValues = () => ({
+        minExons: elements.minExons.value ? parseInt(elements.minExons.value, 10) : null,
+        maxExons: elements.maxExons.value ? parseInt(elements.maxExons.value, 10) : null,
+        minTss: elements.minTss.value ? parseInt(elements.minTss.value, 10) : null,
+        maxTss: elements.maxTss.value ? parseInt(elements.maxTss.value, 10) : null,
+        coding: elements.codingStatus.value,
+        gene: elements.geneSearch.value.trim().toLowerCase(),
     });
 
-    // --- Initial Page Setup ---
-    if (!hgsid) {
-        if(applyLink) applyLink.classList.add('disabled');
-        if(resetLink) resetLink.classList.add('disabled');
-        const note = document.createElement('p');
-        note.innerHTML = '<strong>Note:</strong> Browser view controls are disabled. Open this page from a UCSC track description to enable them.';
-        const buttonContainer = document.querySelector('#button-container');
-        if (buttonContainer) {
-            buttonContainer.insertAdjacentElement('afterend', note);
+    // Create the HTML table from filtered data
+    const createTable = (data) => {
+        if (data.length === 0) {
+            return '<p>No transcripts match the current filters.</p>';
         }
-    } else {
-        const resetUrl = new URL(`${ucscHost}/cgi-bin/hgTracks`);
-        resetUrl.searchParams.set('hgsid', hgsid);
-        resetUrl.searchParams.set(`hg_t_${trackName}_filter`, 'off');
-        resetUrl.searchParams.set(trackName, 'dense');
-        if(resetLink) resetLink.href = resetUrl.toString();
-        updateUCSCLink();
-    }
+
+        const headers = ['Isoform', 'Exons', 'Length', 'Coding', 'Associated Gene', 'TSS Distance', 'TTS Distance'];
+        const keys = ['isoform', 'exons', 'length', 'coding', 'associated_gene', 'diff_to_TSS', 'diff_to_TTS'];
+
+        let table = '<table><thead><tr>';
+        headers.forEach(header => table += `<th>${header}</th>`);
+        table += '</tr></thead><tbody>';
+
+        data.forEach(transcript => {
+            table += '<tr>';
+            keys.forEach(key => table += `<td>${transcript[key] ?? 'N/A'}</td>`);
+            table += '</tr>';
+        });
+
+        table += '</tbody></table>';
+        return table;
+    };
+
+    // --- CORE LOGIC ---
+
+    // Filter transcripts based on current control values
+    const filterTranscripts = () => {
+        const filters = getFilterValues();
+        return transcripts.filter(t => {
+            const exonCount = t.exons ?? 0;
+            const tssDist = t.diff_to_TSS ?? 0;
+
+            if (filters.minExons !== null && exonCount < filters.minExons) return false;
+            if (filters.maxExons !== null && exonCount > filters.maxExons) return false;
+            if (filters.minTss !== null && tssDist < filters.minTss) return false;
+            if (filters.maxTss !== null && tssDist > filters.maxTss) return false;
+            if (filters.coding && filters.coding !== 'all' && t.coding !== filters.coding) return false;
+            if (filters.gene && !t.associated_gene?.toLowerCase().includes(filters.gene)) return false;
+
+            return true;
+        });
+    };
+
+    // Update the results count and table preview
+    const updatePreview = () => {
+        const filteredData = filterTranscripts();
+        elements.resultsCount.textContent = `Showing ${filteredData.length} of ${transcripts.length} transcripts.`;
+        elements.resultsContainer.innerHTML = createTable(filteredData);
+        updateUcscLink(filteredData.map(t => t.isoform));
+    };
+
+    // Update the "Apply to Browser" link with a list of filtered transcript IDs
+    const updateUcscLink = (transcriptIds) => {
+        if (transcriptIds.length > 0 && transcriptIds.length < transcripts.length) {
+            const ucscUrl = `../cgi-bin/hgTracks?db=hg38&hgFind.matches=${transcriptIds.join(',')}`;
+            elements.applyButton.href = ucscUrl;
+            elements.applyButton.classList.remove('disabled');
+        } else {
+            elements.applyButton.href = '#';
+            elements.applyButton.classList.add('disabled');
+        }
+    };
+    
+    // --- EVENT LISTENERS ---
+
+    elements.previewButton.addEventListener('click', updatePreview);
+
+    elements.toggleButton.addEventListener('click', () => {
+        const isHidden = elements.tableWrapper.style.display === 'none';
+        elements.tableWrapper.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+            updatePreview(); // Populate table when showing
+        }
+    });
+
+    // Generate the reset URL
+    elements.resetButton.href = `../cgi-bin/hgTracks?db=hg38&setTrackVisibility=hide&${trackName}=dense`;
+
+    // --- INITIALIZATION ---
+
+    // Initial update on page load
+    updatePreview(); 
 });
