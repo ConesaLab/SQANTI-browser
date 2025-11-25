@@ -107,18 +107,6 @@ This generates hub files with GitHub raw URLs (`https://raw.githubusercontent.co
 
 ### Optional Enhancements
 
-- **Trix Text Index** (faster text search)
-  - Generate a Trix text index by adding `--enable-trix` (requires UCSC `ixIxx` in PATH):
-  ```bash
-  python sqanti3_to_UCSC.py \
-      --gtf your_corrected.gtf \
-      --classification your_classification.txt \
-      --output output_directory \
-      --genome hg38 \
-      --enable-trix
-  ```
-  - This produces `genome/trix.ix` and `genome/trix.ixx` and wires `searchTrix trix.ix` in `trackDb.txt`.
-
 - **STAR Splice Junctions Track**
   - Convert STAR `SJ.out.tab` into a bigBed junctions track and include it in the hub:
   ```bash
@@ -130,18 +118,6 @@ This generates hub files with GitHub raw URLs (`https://raw.githubusercontent.co
       --star-sj path/to/SJ.out.tab
   ```
   - This creates `{genome}_star_sj.bb` and adds a `STAR Junctions` track.
-
-- **bigBed 12+ with fielded filters**
-  - Enable fielded filters and numeric ranges with `--bb12plus`:
-  ```bash
-  python sqanti3_to_UCSC.py \
-      --gtf your_corrected.gtf \
-      --classification your_classification.txt \
-      --output output_directory \
-      --genome hg38 \
-      --bb12plus
-  ```
-  - Adds per-field `filter` and `filterByRange` controls for structural codes, subcategory, coding, FSM, length, exons, coverage, expression.
 
 ### Validation and Dry Run
 
@@ -165,6 +141,16 @@ python sqanti3_to_UCSC.py \
     --dry-run
 ```
 
+- **Keep temporary files**: preserve intermediate files for debugging.
+```bash
+python sqanti3_to_UCSC.py \
+    --gtf your_corrected.gtf \
+    --classification your_classification.txt \
+    --output output_directory \
+    --genome hg38 \
+    --keep-temp
+```
+
 ### Command Line Arguments
 
 | Argument | Required | Description |
@@ -176,8 +162,8 @@ python sqanti3_to_UCSC.py \
 | `--chrom-sizes` | No | Optional path to chromosome sizes file |
 | `--github-repo` | No | GitHub repository (format: username/repository) for automatic raw URL generation |
 | `--github-branch` | No | GitHub branch (default: main) |
-| `--enable-trix` | No | Generate Trix (.ix/.ixx) text index if `ixIxx` is available |
 | `--star-sj` | No | Path to STAR `SJ.out.tab` to add a splice junctions track |
+| `--keep-temp` | No | Keep temporary files for debugging |
 
 **Output Directory Flexibility:**
 - **Relative paths**: `./my_project`, `../analysis`

@@ -2,15 +2,15 @@ track hg38_sqanti3
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3.bb
 shortLabel SQANTI3 Transcripts
 longLabel SQANTI3 Transcriptome Analysis Results
-type bigBed 12 + 8
-filter.structCat on
+type bigBed 12 + 44
+filter.structural_category on
 filter.subcategory on
 filter.coding on
-filter.fsmClass on
+filter.FSM_class on
 filterByRange.length 0:50000
 filterByRange.exons 0:100
-filterByRange.coverage 0:1000
-filterByRange.expression 0:1000
+filterByRange.min_cov 0:1000
+filterByRange.iso_exp 0:1000
 visibility dense
 group transcripts
 itemRgb on
@@ -22,151 +22,11 @@ filterByRange.blockCount 0:100
 filterLabel.blockCount Number of exons
 searchTrix https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38/trix.ix
 
-track hg38_sqanti3_full-splice_match
-bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_full-splice_match.bb
-shortLabel SQANTI3 full-splice_match
-longLabel SQANTI3 full-splice_match transcripts
-type bigBed 12 + 39
-visibility hide
-group transcripts
-itemRgb on
-priority 3
-html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_full-splice_match.html
-filter.subcategory on
-filter.coding on
-filter.fsmClass on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.coverage 0:1000
-filterByRange.expression 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
-
-track hg38_sqanti3_incomplete-splice_match
-bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_incomplete-splice_match.bb
-shortLabel SQANTI3 incomplete-splice_match
-longLabel SQANTI3 incomplete-splice_match transcripts
-type bigBed 12 + 39
-visibility hide
-group transcripts
-itemRgb on
-priority 3
-html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_incomplete-splice_match.html
-filter.subcategory on
-filter.coding on
-filter.fsmClass on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.coverage 0:1000
-filterByRange.expression 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
-
-track hg38_sqanti3_novel_in_catalog
-bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_novel_in_catalog.bb
-shortLabel SQANTI3 novel_in_catalog
-longLabel SQANTI3 novel_in_catalog transcripts
-type bigBed 12 + 39
-visibility hide
-group transcripts
-itemRgb on
-priority 3
-html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_novel_in_catalog.html
-filter.subcategory on
-filter.coding on
-filter.fsmClass on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.coverage 0:1000
-filterByRange.expression 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
-
-track hg38_sqanti3_novel_not_in_catalog
-bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_novel_not_in_catalog.bb
-shortLabel SQANTI3 novel_not_in_catalog
-longLabel SQANTI3 novel_not_in_catalog transcripts
-type bigBed 12 + 39
-visibility hide
-group transcripts
-itemRgb on
-priority 3
-html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_novel_not_in_catalog.html
-filter.subcategory on
-filter.coding on
-filter.fsmClass on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.coverage 0:1000
-filterByRange.expression 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
-
-track hg38_sqanti3_genic
-bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_genic.bb
-shortLabel SQANTI3 genic
-longLabel SQANTI3 genic transcripts
-type bigBed 12 + 39
-visibility hide
-group transcripts
-itemRgb on
-priority 3
-html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_genic.html
-filter.subcategory on
-filter.coding on
-filter.fsmClass on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.coverage 0:1000
-filterByRange.expression 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
-
-track hg38_sqanti3_antisense
-bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_antisense.bb
-shortLabel SQANTI3 antisense
-longLabel SQANTI3 antisense transcripts
-type bigBed 12 + 39
-visibility hide
-group transcripts
-itemRgb on
-priority 3
-html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_antisense.html
-filter.subcategory on
-filter.coding on
-filter.fsmClass on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.coverage 0:1000
-filterByRange.expression 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
-
-track hg38_sqanti3_fusion
-bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_fusion.bb
-shortLabel SQANTI3 fusion
-longLabel SQANTI3 fusion transcripts
-type bigBed 12 + 39
-visibility hide
-group transcripts
-itemRgb on
-priority 3
-html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_fusion.html
-filter.subcategory on
-filter.coding on
-filter.fsmClass on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.coverage 0:1000
-filterByRange.expression 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
-
 track hg38_sqanti3_intergenic
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_intergenic.bb
 shortLabel SQANTI3 intergenic
 longLabel SQANTI3 intergenic transcripts
-type bigBed 12 + 39
+type bigBed 12 + 44
 visibility hide
 group transcripts
 itemRgb on
@@ -174,11 +34,51 @@ priority 3
 html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_intergenic.html
 filter.subcategory on
 filter.coding on
-filter.fsmClass on
+filter.FSM_class on
 filterByRange.length 0:50000
 filterByRange.exons 0:100
-filterByRange.coverage 0:1000
-filterByRange.expression 0:1000
+filterByRange.min_cov 0:1000
+filterByRange.iso_exp 0:1000
+filterByRange.blockCount 0:100
+filterLabel.blockCount Number of exons
+
+track hg38_sqanti3_novel_not_in_catalog
+bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_novel_not_in_catalog.bb
+shortLabel SQANTI3 novel_not_in_catalog
+longLabel SQANTI3 novel_not_in_catalog transcripts
+type bigBed 12 + 44
+visibility hide
+group transcripts
+itemRgb on
+priority 3
+html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_novel_not_in_catalog.html
+filter.subcategory on
+filter.coding on
+filter.FSM_class on
+filterByRange.length 0:50000
+filterByRange.exons 0:100
+filterByRange.min_cov 0:1000
+filterByRange.iso_exp 0:1000
+filterByRange.blockCount 0:100
+filterLabel.blockCount Number of exons
+
+track hg38_sqanti3_antisense
+bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_antisense.bb
+shortLabel SQANTI3 antisense
+longLabel SQANTI3 antisense transcripts
+type bigBed 12 + 44
+visibility hide
+group transcripts
+itemRgb on
+priority 3
+html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_antisense.html
+filter.subcategory on
+filter.coding on
+filter.FSM_class on
+filterByRange.length 0:50000
+filterByRange.exons 0:100
+filterByRange.min_cov 0:1000
+filterByRange.iso_exp 0:1000
 filterByRange.blockCount 0:100
 filterLabel.blockCount Number of exons
 
@@ -186,7 +86,7 @@ track hg38_sqanti3_genic_intron
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_genic_intron.bb
 shortLabel SQANTI3 genic_intron
 longLabel SQANTI3 genic_intron transcripts
-type bigBed 12 + 39
+type bigBed 12 + 44
 visibility hide
 group transcripts
 itemRgb on
@@ -194,10 +94,110 @@ priority 3
 html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_genic_intron.html
 filter.subcategory on
 filter.coding on
-filter.fsmClass on
+filter.FSM_class on
 filterByRange.length 0:50000
 filterByRange.exons 0:100
-filterByRange.coverage 0:1000
-filterByRange.expression 0:1000
+filterByRange.min_cov 0:1000
+filterByRange.iso_exp 0:1000
+filterByRange.blockCount 0:100
+filterLabel.blockCount Number of exons
+
+track hg38_sqanti3_fusion
+bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_fusion.bb
+shortLabel SQANTI3 fusion
+longLabel SQANTI3 fusion transcripts
+type bigBed 12 + 44
+visibility hide
+group transcripts
+itemRgb on
+priority 3
+html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_fusion.html
+filter.subcategory on
+filter.coding on
+filter.FSM_class on
+filterByRange.length 0:50000
+filterByRange.exons 0:100
+filterByRange.min_cov 0:1000
+filterByRange.iso_exp 0:1000
+filterByRange.blockCount 0:100
+filterLabel.blockCount Number of exons
+
+track hg38_sqanti3_novel_in_catalog
+bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_novel_in_catalog.bb
+shortLabel SQANTI3 novel_in_catalog
+longLabel SQANTI3 novel_in_catalog transcripts
+type bigBed 12 + 44
+visibility hide
+group transcripts
+itemRgb on
+priority 3
+html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_novel_in_catalog.html
+filter.subcategory on
+filter.coding on
+filter.FSM_class on
+filterByRange.length 0:50000
+filterByRange.exons 0:100
+filterByRange.min_cov 0:1000
+filterByRange.iso_exp 0:1000
+filterByRange.blockCount 0:100
+filterLabel.blockCount Number of exons
+
+track hg38_sqanti3_incomplete-splice_match
+bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_incomplete-splice_match.bb
+shortLabel SQANTI3 incomplete-splice_match
+longLabel SQANTI3 incomplete-splice_match transcripts
+type bigBed 12 + 44
+visibility hide
+group transcripts
+itemRgb on
+priority 3
+html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_incomplete-splice_match.html
+filter.subcategory on
+filter.coding on
+filter.FSM_class on
+filterByRange.length 0:50000
+filterByRange.exons 0:100
+filterByRange.min_cov 0:1000
+filterByRange.iso_exp 0:1000
+filterByRange.blockCount 0:100
+filterLabel.blockCount Number of exons
+
+track hg38_sqanti3_full-splice_match
+bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_full-splice_match.bb
+shortLabel SQANTI3 full-splice_match
+longLabel SQANTI3 full-splice_match transcripts
+type bigBed 12 + 44
+visibility hide
+group transcripts
+itemRgb on
+priority 3
+html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_full-splice_match.html
+filter.subcategory on
+filter.coding on
+filter.FSM_class on
+filterByRange.length 0:50000
+filterByRange.exons 0:100
+filterByRange.min_cov 0:1000
+filterByRange.iso_exp 0:1000
+filterByRange.blockCount 0:100
+filterLabel.blockCount Number of exons
+
+track hg38_sqanti3_genic
+bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_genic.bb
+shortLabel SQANTI3 genic
+longLabel SQANTI3 genic transcripts
+type bigBed 12 + 44
+visibility hide
+group transcripts
+itemRgb on
+priority 3
+html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_genic.html
+filter.subcategory on
+filter.coding on
+filter.FSM_class on
+filterByRange.length 0:50000
+filterByRange.exons 0:100
+filterByRange.min_cov 0:1000
+filterByRange.iso_exp 0:1000
 filterByRange.blockCount 0:100
 filterLabel.blockCount Number of exons

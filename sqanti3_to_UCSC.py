@@ -21,14 +21,12 @@ from pathlib import Path
 import pandas as pd
 import logging
 from collections import defaultdict
-import json
-
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 class SQANTI3ToBigBed:
-    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, github_repo=None, github_branch="main", enable_trix=True, star_sj=None, two_bit_file=None, validate_only=False, dry_run=False, bb12plus=False):
+    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, github_repo=None, github_branch="main", star_sj=None, two_bit_file=None, validate_only=False, dry_run=False):
         self.gtf_file = gtf_file
         self.classification_file = classification_file
         self.output_dir = Path(output_dir)
@@ -37,13 +35,12 @@ class SQANTI3ToBigBed:
         self.github_repo = github_repo
         self.github_branch = github_branch
         self.temp_dir = None
-        self.enable_trix = enable_trix
         self.star_sj = star_sj
         self.star_bigbed = None
         self.two_bit_file = two_bit_file
         self.validate_only = validate_only
         self.dry_run = dry_run
-        self.bb12plus = bb12plus
+        self.keep_temp = False
         self.category_bigbeds = {}
         
         # Create output directory (handles both relative and absolute paths)
@@ -158,17 +155,23 @@ class SQANTI3ToBigBed:
         logger.info("Parsing classification file...")
         
         try:
-            df = pd.read_csv(self.classification_file, sep='\t')
-            logger.info(f"Found {len(df)} transcripts with {len(df.columns)} columns")
-            # Store column information for filter values (expects standard SQANTI3 columns)
-            self.columns = df.columns.tolist()
-            self.classification_data = df.set_index('isoform').to_dict('index')
+            # Load ALL columns to provide full information
+            self.classification_df = pd.read_csv(
+                self.classification_file, 
+                sep='	',
+                dtype={'isoform': 'string'}
+            )
             
+            # Rename 'isoform' to 'name' for merging
+            self.classification_df = self.classification_df.rename(columns={'isoform': 'name'})
+            
+            logger.info(f"Loaded classification data for {len(self.classification_df)} transcripts with {len(self.classification_df.columns)} columns")
             return True
+            
         except Exception as e:
             logger.error(f"Error parsing classification file: {e}")
             return False
-    
+
     def convert_gtf_to_genepred(self):
         """Convert GTF to GenePred format"""
         logger.info("Converting GTF to GenePred format...")
@@ -233,6 +236,253 @@ class SQANTI3ToBigBed:
     
 
     
+    def _generate_autosql_schema(self, extra_cols, output_path):
+        """Generate AutoSQL schema for BED12 + extra columns"""
+        with open(output_path, 'w') as f:
+            f.write("table sqanti3Transcripts\n")
+            f.write('"SQANTI3 transcript annotations with full classification data"\n')
+            f.write("(\n")
+            f.write('    string chrom;        "Reference sequence chromosome or scaffold"\n')
+            f.write('    uint   chromStart;   "Start position in chromosome"\n')
+            f.write('    uint   chromEnd;     "End position in chromosome"\n')
+            f.write('    string name;         "Transcript ID"\n')
+            f.write('    uint   score;        "Score (0-1000)"\n')
+            f.write('    char[1] strand;      "+ or -"\n')
+            f.write('    uint   thickStart;   "Start of thick display"\n')
+            f.write('    uint   thickEnd;     "End of thick display"\n')
+            f.write('    uint   itemRgb;      "Item color packed as R*256^2+G*256+B"\n')
+            f.write('    int    blockCount;   "Number of blocks (exons)"\n')
+            f.write('    int[blockCount] blockSizes;  "Comma separated list of block sizes"\n')
+            f.write('    int[blockCount] chromStarts; "Start positions relative to chromStart"\n')
+            
+            for col in extra_cols:
+                # Sanitize column name for AutoSQL (alphanumeric + underscore)
+                safe_col = col.replace('.', '_').replace(' ', '_').replace('-', '_').replace('/', '_')
+                # Use lstring for safety (handles long text)
+                f.write(f'    lstring {safe_col}; "{col}"\n')
+            
+            f.write(")\n")
+
+    def add_classification_data_to_bed(self, bed_file):
+        """Add classification data to BED file using Pandas"""
+        logger.info("Adding classification data to BED file (Vectorized)...")
+        
+        output_file = os.path.join(self.temp_dir, "transcripts_full.bed")
+        
+        try:
+            # Load BED file (headerless)
+            bed_cols = [
+                'chrom', 'chromStart', 'chromEnd', 'name', 'score', 'strand',
+                'thickStart', 'thickEnd', 'itemRgb', 'blockCount', 
+                'blockSizes', 'chromStarts'
+            ]
+            
+            bed_df = pd.read_csv(
+                bed_file, 
+                sep='	', 
+                names=bed_cols,
+                dtype={'chrom': 'string', 'name': 'string', 'strand': 'category'}
+            )
+            
+            if not hasattr(self, 'classification_df'):
+                logger.error("Classification data not loaded")
+                return None
+
+            # Identify extra columns: those in classification but NOT in standard BED12
+            # We exclude standard BED columns to avoid duplicates and merge conflicts
+            exclude_cols = set(bed_cols)
+            exclude_cols.add('ORF_seq')  # User requested to exclude this long column
+            
+            self.extra_cols = [
+                c for c in self.classification_df.columns 
+                if c not in exclude_cols and c != 'name'
+            ]
+            
+            # Prepare classification subset for merging
+            # We need 'name' for the merge, plus the extra columns
+            class_subset = self.classification_df[['name'] + self.extra_cols].copy()
+            
+            # Merge
+            merged = bed_df.merge(class_subset, on='name', how='left')
+            
+            # Handle categorical data and NaNs
+            categorical_defaults = {
+                'structural_category': 'NA',
+                'subcategory': 'NA',
+                'coding': 'NA',
+                'FSM_class': 'NA'
+            }
+            
+            for col, default_val in categorical_defaults.items():
+                if col in merged.columns:
+                    # If it's a categorical column, we must add the category first
+                    if isinstance(merged[col].dtype, pd.CategoricalDtype):
+                        if default_val not in merged[col].cat.categories:
+                            merged[col] = merged[col].cat.add_categories([default_val])
+                    
+                    merged[col] = merged[col].fillna(default_val)
+
+            # Fill all other extra columns with 'NA' if they have missing values
+            for col in self.extra_cols:
+                if col in merged.columns:
+                     merged[col] = merged[col].fillna('NA')
+
+            # Calculate itemRgb
+            def pack_rgb(r, g, b):
+                return (r << 16) + (g << 8) + b
+
+            cat_palette = {
+                "full-splice_match": pack_rgb(107, 174, 214),
+                "incomplete-splice_match": pack_rgb(252, 141, 89),
+                "novel_in_catalog": pack_rgb(120, 198, 121),
+                "novel_not_in_catalog": pack_rgb(238, 106, 80),
+                "genic": pack_rgb(150, 150, 150),
+                "antisense": pack_rgb(102, 194, 164),
+                "fusion": pack_rgb(218, 165, 32),
+                "intergenic": pack_rgb(233, 150, 122),
+                "genic_intron": pack_rgb(65, 182, 196),
+                "NA": pack_rgb(200, 200, 200)
+            }
+            
+            default_color = pack_rgb(200, 200, 200)
+            
+            if 'structural_category' in merged.columns:
+                merged['itemRgb'] = merged['structural_category'].map(cat_palette).fillna(default_color).astype(int)
+            else:
+                merged['itemRgb'] = default_color
+            
+            # Format FSM class
+            if 'FSM_class' in merged.columns:
+                merged['FSM_class'] = merged['FSM_class'].astype(str)
+                mask = merged['FSM_class'] != 'NA'
+                merged.loc[mask, 'FSM_class'] = 'FSM' + merged.loc[mask, 'FSM_class']
+            
+            # Write to file
+            final_cols = bed_cols + self.extra_cols
+            
+            merged[final_cols].to_csv(
+                output_file, 
+                sep='	', 
+                header=False, 
+                index=False,
+                quoting=3
+            )
+            
+            logger.info(f"Created enhanced BED file with {len(self.extra_cols)} extra columns: {output_file}")
+            return output_file
+            
+        except Exception as e:
+            logger.error(f"Error in vectorized BED processing: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    def _generate_trix_index(self, enhanced_bed_file, genome_dir):
+        """Generate Trix (.ix/.ixx) text index"""
+        ixixx_path = shutil.which('ixIxx')
+        if not ixixx_path:
+            logger.warning("ixIxx not found; skipping Trix index generation")
+            return False
+            
+        logger.info("Generating Trix index...")
+        try:
+            trix_input = os.path.join(self.temp_dir, 'trix_input.txt')
+            
+            # We need a set of transcript IDs present in the BED file
+            valid_ids = set()
+            with open(enhanced_bed_file, 'r') as f:
+                for line in f:
+                    parts = line.split('\t')
+                    if len(parts) > 3:
+                        valid_ids.add(parts[3])
+            
+            # Now stream the classification file and extract keywords for valid IDs
+            with open(self.classification_file, 'r') as f_in, open(trix_input, 'w') as f_out:
+                header = f_in.readline().rstrip('\n').split('\t')
+                try:
+                    idx_isoform = header.index('isoform')
+                except ValueError:
+                    logger.error("isoform column not found in classification file")
+                    return False
+                    
+                skip_cols = ['isoform', 'chrom', 'strand'] 
+                useful_cols = [c for c in header if c not in skip_cols]
+                col_indices = {c: header.index(c) for c in useful_cols}
+                
+                for line in f_in:
+                    parts = line.rstrip('\n').split('\t')
+                    if len(parts) <= idx_isoform:
+                        continue
+                        
+                    isoform = parts[idx_isoform]
+                    if isoform in valid_ids:
+                        keywords = [isoform]
+                        for col, idx in col_indices.items():
+                            if idx < len(parts):
+                                val = parts[idx]
+                                if val and val not in ['NA', 'nan', '']:
+                                    keywords.append(f"{col}:{val}")
+                                    keywords.append(val)
+                        
+                        unique_keywords = sorted(list(set(keywords)))
+                        f_out.write(' '.join(unique_keywords) + '\n')
+            
+            ix_file = genome_dir / "trix.ix"
+            ixx_file = genome_dir / "trix.ixx"
+            
+            cmd = [ixixx_path, trix_input, str(ix_file), str(ixx_file)]
+            subprocess.run(cmd, check=True, capture_output=True, text=True)
+            logger.info(f"Trix index created: {ix_file}, {ixx_file}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error generating Trix index: {e}")
+            return False
+
+    def _create_star_sj_bigbed(self, star_sj_file):
+        """Convert STAR splice junctions to bigBed"""
+        logger.info("Converting STAR splice junctions to bigBed...")
+        try:
+            if self.chrom_sizes_file:
+                chrom_sizes = self.chrom_sizes_file
+            elif self.two_bit_file:
+                chrom_sizes = self.extract_chrom_sizes_from_twobit()
+            else:
+                chrom_sizes = self.extract_chrom_sizes()
+
+            if not chrom_sizes:
+                 return None
+
+            bed_file = os.path.join(self.temp_dir, "star_junctions.bed")
+            with open(star_sj_file, 'r') as infile, open(bed_file, 'w') as outfile:
+                for i, line in enumerate(infile):
+                    parts = line.strip().split('\t')
+                    if len(parts) < 9:
+                        continue
+                    chrom = parts[0]
+                    start = int(parts[1]) - 1
+                    end = int(parts[2])
+                    strand_val = parts[3]
+                    strand = '+' if strand_val == '1' else ('-' if strand_val == '2' else '.')
+                    unique = int(parts[6])
+                    multi = int(parts[7])
+                    score = min(unique + multi, 1000)
+                    name = f"JUNC{i+1}"
+                    outfile.write(f"{chrom}\t{start}\t{end}\t{name}\t{score}\t{strand}\n")
+            
+            sorted_bed = os.path.join(self.temp_dir, "star_junctions.sorted.bed")
+            env = os.environ.copy()
+            env["LC_COLLATE"] = "C"
+            subprocess.run(['sort', '-k1,1', '-k2,2n', bed_file, '-o', sorted_bed], check=True, env=env)
+            
+            bb_file = self.output_dir / f"{self.genome}_star_sj.bb"
+            subprocess.run(['bedToBigBed', sorted_bed, chrom_sizes, str(bb_file)], check=True)
+            logger.info(f"STAR bigBed created: {bb_file}")
+            return bb_file
+        except Exception as e:
+            logger.error(f"Error converting STAR SJ: {e}")
+            return None
+
     def _get_github_raw_url(self, filename, subdir=None):
         """Generate a raw GitHub URL for a file."""
         if self.github_repo:
@@ -247,18 +497,6 @@ class SQANTI3ToBigBed:
                 return f"{subdir}/{filename}"
             else:
                 return filename
-    
-    def copy_classification_file(self):
-        """Copy the original classification file to the output directory"""
-        logger.info("Copying classification file...")
-        
-        # Copy the original classification file
-        import shutil
-        classification_copy = self.output_dir / f"{self.genome}_classification.txt"
-        shutil.copy2(self.classification_file, classification_copy)
-        
-        logger.info(f"Classification file copied: {classification_copy}")
-        return classification_copy
     
     def _get_rgb_color(self, structural_category):
         """Get RGB color for structural category - using original hex colors from color_bed.py"""
@@ -290,11 +528,11 @@ class SQANTI3ToBigBed:
 
     
     def create_bigbed_file(self, bed_file):
-        """Convert BED to bigBed. If bb12plus is enabled, use autoSql bed12+8 and filterByRange path"""
+        """Convert full BED to bigBed using dynamic autoSql"""
         logger.info("Converting BED to bigBed...")
         
         try:
-            # Determine chromosome sizes source: priority --chrom-sizes > --twobit > GTF-derived
+            # Determine chromosome sizes
             if self.chrom_sizes_file and os.path.exists(self.chrom_sizes_file):
                 chrom_sizes_file = self.chrom_sizes_file
                 logger.info(f"Using provided chrom.sizes file: {chrom_sizes_file}")
@@ -307,8 +545,8 @@ class SQANTI3ToBigBed:
                 if not chrom_sizes_file:
                     raise Exception("Could not determine chromosome sizes")
 
-            # Sort BED as recommended by UCSC (LC_COLLATE=C sort -k1,1 -k2,2n)
-            sorted_bed_file = os.path.join(self.temp_dir, "transcripts_with_classification.sorted.bed")
+            # bed_file is now transcripts_full.bed (unsorted)
+            sorted_bed_file = os.path.join(self.temp_dir, "transcripts_full.sorted.bed")
             env = os.environ.copy()
             env["LC_COLLATE"] = "C"
             sort_cmd = ['sort', '-k1,1', '-k2,2n', bed_file, '-o', sorted_bed_file]
@@ -316,625 +554,103 @@ class SQANTI3ToBigBed:
             logger.info(f"Sorted BED written to: {sorted_bed_file}")
 
             bigbed_file = self.output_dir / f"{self.genome}_sqanti3.bb"
-            # Remember chrom sizes used for later splitting
-            self.chrom_sizes_used = chrom_sizes_file
-            if self.bb12plus:
-                # Build a bed12+8 file using classification data columns
-                bed20_path = os.path.join(self.temp_dir, 'transcripts_20col.bed')
-                with open(sorted_bed_file, 'r') as inp, open(bed20_path, 'w') as outp:
-                    for line in inp:
-                        parts = line.rstrip('\n').split('\t')
-                        if len(parts) < 12:
-                            continue
-                        # Compact names already hold the transcript_id
-                        transcript_id = parts[3]
-                        data = self.classification_data.get(transcript_id, {})
-                        # pack itemRgb to uint as required by autoSql
-                        try:
-                            rgb_parts = parts[8].split(',')
-                            if len(rgb_parts) == 3:
-                                r = int(rgb_parts[0]); g = int(rgb_parts[1]); b = int(rgb_parts[2])
-                                packed_rgb = (r << 16) + (g << 8) + b
-                                parts[8] = str(packed_rgb)
-                            else:
-                                parts[8] = '0'
-                        except Exception:
-                            parts[8] = '0'
-                        # Human-readable categorical fields
-                        struct_val = data.get('structural_category','unknown')
-                        subcat_val = data.get('subcategory','unknown')
-                        coding_val = data.get('coding','unknown')
-                        fsm = data.get('FSM_class','0')
-                        # numeric fields
-                        def to_int(x):
-                            try:
-                                return int(float(x))
-                            except:
-                                return 0
-                        def to_float(x):
-                            try:
-                                return float(x)
-                            except:
-                                return 0.0
-                        length = to_int(data.get('length',0))
-                        exons = to_int(data.get('exons',0))
-                        coverage = to_float(data.get('min_cov',0.0))
-                        expression = to_float(data.get('iso_exp',0.0))
-                        extra = [struct_val, subcat_val, coding_val, f"FSM{fsm}", str(length), str(exons), str(coverage), str(expression)]
-                        outp.write('\t'.join(parts[:12] + extra) + '\n')
+            
+            # Write dynamic autoSql schema file
+            as_path = os.path.join(self.temp_dir, 'sqanti3_schema.as')
+            self._generate_autosql_schema(self.extra_cols, as_path)
 
-                # Write autoSql schema file
-                as_path = os.path.join(self.temp_dir, 'sqanti3_schema.as')
-                with open(as_path, 'w') as f:
-                    f.write("table sqanti3Transcripts\n")
-                    f.write('"SQANTI3 transcript annotations with classification data"\n')
-                    f.write("(\n")
-                    f.write("    string chrom;        \"Reference sequence chromosome or scaffold\"\n")
-                    f.write("    uint   chromStart;   \"Start position in chromosome\"\n")
-                    f.write("    uint   chromEnd;     \"End position in chromosome\"\n")
-                    f.write("    string name;         \"Transcript ID\"\n")
-                    f.write("    uint   score;        \"Score (0-1000)\"\n")
-                    f.write("    char[1] strand;      \"+ or -\"\n")
-                    f.write("    uint   thickStart;   \"Start of thick display\"\n")
-                    f.write("    uint   thickEnd;     \"End of thick display\"\n")
-                    f.write("    uint   itemRgb;      \"Item color packed as R*256^2+G*256+B\"\n")
-                    f.write("    int    blockCount;   \"Number of blocks (exons)\"\n")
-                    f.write("    int[blockCount] blockSizes;  \"Comma separated list of block sizes\"\n")
-                    f.write("    int[blockCount] chromStarts; \"Start positions relative to chromStart\"\n")
-                    f.write("    string structCat;    \"Structural category (e.g., full-splice_match, fusion)\"\n")
-                    f.write("    string subcategory;  \"Subcategory (e.g., mono-exon, canonical)\"\n")
-                    f.write("    string coding;       \"Coding status (coding, non_coding, partial_coding, pseudo)\"\n")
-                    f.write("    string fsmClass;     \"FSM class (A,B,C,D)\"\n")
-                    f.write("    uint   length;       \"Transcript length\"\n")
-                    f.write("    uint   exons;        \"Exon count\"\n")
-                    f.write("    float  coverage;     \"Minimum coverage\"\n")
-                    f.write("    float  expression;   \"Isoform expression\"\n")
-                    f.write(")\n")
-
-                # Sort 20-col BED
-                bed20_sorted = os.path.join(self.temp_dir, 'transcripts_20col.sorted.bed')
-                env2 = os.environ.copy()
-                env2["LC_COLLATE"] = "C"
-                subprocess.run(['sort','-k1,1','-k2,2n',bed20_path,'-o',bed20_sorted], check=True, capture_output=True, text=True, env=env2)
-
-                cmd = ['bedToBigBed', '-as='+as_path, '-type=bed12+8', '-extraIndex=name', bed20_sorted, chrom_sizes_file, str(bigbed_file)]
-            else:
-                # standard bigBed with name encoding
-                cmd = ['bedToBigBed','-extraIndex=name',sorted_bed_file,chrom_sizes_file,str(bigbed_file)]
+            # Run bedToBigBed
+            # type=bed12+N where N is number of extra columns
+            # -tab is required because fields may contain spaces
+            num_extra = len(self.extra_cols)
+            cmd = ['bedToBigBed', '-tab', f'-as={as_path}', f'-type=bed12+{num_extra}', '-extraIndex=name', sorted_bed_file, chrom_sizes_file, str(bigbed_file)]
             
             result = subprocess.run(cmd, check=True, capture_output=True, text=True)
             logger.info(f"BigBed file created: {bigbed_file}")
-            # Also generate per-structural-category bigBeds for hubCheck-compliant filtering via multiple tracks
-            try:
-                self._create_category_bigbeds(bed_file, chrom_sizes_file)
-            except Exception as _e:
-                logger.warning(f"Could not create per-category bigBeds: {_e}")
             return bigbed_file
-            
+
         except Exception as e:
-            logger.error(f"Error in create_bigbed_file: {e}")
-            import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            raise e
-
-    def _create_category_bigbeds(self, enhanced_bed_file: str, chrom_sizes_file: str) -> None:
-        """Create per-structural-category bigBeds from the enhanced BED, as bed12+8 with classification fields."""
-        categories = [
-            'full-splice_match',
-            'incomplete-splice_match',
-            'novel_in_catalog',
-            'novel_not_in_catalog',
-            'genic',
-            'antisense',
-            'fusion',
-            'intergenic',
-            'genic_intron'
-        ]
-        # Create autoSql schema for bed12+8 (structCat, subcategory, coding, fsmClass, length, exons, coverage, expression)
-        cat_as_path = os.path.join(self.temp_dir, 'sqanti3_cat.as')
-        with open(cat_as_path, 'w') as asf:
-            asf.write("table sqanti3Cat\n")
-            asf.write('"SQANTI3 category tracks with classification fields"\n')
-            asf.write("(\n")
-            asf.write("    string chrom;        \"Reference sequence chromosome or scaffold\"\n")
-            asf.write("    uint   chromStart;   \"Start position in chromosome\"\n")
-            asf.write("    uint   chromEnd;     \"End position in chromosome\"\n")
-            asf.write("    string name;         \"Name of item\"\n")
-            asf.write("    uint   score;        \"Score (0-1000)\"\n")
-            asf.write("    char[1] strand;      \"+ or -\"\n")
-            asf.write("    uint   thickStart;   \"Start of thick display\"\n")
-            asf.write("    uint   thickEnd;     \"End of thick display\"\n")
-            asf.write("    uint   itemRgb;      \"Item color packed as R*256^2+G*256+B\"\n")
-            asf.write("    int    blockCount;   \"Number of blocks\"\n")
-            asf.write("    int[blockCount] blockSizes;  \"Comma separated list of block sizes\"\n")
-            asf.write("    int[blockCount] chromStarts; \"Start positions relative to chromStart\"\n")
-            asf.write("    string structCat;    \"Structural category\"\n")
-            asf.write("    string subcategory;  \"Subcategory\"\n")
-            asf.write("    string coding;       \"Coding status\"\n")
-            asf.write("    string fsmClass;     \"FSM class (A,B,C,D)\"\n")
-            asf.write("    uint   length;       \"Transcript length\"\n")
-            asf.write("    uint   exons;        \"Exon count\"\n")
-            asf.write("    float  coverage;     \"Minimum coverage (alias of min_cov)\"\n")
-            asf.write("    float  expression;   \"Isoform expression (alias of iso_exp)\"\n")
-            asf.write("    string associated_gene;       \"Associated gene\"\n")
-            asf.write("    string associated_transcript; \"Associated transcript\"\n")
-            asf.write("    uint   ref_length;            \"Reference transcript length\"\n")
-            asf.write("    uint   ref_exons;             \"Reference exon count\"\n")
-            asf.write("    int    diff_to_TSS;           \"Distance to TSS\"\n")
-            asf.write("    int    diff_to_TTS;           \"Distance to TTS\"\n")
-            asf.write("    int    diff_to_gene_TSS;      \"Distance to gene TSS\"\n")
-            asf.write("    int    diff_to_gene_TTS;      \"Distance to gene TTS\"\n")
-            asf.write("    string RTS_stage;             \"RTS stage\"\n")
-            asf.write("    string all_canonical;         \"All junctions canonical\"\n")
-            asf.write("    float  min_sample_cov;        \"Minimum sample coverage\"\n")
-            asf.write("    float  min_cov;               \"Minimum coverage\"\n")
-            asf.write("    uint   min_cov_pos;           \"Position of minimum coverage\"\n")
-            asf.write("    float  sd_cov;                \"Coverage standard deviation\"\n")
-            asf.write("    string FL;                    \"Full-length flag\"\n")
-            asf.write("    uint   n_indels;              \"Number of indels\"\n")
-            asf.write("    uint   n_indels_junc;         \"Number of junction indels\"\n")
-            asf.write("    string bite;                  \"Bite\"\n")
-            asf.write("    float  iso_exp;               \"Isoform expression\"\n")
-            asf.write("    float  gene_exp;              \"Gene expression\"\n")
-            asf.write("    float  ratio_exp;             \"Isoform/gene expression ratio\"\n")
-            asf.write("    string FSM_class;             \"FSM class (original field)\"\n")
-            asf.write("    uint   ORF_length;            \"ORF length\"\n")
-            asf.write("    uint   CDS_length;            \"CDS length\"\n")
-            asf.write("    uint   CDS_start;             \"CDS start\"\n")
-            asf.write("    uint   CDS_end;               \"CDS end\"\n")
-            asf.write("    uint   CDS_genomic_start;     \"CDS genomic start\"\n")
-            asf.write("    uint   CDS_genomic_end;       \"CDS genomic end\"\n")
-            asf.write("    string predicted_NMD;         \"Predicted NMD\"\n")
-            asf.write("    float  perc_A_downstream_TTS; \"Percent A downstream of TTS\"\n")
-            asf.write("    string seq_A_downstream_TTS;  \"Sequence downstream of TTS\"\n")
-            asf.write("    int    dist_to_CAGE_peak;     \"Distance to CAGE peak\"\n")
-            asf.write("    string within_CAGE_peak;      \"Within CAGE peak\"\n")
-            asf.write("    int    dist_to_polyA_site;    \"Distance to polyA site\"\n")
-            asf.write("    string within_polyA_site;     \"Within polyA site\"\n")
-            asf.write("    string polyA_motif;           \"polyA motif\"\n")
-            asf.write("    int    polyA_dist;            \"Distance to polyA motif\"\n")
-            asf.write("    string polyA_motif_found;     \"polyA motif found\"\n")
-            asf.write("    float  ratio_TSS;             \"TSS ratio\"\n")
-            asf.write(")\n")
-        # Prepare temp files per category
-        cat_to_temp = {cat: os.path.join(self.temp_dir, f"cat_{cat}.bed") for cat in categories}
-        # Write entries per category, appending 8 classification fields
-        with open(enhanced_bed_file, 'r') as inp:
-            outputs = {cat: open(path, 'w') for cat, path in cat_to_temp.items()}
-            try:
-                for line in inp:
-                    parts = line.rstrip('\n').split('\t')
-                    if len(parts) < 12:
-                        continue
-                    # recover transcript_id and struct category from encoded name if present in name
-                    # name format: transcript_id|struct_cat|...
-                    name = parts[3]
-                    struct_cat = None
-                    if '|' in name:
-                        toks = name.split('|')
-                        if len(toks) > 1:
-                            struct_cat = toks[1]
-                    # Fallback: try classification_data by transcript id
-                    if not struct_cat:
-                        tid = name.split('|', 1)[0]
-                        data = self.classification_data.get(tid, {})
-                        struct_cat = data.get('structural_category', '')
-                    if struct_cat in outputs:
-                        # Set category color, packed as uint for itemRgb per AS
-                        try:
-                            rgb = self._get_rgb_color(struct_cat) or '0,0,0'
-                            r, g, b = [int(x) for x in rgb.split(',')]
-                            parts[8] = str((r << 16) + (g << 8) + b)
-                        except Exception:
-                            parts[8] = '0'
-                        # Lookup classification values
-                        tid2 = parts[3].split('|', 1)[0] if '|' in parts[3] else parts[3]
-                        d2 = self.classification_data.get(tid2, {})
-                        def to_int(x):
-                            try:
-                                return int(float(x))
-                            except Exception:
-                                return 0
-                        def to_float(x):
-                            try:
-                                return float(x)
-                            except Exception:
-                                return 0.0
-                        struct_val = d2.get('structural_category', struct_cat)
-                        subcat_val = d2.get('subcategory', 'unknown')
-                        coding_val = d2.get('coding', 'unknown')
-                        fsm_val = d2.get('FSM_class', '')
-                        length_val = to_int(d2.get('length', 0))
-                        try:
-                            exons_val = int(float(d2.get('exons', '')))
-                        except Exception:
-                            try:
-                                exons_val = int(parts[9])
-                            except Exception:
-                                exons_val = 0
-                        cov_val = to_float(d2.get('min_cov', 0))
-                        exp_val = to_float(d2.get('iso_exp', 0))
-                        # Additional requested fields (excluding ORF_seq to keep files small)
-                        extra_more = [
-                            str(d2.get('associated_gene', '')),
-                            str(d2.get('associated_transcript', '')),
-                            str(to_int(d2.get('ref_length', 0))),
-                            str(to_int(d2.get('ref_exons', 0))),
-                            str(to_int(d2.get('diff_to_TSS', 0))),
-                            str(to_int(d2.get('diff_to_TTS', 0))),
-                            str(to_int(d2.get('diff_to_gene_TSS', 0))),
-                            str(to_int(d2.get('diff_to_gene_TTS', 0))),
-                            str(d2.get('RTS_stage', '')),
-                            str(d2.get('all_canonical', '')),
-                            str(to_float(d2.get('min_sample_cov', 0))),
-                            str(cov_val),
-                            str(to_int(d2.get('min_cov_pos', 0))),
-                            str(to_float(d2.get('sd_cov', 0))),
-                            str(d2.get('FL', '')),
-                            str(to_int(d2.get('n_indels', 0))),
-                            str(to_int(d2.get('n_indels_junc', 0))),
-                            str(d2.get('bite', '')),
-                            str(exp_val),
-                            str(to_float(d2.get('gene_exp', 0))),
-                            str(to_float(d2.get('ratio_exp', 0))),
-                            str(d2.get('FSM_class', '')),
-                            str(to_int(d2.get('ORF_length', 0))),
-                            str(to_int(d2.get('CDS_length', 0))),
-                            str(to_int(d2.get('CDS_start', 0))),
-                            str(to_int(d2.get('CDS_end', 0))),
-                            str(to_int(d2.get('CDS_genomic_start', 0))),
-                            str(to_int(d2.get('CDS_genomic_end', 0))),
-                            str(d2.get('predicted_NMD', '')),
-                            str(to_float(d2.get('perc_A_downstream_TTS', 0))),
-                            str(d2.get('seq_A_downstream_TTS', '')),
-                            str(to_int(d2.get('dist_to_CAGE_peak', 0))),
-                            str(d2.get('within_CAGE_peak', '')),
-                            str(to_int(d2.get('dist_to_polyA_site', 0))),
-                            str(d2.get('within_polyA_site', '')),
-                            str(d2.get('polyA_motif', '')),
-                            str(to_int(d2.get('polyA_dist', 0))),
-                            str(d2.get('polyA_motif_found', '')),
-                            str(to_float(d2.get('ratio_TSS', 0))),
-                        ]
-                        extra = [
-                            str(struct_val), str(subcat_val), str(coding_val), str(fsm_val),
-                            str(length_val), str(exons_val), str(cov_val), str(exp_val)
-                        ] + extra_more
-                        outputs[struct_cat].write('\t'.join(parts[:12] + extra) + '\n')
-            finally:
-                for fh in outputs.values():
-                    fh.close()
-
-        # Convert each category BED to sorted bigBed (bed12+8)
-        for cat, bed_path in cat_to_temp.items():
-            # Skip empty files
-            if not os.path.exists(bed_path) or os.path.getsize(bed_path) == 0:
-                continue
-            sorted_path = os.path.join(self.temp_dir, f"cat_{cat}.sorted.bed")
-            env = os.environ.copy()
-            env["LC_COLLATE"] = "C"
-            subprocess.run(['sort','-k1,1','-k2,2n', bed_path, '-o', sorted_path], check=True, capture_output=True, text=True, env=env)
-            out_bb = self.output_dir / f"{self.genome}_sqanti3_{cat}.bb"
-            # bed12 + 47 extra fields (see sqanti3_cat.as)
-            subprocess.run(['bedToBigBed', '-as='+cat_as_path, '-type=bed12+47', sorted_path, chrom_sizes_file, str(out_bb)], check=True, capture_output=True, text=True)
-            self.category_bigbeds[cat] = out_bb
-
-    def add_classification_data_to_bed(self, bed_file):
-        """Add classification data to name field for smart filtering in standard bigBed"""
-        logger.info("Adding classification data to BED file...")
-        
-        enhanced_bed_file = os.path.join(self.temp_dir, "transcripts_with_classification.bed")
-        processed_count = 0
-        missing_count = 0
-        
-        # Define structural category encoding (numeric codes)
-        structural_categories = [
-            'full-splice_match',
-            'incomplete-splice_match', 
-            'novel_in_catalog',
-            'novel_not_in_catalog',
-            'genic',
-            'antisense',
-            'fusion',
-            'intergenic',
-            'genic_intron'
-        ]
-        
-        # Define subcategory encoding (numeric codes)
-        subcategories = [
-            'mono-exon',
-            'multi-exon',
-            'novel',
-            'known',
-            'canonical',
-            'non-canonical'
-        ]
-        
-        # Define coding status encoding (numeric codes)
-        coding_statuses = [
-            'coding',
-            'non_coding',
-            'partial_coding',
-            'pseudo'
-        ]
-        
-        with open(bed_file, 'r') as infile, open(enhanced_bed_file, 'w') as outfile:
-            for line in infile:
-                parts = line.strip().split('\t')
-                if len(parts) >= 12:  # BED12 format
-                    transcript_id = parts[3]
-                    
-                    # Look up classification data
-                    if transcript_id in self.classification_data:
-                        data = self.classification_data[transcript_id]
-                        structural_category = data.get('structural_category', '')
-                        
-                        # Get RGB color for structural category and write as R,G,B string (UCSC expected format)
-                        rgb_color = self._get_rgb_color(structural_category)
-                        parts[8] = rgb_color if rgb_color else "0"
-                        
-                        # Encode classification data in name field for comprehensive filtering
-                        # Format: transcript_id|struct_cat|subcat|coding|fsm_class|length|exons|coverage|expression
-                        struct_code = 0  # Default
-                        for i, cat in enumerate(structural_categories):
-                            if structural_category.lower() == cat.lower():
-                                struct_code = i
-                                break
-                        
-                        subcategory_val = data.get('subcategory', '')
-                        subcat_code = 0  # Default
-                        for i, subcat in enumerate(subcategories):
-                            if subcategory_val.lower() == subcat.lower():
-                                subcat_code = i
-                                break
-                        
-                        coding_val = data.get('coding', '')
-                        coding_code = 0  # Default
-                        for i, code in enumerate(coding_statuses):
-                            if coding_val.lower() == code.lower():
-                                coding_code = i
-                                break
-                        
-                        fsm_class_val = data.get('FSM_class', '')
-                        fsm_code = 0  # Default
-                        if fsm_class_val in ['A', 'B', 'C', 'D']:
-                            fsm_code = ord(fsm_class_val) - ord('A') + 1  # 1=A, 2=B, 3=C, 4=D
-                        
-                        length = data.get('length', '0')
-                        try:
-                            length_val = int(float(length)) if length and length != 'NA' else 0
-                        except:
-                            length_val = 0
-                        
-                        exons = data.get('exons', '0')
-                        try:
-                            exons_val = int(float(exons)) if exons and exons != 'NA' else 0
-                        except:
-                            exons_val = 0
-                        
-                        min_cov = data.get('min_cov', '0')
-                        try:
-                            cov_val = float(min_cov) if min_cov and min_cov != 'NA' else 0.0
-                        except:
-                            cov_val = 0.0
-                        
-                        iso_exp = data.get('iso_exp', '0')
-                        try:
-                            exp_val = float(iso_exp) if iso_exp and iso_exp != 'NA' else 0.0
-                        except:
-                            exp_val = 0.0
-                        
-                        # Set score field to exon count for score-based filtering in UCSC UI
-                        try:
-                            parts[4] = str(min(max(exons_val, 0), 1000))
-                        except Exception:
-                            parts[4] = '0'
-                        
-                        # Encode ALL classification data in name field for comprehensive filtering
-                        # Format: transcript_id|struct_cat|subcat|coding|fsm|length|exons|coverage|expression
-                        struct_cat_name = structural_categories[struct_code] if struct_code < len(structural_categories) else "unknown"
-                        subcat_name = subcategories[subcat_code] if subcat_code < len(subcategories) else "unknown"
-                        coding_name = coding_statuses[coding_code] if coding_code < len(coding_statuses) else "unknown"
-                        
-                        # Use compact name (transcript ID only); rich text goes to Trix
-                        parts[3] = transcript_id
-                        
-
-                        
-                        processed_count += 1
-                    else:
-                        # Default values for transcripts not in classification
-                        parts[8] = "16777215"  # White
-                        parts[4] = '0'
-                        
-                        # Use compact name even when classification is missing
-                        parts[3] = transcript_id
-                        
-                        missing_count += 1
-                    
-                    outfile.write('\t'.join(parts) + '\n')
-        
-        logger.info(f"Classification data added: {processed_count} processed, {missing_count} missing from classification")
-        return enhanced_bed_file
-
-    def _generate_trix_index(self, enhanced_bed_file, genome_dir):
-        """Generate Trix (.ix/.ixx) text index with rich descriptions for fast search"""
-        ixixx_path = shutil.which('ixIxx')
-        if not ixixx_path:
-            logger.warning("ixIxx not found; skipping Trix index generation")
-            return False
-
-        try:
-            trix_input = os.path.join(self.temp_dir, 'trix_input.txt')
-            with open(enhanced_bed_file, 'r') as bed_in, open(trix_input, 'w') as t_out:
-                for line in bed_in:
-                    parts = line.rstrip('\t\n').split('\t')
-                    if len(parts) >= 12:
-                        tid = parts[3]
-                        d = self.classification_data.get(tid, {})
-                        fields = {
-                            'structural_category': d.get('structural_category', 'unknown'),
-                            'subcategory': d.get('subcategory', 'unknown'),
-                            'coding': d.get('coding', 'unknown'),
-                            'FSM_class': d.get('FSM_class', '0'),
-                            'length': d.get('length', '0'),
-                            'exons': d.get('exons', '0'),
-                            'min_cov': d.get('min_cov', '0'),
-                            'iso_exp': d.get('iso_exp', '0'),
-                            'associated_gene': d.get('associated_gene', ''),
-                            'associated_transcript': d.get('associated_transcript', ''),
-                            'ref_length': d.get('ref_length', ''),
-                            'ref_exons': d.get('ref_exons', ''),
-                            'diff_to_TSS': d.get('diff_to_TSS', ''),
-                            'diff_to_TTS': d.get('diff_to_TTS', ''),
-                            'diff_to_gene_TSS': d.get('diff_to_gene_TSS', ''),
-                            'diff_to_gene_TTS': d.get('diff_to_gene_TTS', ''),
-                            'RTS_stage': d.get('RTS_stage', ''),
-                            'all_canonical': d.get('all_canonical', ''),
-                            'min_sample_cov': d.get('min_sample_cov', ''),
-                            'min_cov_pos': d.get('min_cov_pos', ''),
-                            'sd_cov': d.get('sd_cov', ''),
-                            'FL': d.get('FL', ''),
-                            'n_indels': d.get('n_indels', ''),
-                            'n_indels_junc': d.get('n_indels_junc', ''),
-                            'bite': d.get('bite', ''),
-                            'gene_exp': d.get('gene_exp', ''),
-                            'ratio_exp': d.get('ratio_exp', ''),
-                            'ORF_length': d.get('ORF_length', ''),
-                            'CDS_length': d.get('CDS_length', ''),
-                            'CDS_start': d.get('CDS_start', ''),
-                            'CDS_end': d.get('CDS_end', ''),
-                            'CDS_genomic_start': d.get('CDS_genomic_start', ''),
-                            'CDS_genomic_end': d.get('CDS_genomic_end', ''),
-                            'predicted_NMD': d.get('predicted_NMD', ''),
-                            'perc_A_downstream_TTS': d.get('perc_A_downstream_TTS', ''),
-                            'seq_A_downstream_TTS': d.get('seq_A_downstream_TTS', ''),
-                            'dist_to_CAGE_peak': d.get('dist_to_CAGE_peak', ''),
-                            'within_CAGE_peak': d.get('within_CAGE_peak', ''),
-                            'dist_to_polyA_site': d.get('dist_to_polyA_site', ''),
-                            'within_polyA_site': d.get('within_polyA_site', ''),
-                            'polyA_motif': d.get('polyA_motif', ''),
-                            'polyA_dist': d.get('polyA_dist', ''),
-                            'polyA_motif_found': d.get('polyA_motif_found', ''),
-                            'ratio_TSS': d.get('ratio_TSS', ''),
-                        }
-                        desc = f"{tid} " + ' '.join([f"{k} {v}" for k, v in fields.items() if v not in (None, '', 'NA')])
-                        synonyms = ' '.join([str(v) for v in fields.values() if v not in (None, '', 'NA')])
-                        t_out.write(f"{tid}\t{desc}\t{synonyms}\n")
-
-            ix_path = os.path.join(genome_dir, 'trix.ix')
-            ixx_path = os.path.join(genome_dir, 'trix.ixx')
-            cmd = ['ixIxx', trix_input, ix_path, ixx_path]
-            subprocess.run(cmd, check=True, capture_output=True, text=True)
-            logger.info(f"Trix index generated: {ix_path}, {ixx_path}")
-            return True
-        except Exception as e:
-            logger.warning(f"Failed to generate Trix index: {e}")
-            return False
-
-    def _create_star_sj_bigbed(self, sj_file):
-        """Convert STAR SJ.out.tab to bigBed splice junction track"""
-        try:
-            if not os.path.exists(sj_file):
-                logger.error(f"STAR SJ file not found: {sj_file}")
-                return None
-
-            # Determine chromosome sizes source
-            if self.chrom_sizes_file and os.path.exists(self.chrom_sizes_file):
-                chrom_sizes_file = self.chrom_sizes_file
-            else:
-                chrom_sizes_file = self.extract_chrom_sizes()
-                if not chrom_sizes_file:
-                    raise Exception("Could not determine chromosome sizes for STAR junctions")
-
-            # Create BED6 from SJ.out.tab
-            bed6_path = os.path.join(self.temp_dir, 'SJ.out.bed')
-            strand_map = {'0':'.', '1':'+', '2':'-'}
-            with open(sj_file, 'r') as sj_in, open(bed6_path, 'w') as bed_out:
-                for idx, line in enumerate(sj_in, 1):
-                    parts = line.strip().split('\t')
-                    if len(parts) < 4:
-                        continue
-                    chrom = parts[0]
-                    start = int(parts[1]) - 1
-                    end = int(parts[2])
-                    strand_code = parts[3]
-                    strand = strand_map.get(strand_code, '.')
-                    name = f"j_{idx}"
-                    score = '1000'
-                    bed_out.write(f"{chrom}\t{start}\t{end}\t{name}\t{score}\t{strand}\n")
-
-            # Sort BED
-            sorted_bed_path = os.path.join(self.temp_dir, 'SJ.out.sorted.bed')
-            env = os.environ.copy()
-            env["LC_COLLATE"] = "C"
-            sort_cmd = ['sort', '-k1,1', '-k2,2n', bed6_path, '-o', sorted_bed_path]
-            subprocess.run(sort_cmd, check=True, capture_output=True, text=True, env=env)
-
-            # Create bigBed (type bed6)
-            star_bb = self.output_dir / f"{self.genome}_star_sj.bb"
-            cmd = ['bedToBigBed', sorted_bed_path, chrom_sizes_file, str(star_bb)]
-            subprocess.run(cmd, check=True, capture_output=True, text=True)
-            logger.info(f"STAR junctions bigBed created: {star_bb}")
-            return star_bb
-        except Exception as e:
-            logger.error(f"Failed to create STAR junctions bigBed: {e}")
+            logger.error(f"Error creating bigBed file: {e}")
+            if 'result' in locals() and hasattr(result, 'stderr'):
+                 logger.error(f"bedToBigBed stderr: {result.stderr}")
             return None
 
-    def create_autosql_schema(self):
-        """Create autoSql schema file for bigBed 12 + format"""
-        logger.info("Creating autoSql schema for bigBed 12 + format...")
+    def create_category_bigbeds(self, main_bed_file):
+        """Create separate bigBed files for each structural category"""
+        logger.info("Creating category-specific bigBed files...")
         
         try:
-            as_file = os.path.join(self.temp_dir, "sqanti3_schema.as")
+            as_path = os.path.join(self.temp_dir, 'sqanti3_schema.as')
+            num_extra = len(self.extra_cols)
+            chrom_sizes_file = self.chrom_sizes_file or os.path.join(self.temp_dir, 'chrom.sizes')
             
-            with open(as_file, 'w') as f:
-                f.write("table sqanti3Transcripts\n")
-                f.write('"SQANTI3 transcript annotations with classification data"\n')
-                f.write("(\n")
-                # Standard BED12 fields
-                f.write("    string chrom;       \"Reference sequence chromosome or scaffold\"\n")
-                f.write("    uint   chromStart;  \"Start position in chromosome\"\n")
-                f.write("    uint   chromEnd;    \"End position in chromosome\"\n")
-                f.write("    string name;        \"Name of transcript\"\n")
-                f.write("    uint   score;       \"Score (0-1000)\"\n")
-                f.write("    char[1] strand;     \"+ or - for strand\"\n")
-                f.write("    uint   thickStart;  \"Start of where display should be thick (start codon)\"\n")
-                f.write("    uint   thickEnd;    \"End of where display should be thick (stop codon)\"\n")
-                f.write("    uint   itemRgb;     \"RGB color value (packed)\"\n")
-                f.write("    int    blockCount;  \"Number of blocks\"\n")
-                f.write("    int[blockCount] blockSizes; \"Comma separated list of block sizes\"\n")
-                f.write("    int[blockCount] chromStarts; \"Start positions relative to chromStart\"\n")
+            # Read full BED file to filter by category
+            # We use the same columns as written in add_classification_data_to_bed
+            bed_cols = [
+                'chrom', 'chromStart', 'chromEnd', 'name', 'score', 'strand',
+                'thickStart', 'thickEnd', 'itemRgb', 'blockCount', 
+                'blockSizes', 'chromStarts'
+            ] + self.extra_cols
+            
+            df = pd.read_csv(main_bed_file, sep='	', names=bed_cols, dtype={'chrom': 'string'})
+            
+            if 'structural_category' not in df.columns:
+                logger.warning("structural_category column missing, cannot create category tracks")
+                return False
                 
-                # Custom fields for classification data (using UCSC-required field names)
-                f.write("    uint   expCount;    \"Structural category code (0-8)\"\n")
-                f.write("    uint   isSizeLink;  \"Subcategory code (0-5)\"\n")
-                f.write("    uint   expIds;      \"Coding status code (0-3)\"\n")
-                f.write("    uint   expScores;   \"FSM class code (0-4)\"\n")
-                f.write("    uint   length;      \"Transcript length\"\n")
-                f.write("    uint   exons;       \"Number of exons\"\n")
-                f.write("    float  coverage;    \"Minimum coverage\"\n")
-                f.write("    float  expression;  \"Isoform expression\"\n")
-                f.write(")\n")
+            categories = df['structural_category'].unique()
+            self.category_bigbeds = {}
             
-            logger.info(f"AutoSql schema created: {as_file}")
-            return as_file
+            for cat in categories:
+                if pd.isna(cat) or cat == 'NA': 
+                    continue
+                
+                cat_str = str(cat)
+                safe_cat_file = cat_str.replace(' ', '_').replace('/', '_')
+                
+                sub_bed = os.path.join(self.temp_dir, f"sqanti3_{safe_cat_file}.bed")
+                sub_sorted = os.path.join(self.temp_dir, f"sqanti3_{safe_cat_file}.sorted.bed")
+                sub_bb = self.output_dir / f"{self.genome}_sqanti3_{safe_cat_file}.bb"
+                
+                # Filter
+                cat_df = df[df['structural_category'] == cat]
+                
+                # Write
+                cat_df.to_csv(sub_bed, sep='	', header=False, index=False, quoting=3)
+                
+                # Sort
+                env = os.environ.copy()
+                env["LC_COLLATE"] = "C"
+                subprocess.run(['sort', '-k1,1', '-k2,2n', sub_bed, '-o', sub_sorted], check=True, env=env)
+                
+                # bedToBigBed - use -tab because fields may contain spaces
+                cmd = ['bedToBigBed', '-tab', f'-as={as_path}', f'-type=bed12+{num_extra}', '-extraIndex=name', sub_sorted, chrom_sizes_file, str(sub_bb)]
+                
+                result = subprocess.run(cmd, check=False, capture_output=True, text=True)
+                if result.returncode != 0:
+                    logger.error(f"bedToBigBed failed for category {cat}")
+                    logger.error(f"Command: {' '.join(cmd)}")
+                    logger.error(f"Stderr: {result.stderr}")
+                    raise subprocess.CalledProcessError(result.returncode, cmd, output=result.stdout, stderr=result.stderr)
+                
+                self.category_bigbeds[cat_str] = sub_bb.name
+                logger.info(f"Created category track: {sub_bb}")
+                
+            return True
             
         except Exception as e:
-            logger.error(f"Error creating autoSql schema: {e}")
-            return None
+            logger.error(f"Error creating category bigBeds: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return False
 
     def create_hub_files(self, bigbed_file):
         """Create UCSC Genome Browser hub files"""
         logger.info("Creating hub files...")
         
         # Extract the output directory name for hub naming
-        # Always use just the final directory name for clean, simple hub names
         output_dir_name = self.output_dir.name
         hub_name = f"{output_dir_name}_{self.genome}_SQANTI3_Hub"
-        
-        # Copy the original classification file
-        classification_copy = self.copy_classification_file()
         
         # Create hub.txt
         hub_file = self.output_dir / "hub.txt"
@@ -947,21 +663,20 @@ class SQANTI3ToBigBed:
                 f.write(f"email {self.github_repo.split('/')[0]}@users.noreply.github.com\n")
             else:
                 f.write(f"email sqanti3_user@users.noreply.github.com\n")
-            f.write(f"descriptionUrl {self._get_github_raw_url(f'{hub_name}.html')}\n")
+            f.write(f"descriptionUrl {self._get_github_raw_url('README.md')}\n")
         
         # Create genomes.txt
         genomes_file = self.output_dir / "genomes.txt"
         with open(genomes_file, 'w', newline='\n') as f:
             f.write(f"genome {self.genome}\n")
             f.write(f"trackDb {self._get_github_raw_url('trackDb.txt', subdir=self.genome)}\n")
-            # reference groups file for multi-track organization
             f.write(f"groups {self._get_github_raw_url('groups.txt', subdir=self.genome)}\n")
         
         # Create genome-specific directory and trackDb.txt
         genome_dir = self.output_dir / self.genome
         genome_dir.mkdir(exist_ok=True)
         
-        # Create groups.txt for organizing tracks
+        # Create groups.txt
         groups_file = genome_dir / "groups.txt"
         with open(groups_file, 'w', newline='\n') as gf:
             gf.write("name transcripts\n")
@@ -978,10 +693,10 @@ class SQANTI3ToBigBed:
         transcripts_html = self.output_dir / transcripts_html_name
         with open(transcripts_html, 'w') as tf:
             tf.write(f"""<!DOCTYPE html>
-<html lang=\"en\">
+<html lang="en">
 <head>
-    <meta charset=\"UTF-8\">
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{self.genome} SQANTI3 Transcripts</title>
     <style>
         body {{ font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }}
@@ -996,7 +711,7 @@ class SQANTI3ToBigBed:
     <h3>Filtering</h3>
     <ul>
         <li>Search by name-encoded tokens (e.g., <code>intergenic</code>, <code>mono-exon</code>, <code>FSM1</code>).</li>
-        {('<li>Use per-field filters and ranges (length, exons, coverage, expression) with 12+ schema.</li>' if self.bb12plus else '')}
+        <li>Use per-field filters and ranges (length, exons, coverage, expression) available in the track settings.</li>
     </ul>
     <h3>Color Legend</h3>
     <ul>
@@ -1019,10 +734,10 @@ class SQANTI3ToBigBed:
             star_html = self.output_dir / star_html_name
             with open(star_html, 'w') as sh:
                 sh.write(f"""<!DOCTYPE html>
-<html lang=\"en\">
+<html lang="en">
 <head>
-    <meta charset=\"UTF-8\">
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{self.genome} STAR Splice Junctions</title>
     <style>
         body {{ font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }}
@@ -1037,44 +752,50 @@ class SQANTI3ToBigBed:
 </body>
 </html>""")
         
+        # Determine number of extra fields
+        num_extra = len(self.extra_cols) if hasattr(self, 'extra_cols') else 0
+
         trackdb_file = genome_dir / "trackDb.txt"
         with open(trackdb_file, 'w', newline='\n') as f:
             f.write(f"track {self.genome}_sqanti3\n")
             f.write(f"bigDataUrl {self._get_github_raw_url(f'{self.genome}_sqanti3.bb')}\n")
             f.write(f"shortLabel SQANTI3 Transcripts\n")
             f.write(f"longLabel SQANTI3 Transcriptome Analysis Results\n")
-            if self.bb12plus:
-                f.write(f"type bigBed 12 + 8\n")
-                # Add filters for the 8 extra fields
-                f.write("filter.structCat on\n")
-                f.write("filter.subcategory on\n")
-                f.write("filter.coding on\n")
-                f.write("filter.fsmClass on\n")
-                f.write("filterByRange.length 0:50000\n")
-                f.write("filterByRange.exons 0:100\n")
-                f.write("filterByRange.coverage 0:1000\n")
-                f.write("filterByRange.expression 0:1000\n")
-            else:
-                f.write(f"type bigBed\n")
+            f.write(f"type bigBed 12 + {num_extra}\n")
+            
+            # Add standard filters if columns exist
+            def sanitize(col):
+                return col.replace('.', '_').replace(' ', '_').replace('-', '_').replace('/', '_')
+            
+            existing_fields = set([sanitize(c) for c in self.extra_cols])
+            
+            if 'structural_category' in existing_fields: f.write("filter.structural_category on\n")
+            if 'subcategory' in existing_fields: f.write("filter.subcategory on\n")
+            if 'coding' in existing_fields: f.write("filter.coding on\n")
+            if 'FSM_class' in existing_fields: f.write("filter.FSM_class on\n")
+            
+            # Range filters
+            if 'length' in existing_fields: f.write("filterByRange.length 0:50000\n")
+            if 'exons' in existing_fields: f.write("filterByRange.exons 0:100\n")
+            if 'min_cov' in existing_fields: f.write("filterByRange.min_cov 0:1000\n")
+            if 'iso_exp' in existing_fields: f.write("filterByRange.iso_exp 0:1000\n")
+            
             f.write(f"visibility dense\n")
             f.write(f"group transcripts\n")
             f.write(f"itemRgb on\n")
             f.write(f"color 107,174,214\n")
             f.write(f"priority 1\n")
-            # Note: hubCheck warns on useScore; omit score filter directives
             f.write(f"html {self._get_github_raw_url(transcripts_html_name)}\n")
-            # Enable search on name; fielded filters are added below when 12+ is enabled
             f.write(f"searchIndex name\n")
-            # Add exon range control bound to built-in BED12 field blockCount
             f.write(f"filterByRange.blockCount 0:100\n")
             f.write(f"filterLabel.blockCount Number of exons\n")
             
-            # Add Trix search index if present
+            # Trix
             trix_ix = genome_dir / 'trix.ix'
             if os.path.exists(trix_ix):
                 f.write(f"searchTrix {self._get_github_raw_url('trix.ix', subdir=self.genome)}\n")
 
-            # Append STAR junctions track if generated
+            # STAR
             if self.star_bigbed and os.path.exists(self.star_bigbed):
                 f.write("\n")
                 f.write(f"track {self.genome}_star_sj\n")
@@ -1088,234 +809,121 @@ class SQANTI3ToBigBed:
                 if star_html_name:
                     f.write(f"html {self._get_github_raw_url(star_html_name)}\n")
 
-            # Append per-structural-category tracks for hubCheck-compliant filtering via toggles
-            if self.category_bigbeds:
-                for cat, bb_path in self.category_bigbeds.items():
-                    # Create per-category HTML description
-                    cat_html_name = f"{self.genome}_sqanti3_{cat}.html"
-                    try:
-                        # 1. Read the HTML template
-                        script_dir = Path(__file__).parent
-                        template_path = script_dir / 'track_template.html'
-                        if not template_path.exists():
-                            # Try relative to current working directory as fallback
-                            template_path = Path('track_template.html')
-                            if not template_path.exists():
-                                logger.warning(f"Template file not found at {script_dir / 'track_template.html'} or track_template.html, falling back to basic HTML.")
-                                raise FileNotFoundError("track_template.html not found")
-                        
-                        with open(template_path, 'r') as f_template:
-                            html_content = f_template.read()
-
-                        # 2. Prepare data for template replacement
-                        category_data = []
-                        
-                        def safe_int(val):
-                            try: return int(float(val))
-                            except (ValueError, TypeError, AttributeError): return None
-
-                        def safe_float(val):
-                            try: return float(val)
-                            except (ValueError, TypeError, AttributeError): return None
-
-                        for transcript_id, data in self.classification_data.items():
-                            if data.get('structural_category') == cat:
-                                filtered_data = {
-                                    'isoform': transcript_id,
-                                    'exons': safe_int(data.get('exons')),
-                                    'length': safe_int(data.get('length')),
-                                    'diff_to_TSS': safe_int(data.get('diff_to_TSS')),
-                                    'diff_to_TTS': safe_int(data.get('diff_to_TTS')),
-                                    'coding': data.get('coding', 'unknown'),
-                                    'iso_exp': safe_float(data.get('iso_exp')),
-                                    'associated_gene': data.get('associated_gene', 'unknown'),
-                                }
-                                category_data.append(filtered_data)
-                        
-                        json_data = json.dumps(category_data, indent=2)
-
-                        # 3. Prepare dropdown options for coding status
-                        coding_stati = sorted(list(set(d.get('coding') for d in category_data if d.get('coding'))))
-                        options_html = '<option value="all">All</option>'
-                        for status in coding_stati:
-                            options_html += f'<option value="{status}">{status}</option>'
-
-                        # 4. Replace placeholders in the template
-                        html_content = html_content.replace('%%TITLE%%', f"{self.genome} SQANTI3 {cat} Transcripts")
-                        html_content = html_content.replace('%%CATEGORY_DATA%%', json_data)
-                        html_content = html_content.replace('%%CATEGORY_NAME%%', cat)
-                        html_content = html_content.replace('%%TRANSCRIPT_COUNT%%', str(len(category_data)))
-                        html_content = html_content.replace('%%GENOME%%', self.genome)
-                        html_content = html_content.replace('%%CODING_OPTIONS%%', options_html)
-                        html_content = html_content.replace('%%TRACK_NAME%%', f"{self.genome}_sqanti3_{cat}")
-
-                        # 5. Add relative path for track_viewer.js (UCSC CSP blocks jsDelivr)
-                        # track_viewer.js is copied to the output directory, so use relative path
-                        track_viewer_url = 'track_viewer.js'
-                        html_content = html_content.replace('%%TRACK_VIEWER_URL%%', track_viewer_url)
-
-                        # 6. Write the final HTML
-                        with open(self.output_dir / cat_html_name, 'w') as ch:
-                            ch.write(html_content)
-
-                    except Exception as e:
-                        logger.warning(f"Could not create interactive HTML for category {cat}: {e}")
-                        # Fallback to original simple HTML
+            # Category tracks
+            if hasattr(self, 'category_bigbeds') and self.category_bigbeds:
+                for cat, bb_filename in self.category_bigbeds.items():
+                    safe_cat = cat.replace(' ', '_').replace('/', '_')
+                    cat_html_name = f"{self.genome}_sqanti3_{safe_cat}.html"
+                    
+                    # Create HTML
+                    script_dir = Path(__file__).parent
+                    template_path = script_dir / 'track_template.html'
+                    if not template_path.exists():
+                        template_path = Path('track_template.html')
+                    
+                    if template_path.exists():
                         try:
-                            with open(self.output_dir / cat_html_name, 'w') as ch:
-                                ch.write(f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{self.genome} SQANTI3 {cat}</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }}
-        h1 {{ color: #333; }}
-        ul {{ list-style-type: disc; margin-left: 20px; }}
-    </style>
-    </head>
-<body>
-    <h1>SQANTI3 {cat} ({self.genome})</h1>
-    <p>This track shows only transcripts in the <strong>{cat}</strong> structural category.</p>
-    <p>Colors follow the SQANTI3 palette. Use the track display settings to adjust visibility and score (exon count) range.</p>
-</body>
-</html>''')
-                        except Exception:
-                            pass # Final fallback, do nothing
+                            with open(template_path, 'r') as f_template:
+                                html_content = f_template.read()
 
+                            if hasattr(self, 'classification_df'):
+                                count = len(self.classification_df[self.classification_df['structural_category'] == cat])
+                            else:
+                                count = 0
+
+                            html_content = html_content.replace('%%TITLE%%', f"{self.genome} SQANTI3 {cat} Transcripts")
+                            html_content = html_content.replace('%%CATEGORY_NAME%%', cat)
+                            html_content = html_content.replace('%%TRANSCRIPT_COUNT%%', str(count))
+                            html_content = html_content.replace('%%GENOME%%', self.genome)
+
+                            with open(self.output_dir / cat_html_name, 'w') as ch:
+                                ch.write(html_content)
+                        except Exception as e:
+                            logger.error(f"Error creating HTML for category {cat}: {e}")
+                    
                     f.write("\n")
-                    track_name = f"{self.genome}_sqanti3_{cat}"
+                    track_name = f"{self.genome}_sqanti3_{safe_cat}"
                     short = f"SQANTI3 {cat}"
                     f.write(f"track {track_name}\n")
-                    f.write(f"bigDataUrl {self._get_github_raw_url(bb_path.name)}\n")
+                    f.write(f"bigDataUrl {self._get_github_raw_url(bb_filename)}\n")
                     f.write(f"shortLabel {short}\n")
                     f.write(f"longLabel SQANTI3 {cat} transcripts\n")
-                    # Declare the full number of extra fields added to category tracks
-                    f.write(f"type bigBed 12 + 39\n")
+                    f.write(f"type bigBed 12 + {num_extra}\n")
                     f.write(f"visibility hide\n")
                     f.write(f"group transcripts\n")
                     f.write(f"itemRgb on\n")
-                    # Omit useScore/scoreFilter directives for hubCheck compatibility
                     f.write(f"priority 3\n")
                     f.write(f"html {self._get_github_raw_url(cat_html_name)}\n")
-                    # Add filters for the extra fields in the category tracks
-                    f.write("filter.subcategory on\n")
-                    f.write("filter.coding on\n")
-                    f.write("filter.fsmClass on\n")
-                    f.write("filterByRange.length 0:50000\n")
-                    f.write("filterByRange.exons 0:100\n")
-                    f.write("filterByRange.coverage 0:1000\n")
-                    f.write("filterByRange.expression 0:1000\n")
-                    # Exon range label via blockCount
+                    
+                    # Add same filters
+                    if 'subcategory' in existing_fields: f.write("filter.subcategory on\n")
+                    if 'coding' in existing_fields: f.write("filter.coding on\n")
+                    if 'FSM_class' in existing_fields: f.write("filter.FSM_class on\n")
+                    if 'length' in existing_fields: f.write("filterByRange.length 0:50000\n")
+                    if 'exons' in existing_fields: f.write("filterByRange.exons 0:100\n")
+                    if 'min_cov' in existing_fields: f.write("filterByRange.min_cov 0:1000\n")
+                    if 'iso_exp' in existing_fields: f.write("filterByRange.iso_exp 0:1000\n")
                     f.write(f"filterByRange.blockCount 0:100\n")
                     f.write(f"filterLabel.blockCount Number of exons\n")
-        
-        # Create simple HTML description
-        html_file = self.output_dir / f"{hub_name}.html"
-        with open(html_file, 'w') as f_html:
-            f_html.write(f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{hub_name} - SQANTI3 Transcriptome Analysis Results</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }}
-        h1 {{ color: #333; }}
-        h2 {{ color: #555; }}
-        ul {{ list-style-type: disc; margin-left: 20px; }}
-        code {{ background-color: #f4f4f4; padding: 2px 4px; border-radius: 4px; }}
-        .info-box {{ background-color: #e7f3ff; padding: 15px; border-radius: 6px; margin: 20px 0; }}
-    </style>
-</head>
-<body>
-    <h1>{hub_name}</h1>
-    <p>This hub displays SQANTI3 transcriptome analysis results for the {self.genome} genome assembly.</p>
-    
-    <div class="info-box">
-        <h3>🔍 Advanced Filtering with Smart Name Encoding</h3>
-        <p><strong>This hub uses standard bigBed format with comprehensive data encoding in the name field:</strong></p>
-        <ul>
-            <li><strong>Structural Category:</strong> Filter by FSM, ISM, NIC, NNC, genic, antisense, fusion, intergenic, genic_intron</li>
-            <li><strong>Subcategory:</strong> Filter by mono-exon, multi-exon, novel, known, canonical, non-canonical</li>
-            <li><strong>Coding Status:</strong> Filter by coding, non_coding, partial_coding, pseudo</li>
-            <li><strong>FSM Class:</strong> Filter by A, B, C, D</li>
-            <li><strong>Length:</strong> Range-based filtering for transcript length (L value)</li>
-            <li><strong>Coverage:</strong> Range-based filtering for minimum coverage (C value)</li>
-            <li><strong>Expression:</strong> Range-based filtering for isoform expression (X value)</li>
-        </ul>
-        <p><em>Use the search box to filter by classification data (e.g., "intergenic", "L>500", "coding")</em></p>
-    </div>
-    
-    <div class="info-box">
-        <h3>🔍 How the Smart Filtering Works</h3>
-        <p><strong>All classification data is encoded in the transcript name field:</strong></p>
-        <p><code>PB.118859.1|intergenic|mono-exon|non_coding|FSM1|L320|E1|Cnan|X80.0265</code></p>
-        <ul>
-            <li><strong>Format:</strong> transcript_id|structural_category|subcategory|coding_status|FSM_class|Llength|Eexons|Ccoverage|Xexpression</li>
-            <li><strong>Search Examples:</strong></li>
-            <ul>
-                <li><code>intergenic</code> - Find all intergenic transcripts</li>
-                <li><code>L>500</code> - Find transcripts longer than 500bp</li>
-                <li><code>E>2</code> - Find multi-exon transcripts</li>
-                <li><code>coding</code> - Find all coding transcripts</li>
-                <li><code>FSM1</code> - Find FSM class A transcripts</li>
-            </ul>
-        </ul>
-        <p><em>This approach provides comprehensive filtering without the complexity of bigBed 12+8 format!</em></p>
-    </div>
-    
-    <h2>🎨 Color Legend</h2>
-    <ul>
-        <li><span style="color: #6BAED6;"><strong>Full-splice Match (FSM):</strong></span> Transcripts that perfectly match known genes</li>
-        <li><span style="color: #FC8D59;"><strong>Incomplete-splice Match (ISM):</strong></span> Transcripts that partially match known genes</li>
-        <li><span style="color: #78C679;"><strong>Novel In Catalog (NIC):</strong></span> Novel transcripts in known gene loci</li>
-        <li><span style="color: #EE6A50;"><strong>Novel Not In Catalog (NNC):</strong></span> Novel transcripts in novel loci</li>
-        <li><span style="color: #969696;"><strong>Genic:</strong></span> Transcripts in gene regions</li>
-        <li><span style="color: #66C2A4;"><strong>Antisense:</strong></span> Antisense transcripts</li>
-        <li><span style="color: #6BAED6;"><strong>Fusion:</strong></span> Fusion transcripts</li>
-        <li><span style="color: #E9967A;"><strong>Intergenic:</strong></span> Intergenic transcripts</li>
-        <li><span style="color: #41B6C4;"><strong>Genic Intron:</strong></span> Intronic transcripts</li>
-    </ul>
-    
-    <h2>📊 Classification Data</h2>
-    <p>The original SQANTI3 classification file ({classification_copy.name}) is included for reference and detailed analysis.</p>
-    <p>This file contains all the detailed classification information for each transcript.</p>
-    
-    <h2>🚀 Usage Instructions</h2>
-    <p>To use this hub in the UCSC Genome Browser:</p>
-    <ol>
-        <li>Upload all files in this directory to a web-accessible location</li>
-        <li>In the UCSC Genome Browser, go to <strong>My Data → Track Hubs</strong></li>
-        <li>Enter the URL to your <code>hub.txt</code> file</li>
-        <li>Select the appropriate genome assembly</li>
-        <li>The SQANTI3 tracks will appear in your track list</li>
-        <li>Right-click on the track and select "Filter" to access individual field filters</li>
-    </ol>
-    
-    <h2>📧 Contact Information</h2>
-    <p><strong>Note:</strong> The hub.txt file includes a GitHub-specific email address. If you need to use a different email:</p>
-    <ul>
-        <li>Edit the <code>hub.txt</code> file</li>
-        <li>Change the <code>email</code> line to your preferred email address</li>
-        <li>Re-upload the updated file</li>
-    </ul>
-</body>
-</html>""")
-        
-        # Clean up the track_viewer.js file as it's no longer used
-        try:
-            viewer_js_to_remove = self.output_dir / 'track_viewer.js'
-            if viewer_js_to_remove.exists():
-                viewer_js_to_remove.unlink()
-                logger.info("Removed unused track_viewer.js from output directory.")
-        except Exception as e:
-            logger.warning(f"Could not remove track_viewer.js: {e}")
 
+        # README creation (same as before)
+        readme_file = self.output_dir / "README.md"
+        with open(readme_file, 'w') as f_md:
+            f_md.write(f"""# {hub_name}
+
+This hub displays SQANTI3 transcriptome analysis results for the {self.genome} genome assembly.
+
+## 🔍 Advanced Filtering
+
+**This hub uses the bigBed 12+{num_extra} format with native UCSC filters.**
+
+You can filter transcripts by:
+- **Structural Category:** FSM, ISM, NIC, NNC, genic, antisense, fusion, intergenic, genic_intron
+- **Subcategory:** mono-exon, multi-exon, novel, known, canonical, non-canonical
+- **Coding Status:** coding, non_coding, partial_coding, pseudo
+- **FSM Class:** A, B, C, D
+- **Length:** Range-based filtering for transcript length
+- **Coverage:** Range-based filtering for minimum coverage
+- **Expression:** Range-based filtering for isoform expression
+
+*Right-click on the track and select "Configure" or "Filter" to access these controls.*
+
+## 🎨 Color Legend
+
+- **Full-splice Match (FSM):** #6BAED6 (Blue)
+- **Incomplete-splice Match (ISM):** #FC8D59 (Orange)
+- **Novel In Catalog (NIC):** #78C679 (Green)
+- **Novel Not In Catalog (NNC):** #EE6A50 (Red)
+- **Genic:** #969696 (Gray)
+- **Antisense:** #66C2A4 (Teal)
+- **Fusion:** #DAA520 (Gold)
+- **Intergenic:** #E9967A (Salmon)
+- **Genic Intron:** #41B6C4 (Cyan)
+
+## 📊 Classification Data
+
+This hub visualizes data from the SQANTI3 classification analysis.
+
+## 🚀 Usage Instructions
+
+To use this hub in the UCSC Genome Browser:
+
+1. Upload all files in this directory to a web-accessible location (e.g., GitHub).
+2. In the UCSC Genome Browser, go to **My Data → Track Hubs**.
+3. Enter the URL to your `hub.txt` file.
+4. Select the appropriate genome assembly ({self.genome}).
+5. The SQANTI3 tracks will appear in your track list.
+
+## 📧 Contact Information
+
+**Note:** The `hub.txt` file includes a placeholder or GitHub-specific email address. If you need to use a different email:
+- Edit the `hub.txt` file.
+- Change the `email` line to your preferred email address.
+- Re-upload the updated file.
+""")
+        
         logger.info("Hub files created successfully")
         return True
-    
     def run(self):
         """Run the complete conversion pipeline"""
         try:
@@ -1347,16 +955,18 @@ class SQANTI3ToBigBed:
                 logger.info(f"Intermediate BED: {bed_file}")
                 return True
 
-            # Optionally generate Trix index (after name encoding)
-            if self.enable_trix:
-                genome_dir = self.output_dir / self.genome
-                genome_dir.mkdir(exist_ok=True)
-                self._generate_trix_index(bed_file, genome_dir)
+            # Generate Trix index (after name encoding) if ixIxx is available
+            genome_dir = self.output_dir / self.genome
+            genome_dir.mkdir(exist_ok=True)
+            self._generate_trix_index(bed_file, genome_dir)
 
             # Create bigBed file
             bigbed_file = self.create_bigbed_file(bed_file)
             if not bigbed_file:
                 return False
+            
+            # Create category-specific tracks
+            self.create_category_bigbeds(bed_file)
             
             # Optionally create STAR junctions track
             if self.star_sj:
@@ -1380,8 +990,11 @@ class SQANTI3ToBigBed:
                 logger.info(f"Temporary directory preserved for debugging: {self.temp_dir}")
             return False
         finally:
-            # Only cleanup on success
-            pass
+            # Cleanup temp directory unless requested to keep it
+            if not self.keep_temp:
+                self._cleanup_temp_dir()
+            else:
+                logger.info(f"Temporary directory preserved: {self.temp_dir}")
 
 def main():
     parser = argparse.ArgumentParser(description='Convert SQANTI3 output to UCSC Genome Browser hub for visualization')
@@ -1393,13 +1006,10 @@ def main():
     parser.add_argument('--twobit', help='Optional: Genome .2bit file to compute chrom.sizes via twoBitInfo')
     parser.add_argument('--github-repo', help='GitHub repository (format: username/repository) for raw URLs')
     parser.add_argument('--github-branch', default='main', help='GitHub branch (default: main)')
-    # Trix enabled by default; allow disabling with --no-trix
-    parser.add_argument('--enable-trix', dest='enable_trix', action='store_true', default=True, help='Generate Trix (.ix/.ixx) text index for fast search (default: on)')
-    parser.add_argument('--no-trix', dest='enable_trix', action='store_false', help='Disable Trix index generation')
     parser.add_argument('--star-sj', help='Optional: STAR SJ.out.tab to convert into a splice junction track')
-    parser.add_argument('--bb12plus', action='store_true', help='Use bigBed 12+ schema with autoSql and filterByRange')
     parser.add_argument('--validate-only', action='store_true', help='Validate tools and inputs only, then exit')
     parser.add_argument('--dry-run', action='store_true', help='Prepare intermediates (BED with classification) and exit before bigBed/hub generation')
+    parser.add_argument('--keep-temp', action='store_true', help='Keep temporary files for debugging')
     
     args = parser.parse_args()
     
@@ -1421,13 +1031,12 @@ def main():
         args.chrom_sizes,
         args.github_repo,
         args.github_branch,
-        enable_trix=args.enable_trix,
         star_sj=args.star_sj,
         two_bit_file=args.twobit,
         validate_only=args.validate_only,
-        dry_run=args.dry_run,
-        bb12plus=args.bb12plus
+        dry_run=args.dry_run
     )
+    converter.keep_temp = args.keep_temp
     success = converter.run()
     
     if not success:
