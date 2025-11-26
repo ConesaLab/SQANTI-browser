@@ -25,6 +25,12 @@ from collections import defaultdict
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Try to import the report generator
+try:
+    from filter_isoforms import generate_html_reports
+except ImportError:
+    generate_html_reports = None
+
 class SQANTI3ToBigBed:
     def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, github_repo=None, github_branch="main", star_sj=None, two_bit_file=None, validate_only=False, dry_run=False):
         self.gtf_file = gtf_file
@@ -378,7 +384,12 @@ class SQANTI3ToBigBed:
             return None
 
     def _generate_trix_index(self, enhanced_bed_file, genome_dir):
-        """Generate Trix (.ix/.ixx) text index"""
+        """Generate Trix (.ix/.ixx) text index with rich descriptions for fast search
+        
+        This matches the working format from October 30 version:
+        - TAB-separated with 3 columns: ID, description, synonyms
+        - Uses classification_df for field values
+        """
         ixixx_path = shutil.which('ixIxx')
         if not ixixx_path:
             logger.warning("ixIxx not found; skipping Trix index generation")
@@ -388,55 +399,87 @@ class SQANTI3ToBigBed:
         try:
             trix_input = os.path.join(self.temp_dir, 'trix_input.txt')
             
-            # We need a set of transcript IDs present in the BED file
-            valid_ids = set()
-            with open(enhanced_bed_file, 'r') as f:
-                for line in f:
-                    parts = line.split('\t')
-                    if len(parts) > 3:
-                        valid_ids.add(parts[3])
+            # Build a dictionary from classification_df for fast lookup
+            if not hasattr(self, 'classification_df'):
+                logger.error("Classification data not loaded")
+                return False
             
-            # Now stream the classification file and extract keywords for valid IDs
-            with open(self.classification_file, 'r') as f_in, open(trix_input, 'w') as f_out:
-                header = f_in.readline().rstrip('\n').split('\t')
-                try:
-                    idx_isoform = header.index('isoform')
-                except ValueError:
-                    logger.error("isoform column not found in classification file")
-                    return False
-                    
-                skip_cols = ['isoform', 'chrom', 'strand'] 
-                useful_cols = [c for c in header if c not in skip_cols]
-                col_indices = {c: header.index(c) for c in useful_cols}
-                
-                for line in f_in:
-                    parts = line.rstrip('\n').split('\t')
-                    if len(parts) <= idx_isoform:
-                        continue
+            classification_data = self.classification_df.set_index('name').to_dict('index')
+            
+            with open(enhanced_bed_file, 'r') as bed_in, open(trix_input, 'w') as t_out:
+                for line in bed_in:
+                    parts = line.rstrip('\t\n').split('\t')
+                    if len(parts) >= 12:
+                        tid = parts[3]
+                        d = classification_data.get(tid, {})
                         
-                    isoform = parts[idx_isoform]
-                    if isoform in valid_ids:
-                        keywords = [isoform]
-                        for col, idx in col_indices.items():
-                            if idx < len(parts):
-                                val = parts[idx]
-                                if val and val not in ['NA', 'nan', '']:
-                                    keywords.append(f"{col}:{val}")
-                                    keywords.append(val)
+                        # Build field dictionary - matching October 30 version
+                        fields = {
+                            'structural_category': d.get('structural_category', 'unknown'),
+                            'subcategory': d.get('subcategory', 'unknown'),
+                            'coding': d.get('coding', 'unknown'),
+                            'FSM_class': d.get('FSM_class', '0'),
+                            'length': d.get('length', '0'),
+                            'exons': d.get('exons', '0'),
+                            'min_cov': d.get('min_cov', '0'),
+                            'iso_exp': d.get('iso_exp', '0'),
+                            'associated_gene': d.get('associated_gene', ''),
+                            'associated_transcript': d.get('associated_transcript', ''),
+                            'ref_length': d.get('ref_length', ''),
+                            'ref_exons': d.get('ref_exons', ''),
+                            'diff_to_TSS': d.get('diff_to_TSS', ''),
+                            'diff_to_TTS': d.get('diff_to_TTS', ''),
+                            'diff_to_gene_TSS': d.get('diff_to_gene_TSS', ''),
+                            'diff_to_gene_TTS': d.get('diff_to_gene_TTS', ''),
+                            'RTS_stage': d.get('RTS_stage', ''),
+                            'all_canonical': d.get('all_canonical', ''),
+                            'min_sample_cov': d.get('min_sample_cov', ''),
+                            'min_cov_pos': d.get('min_cov_pos', ''),
+                            'sd_cov': d.get('sd_cov', ''),
+                            'FL': d.get('FL', ''),
+                            'n_indels': d.get('n_indels', ''),
+                            'n_indels_junc': d.get('n_indels_junc', ''),
+                            'bite': d.get('bite', ''),
+                            'gene_exp': d.get('gene_exp', ''),
+                            'ratio_exp': d.get('ratio_exp', ''),
+                            'ORF_length': d.get('ORF_length', ''),
+                            'CDS_length': d.get('CDS_length', ''),
+                            'CDS_start': d.get('CDS_start', ''),
+                            'CDS_end': d.get('CDS_end', ''),
+                            'CDS_genomic_start': d.get('CDS_genomic_start', ''),
+                            'CDS_genomic_end': d.get('CDS_genomic_end', ''),
+                            'predicted_NMD': d.get('predicted_NMD', ''),
+                            'perc_A_downstream_TTS': d.get('perc_A_downstream_TTS', ''),
+                            'seq_A_downstream_TTS': d.get('seq_A_downstream_TTS', ''),
+                            'dist_to_CAGE_peak': d.get('dist_to_CAGE_peak', ''),
+                            'within_CAGE_peak': d.get('within_CAGE_peak', ''),
+                            'dist_to_polyA_site': d.get('dist_to_polyA_site', ''),
+                            'within_polyA_site': d.get('within_polyA_site', ''),
+                            'polyA_motif': d.get('polyA_motif', ''),
+                            'polyA_dist': d.get('polyA_dist', ''),
+                            'polyA_motif_found': d.get('polyA_motif_found', ''),
+                            'ratio_TSS': d.get('ratio_TSS', ''),
+                        }
                         
-                        unique_keywords = sorted(list(set(keywords)))
-                        f_out.write(' '.join(unique_keywords) + '\n')
+                        # Build description: "tid key value key value ..."
+                        desc = f"{tid} " + ' '.join([f"{k} {v}" for k, v in fields.items() if v not in (None, '', 'NA', 'nan')])
+                        # Build synonyms: just the values
+                        synonyms = ' '.join([str(v) for v in fields.values() if v not in (None, '', 'NA', 'nan')])
+                        
+                        # Write TAB-separated: ID \t description \t synonyms
+                        t_out.write(f"{tid}\t{desc}\t{synonyms}\n")
             
-            ix_file = genome_dir / "trix.ix"
-            ixx_file = genome_dir / "trix.ixx"
-            
-            cmd = [ixixx_path, trix_input, str(ix_file), str(ixx_file)]
+            ix_path = os.path.join(genome_dir, 'trix.ix')
+            ixx_path = os.path.join(genome_dir, 'trix.ixx')
+            cmd = ['ixIxx', trix_input, ix_path, ixx_path]
             subprocess.run(cmd, check=True, capture_output=True, text=True)
-            logger.info(f"Trix index created: {ix_file}, {ixx_file}")
+            logger.info(f"Trix index generated: {ix_path}, {ixx_path}")
             return True
             
         except Exception as e:
-            logger.error(f"Error generating Trix index: {e}")
+            logger.warning(f"Failed to generate Trix index: {e}")
+            import traceback
+            logger.warning(traceback.format_exc())
             return False
 
     def _create_star_sj_bigbed(self, star_sj_file):
@@ -780,21 +823,24 @@ class SQANTI3ToBigBed:
             if 'min_cov' in existing_fields: f.write("filterByRange.min_cov 0:1000\n")
             if 'iso_exp' in existing_fields: f.write("filterByRange.iso_exp 0:1000\n")
             
-            f.write(f"visibility dense\n")
+            f.write(f"visibility full\n")
             f.write(f"group transcripts\n")
             f.write(f"itemRgb on\n")
             f.write(f"color 107,174,214\n")
             f.write(f"priority 1\n")
             f.write(f"html {self._get_github_raw_url(transcripts_html_name)}\n")
+            
+            # Search Configuration - matching the working October 30 version
+            # searchIndex MUST come before searchTrix and use relative path
             f.write(f"searchIndex name\n")
             f.write(f"filterByRange.blockCount 0:100\n")
             f.write(f"filterLabel.blockCount Number of exons\n")
             
-            # Trix
+            # Add Trix search index if present (relative path, not URL)
             trix_ix = genome_dir / 'trix.ix'
             if os.path.exists(trix_ix):
-                f.write(f"searchTrix {self._get_github_raw_url('trix.ix', subdir=self.genome)}\n")
-
+                f.write(f"searchTrix trix.ix\n")
+            
             # STAR
             if self.star_bigbed and os.path.exists(self.star_bigbed):
                 f.write("\n")
@@ -803,7 +849,7 @@ class SQANTI3ToBigBed:
                 f.write(f"shortLabel STAR Junctions\n")
                 f.write(f"longLabel STAR splice junctions (SJ.out.tab)\n")
                 f.write(f"type bigBed 6\n")
-                f.write(f"visibility dense\n")
+                f.write(f"visibility full\n")
                 f.write(f"group junctions\n")
                 f.write(f"priority 2\n")
                 if star_html_name:
@@ -849,7 +895,7 @@ class SQANTI3ToBigBed:
                     f.write(f"shortLabel {short}\n")
                     f.write(f"longLabel SQANTI3 {cat} transcripts\n")
                     f.write(f"type bigBed 12 + {num_extra}\n")
-                    f.write(f"visibility hide\n")
+                    f.write(f"visibility full\n")
                     f.write(f"group transcripts\n")
                     f.write(f"itemRgb on\n")
                     f.write(f"priority 3\n")
@@ -1010,6 +1056,7 @@ def main():
     parser.add_argument('--validate-only', action='store_true', help='Validate tools and inputs only, then exit')
     parser.add_argument('--dry-run', action='store_true', help='Prepare intermediates (BED with classification) and exit before bigBed/hub generation')
     parser.add_argument('--keep-temp', action='store_true', help='Keep temporary files for debugging')
+    parser.add_argument('--tables', action='store_true', help='Generate interactive HTML table reports for each category')
     
     args = parser.parse_args()
     
@@ -1038,6 +1085,17 @@ def main():
     )
     converter.keep_temp = args.keep_temp
     success = converter.run()
+    
+    if success and args.tables:
+        if generate_html_reports:
+            logger.info("Generating HTML table reports...")
+            reports_dir = os.path.join(args.output, "table_reports")
+            try:
+                generate_html_reports(args.classification, reports_dir)
+            except Exception as e:
+                logger.error(f"Error generating table reports: {e}")
+        else:
+            logger.warning("Could not import filter_isoforms.py. Skipping table generation.")
     
     if not success:
         sys.exit(1)

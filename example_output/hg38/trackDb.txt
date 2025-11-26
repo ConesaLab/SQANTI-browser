@@ -11,7 +11,7 @@ filterByRange.length 0:50000
 filterByRange.exons 0:100
 filterByRange.min_cov 0:1000
 filterByRange.iso_exp 0:1000
-visibility dense
+visibility full
 group transcripts
 itemRgb on
 color 107,174,214
@@ -20,14 +20,14 @@ html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg3
 searchIndex name
 filterByRange.blockCount 0:100
 filterLabel.blockCount Number of exons
-searchTrix https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38/trix.ix
+searchTrix trix.ix
 
 track hg38_sqanti3_intergenic
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_intergenic.bb
 shortLabel SQANTI3 intergenic
 longLabel SQANTI3 intergenic transcripts
 type bigBed 12 + 44
-visibility hide
+visibility full
 group transcripts
 itemRgb on
 priority 3
@@ -47,7 +47,7 @@ bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/ma
 shortLabel SQANTI3 novel_not_in_catalog
 longLabel SQANTI3 novel_not_in_catalog transcripts
 type bigBed 12 + 44
-visibility hide
+visibility full
 group transcripts
 itemRgb on
 priority 3
@@ -67,7 +67,7 @@ bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/ma
 shortLabel SQANTI3 antisense
 longLabel SQANTI3 antisense transcripts
 type bigBed 12 + 44
-visibility hide
+visibility full
 group transcripts
 itemRgb on
 priority 3
@@ -87,7 +87,7 @@ bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/ma
 shortLabel SQANTI3 genic_intron
 longLabel SQANTI3 genic_intron transcripts
 type bigBed 12 + 44
-visibility hide
+visibility full
 group transcripts
 itemRgb on
 priority 3
@@ -107,7 +107,7 @@ bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/ma
 shortLabel SQANTI3 fusion
 longLabel SQANTI3 fusion transcripts
 type bigBed 12 + 44
-visibility hide
+visibility full
 group transcripts
 itemRgb on
 priority 3
@@ -127,7 +127,7 @@ bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/ma
 shortLabel SQANTI3 novel_in_catalog
 longLabel SQANTI3 novel_in_catalog transcripts
 type bigBed 12 + 44
-visibility hide
+visibility full
 group transcripts
 itemRgb on
 priority 3
@@ -147,7 +147,7 @@ bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/ma
 shortLabel SQANTI3 incomplete-splice_match
 longLabel SQANTI3 incomplete-splice_match transcripts
 type bigBed 12 + 44
-visibility hide
+visibility full
 group transcripts
 itemRgb on
 priority 3
@@ -167,7 +167,7 @@ bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/ma
 shortLabel SQANTI3 full-splice_match
 longLabel SQANTI3 full-splice_match transcripts
 type bigBed 12 + 44
-visibility hide
+visibility full
 group transcripts
 itemRgb on
 priority 3
@@ -187,7 +187,7 @@ bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/ma
 shortLabel SQANTI3 genic
 longLabel SQANTI3 genic transcripts
 type bigBed 12 + 44
-visibility hide
+visibility full
 group transcripts
 itemRgb on
 priority 3
