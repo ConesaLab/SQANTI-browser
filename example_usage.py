@@ -20,10 +20,14 @@ def run_example():
     
     # Check if the main script exists
     main_script = "sqanti3_to_UCSC.py"
+    filter_script = "filter_isoforms.py"
+    
     if not os.path.exists(main_script):
         print(f"Error: {main_script} not found in current directory")
-        print("Please ensure you're running this from the directory containing the integration scripts")
         return False
+        
+    if not os.path.exists(filter_script):
+        print(f"Warning: {filter_script} not found in current directory")
     
     # Example parameters
     example_gtf = "example/SQANTI3_QC_output/example_corrected.gtf"
@@ -77,6 +81,11 @@ def run_example():
     print("- Validate tools/inputs only (no outputs): --validate-only")
     print("- Dry run (build enhanced BED, skip bigBed/hub): --dry-run")
     print()
+    print("Generate interactive HTML reports for exploration:")
+    print(f"python {filter_script} \\")
+    print(f"    --classification <your_classification.txt> \\")
+    print(f"    --output-dir <report_output_dir>")
+    print()
     print("Run with SQANTI3 example dataset (after copying example data):")
     print(f"python {main_script} \\")
     print(f"    --gtf {example_gtf} \\")
@@ -107,9 +116,10 @@ def run_example():
     print("Example workflow:")
     print("1. Run SQANTI3 on your transcriptome data")
     print("2. Use this tool to convert the output to bigBed format")
-    print("3. Upload the generated hub files to a web server")
-    print("4. Add the hub to UCSC Genome Browser")
-    print("5. View and filter your transcripts by structural category")
+    print("3. (Optional) Generate interactive HTML reports for detailed exploration")
+    print("4. Upload the generated hub files to a web server")
+    print("5. Add the hub to UCSC Genome Browser")
+    print("6. View and filter your transcripts by structural category")
     print()
     print("For detailed instructions, see README.md")
     

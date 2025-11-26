@@ -119,6 +119,22 @@ This generates hub files with GitHub raw URLs (`https://raw.githubusercontent.co
   ```
   - This creates `{genome}_star_sj.bb` and adds a `STAR Junctions` track.
 
+### Generate Filterable HTML Reports
+
+You can create standalone HTML reports for each structural category, allowing you to filter and explore isoforms interactively (including all classification columns):
+
+```bash
+python filter_isoforms.py \
+    --classification your_classification.txt \
+    --output-dir output_reports
+```
+
+This generates one `.html` file per category (e.g., `FSM_isoforms.html`, `NIC_isoforms.html`) in the `output_reports` directory. These files:
+- Are self-contained (shareable).
+- Include interactive tables with sorting and column-specific filtering.
+- Allow export to CSV/Excel.
+- Exclude the long `ORF_seq` column by default (use `--include-sequences` to keep it).
+
 ### Validation and Dry Run
 
 - **Validate only**: check tools and inputs, parse classification, then exit.
