@@ -413,9 +413,11 @@ class SQANTI3ToBigBed:
                         tid = parts[3]
                         d = classification_data.get(tid, {})
                         
-                        # Build field dictionary - matching October 30 version
+                        # Build field dictionary
                         fields = {
                             'structural_category': d.get('structural_category', 'unknown'),
+                            'chrom': d.get('chrom', ''),
+                            'strand': d.get('strand', ''),
                             'subcategory': d.get('subcategory', 'unknown'),
                             'coding': d.get('coding', 'unknown'),
                             'FSM_class': d.get('FSM_class', '0'),
@@ -458,20 +460,40 @@ class SQANTI3ToBigBed:
                             'polyA_motif': d.get('polyA_motif', ''),
                             'polyA_dist': d.get('polyA_dist', ''),
                             'polyA_motif_found': d.get('polyA_motif_found', ''),
-                            'ratio_TSS': d.get('ratio_TSS', ''),
+                            'ratio_TSS': d.get('ratio_TSS', '')
                         }
                         
                         # Build description: "tid key value key value ..."
                         desc = f"{tid} " + ' '.join([f"{k} {v}" for k, v in fields.items() if v not in (None, '', 'NA', 'nan')])
-                        # Build synonyms: just the values
-                        synonyms = ' '.join([str(v) for v in fields.values() if v not in (None, '', 'NA', 'nan')])
+                        
+                        # Build synonyms: values + prefixed versions for all columns
+                        # This allows searching like "strand_plus" or "structural_category_intergenic"
+                        synonym_parts = []
+                        for k, v in fields.items():
+                            if v not in (None, '', 'NA', 'nan'):
+                                v_str = str(v)
+                                synonym_parts.append(v_str)
+                                # For prefixed version, convert standalone + and - (strand values)
+                                # ixIxx strips these characters when they're standalone
+                                if v_str == '+':
+                                    v_safe = 'plus'
+                                elif v_str == '-':
+                                    v_safe = 'minus'
+                                else:
+                                    v_safe = v_str
+                                # Add prefixed version (e.g., strand_plus, structural_category_incomplete-splice_match)
+                                # Note: colon (:) doesn't work in UCSC search, use underscore
+                                synonym_parts.append(f"{k}_{v_safe}")
+                        synonyms = ' '.join(synonym_parts)
                         
                         # Write TAB-separated: ID \t description \t synonyms
                         t_out.write(f"{tid}\t{desc}\t{synonyms}\n")
             
             ix_path = os.path.join(genome_dir, 'trix.ix')
             ixx_path = os.path.join(genome_dir, 'trix.ixx')
-            cmd = ['ixIxx', trix_input, ix_path, ixx_path]
+            # Use -maxWordLength=64 to handle long prefixed terms like
+            # structural_category_novel_not_in_catalog (40 chars, default is 31)
+            cmd = ['ixIxx', '-maxWordLength=64', trix_input, ix_path, ixx_path]
             subprocess.run(cmd, check=True, capture_output=True, text=True)
             logger.info(f"Trix index generated: {ix_path}, {ixx_path}")
             return True

@@ -65,6 +65,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             font-size: 0.8em;
         }}
         .dataTables_wrapper {{ margin-top: 20px; }}
+        /* Row selection styling */
+        table.dataTable tbody tr.selected {{
+            background-color: #b3d4fc !important;
+        }}
+        table.dataTable tbody tr:hover {{
+            cursor: pointer;
+        }}
     </style>
 
     <!-- jQuery and DataTables JS -->
@@ -96,6 +103,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 <li><strong>Dropdowns:</strong> Select a value to filter for an exact match.</li>
                 <li><strong>Text Columns:</strong> Type to search for substrings (case-insensitive).</li>
             </ul>
+            <hr style="border-top: 1px solid #dee2e6; margin: 15px 0;">
+            <p><strong>Generate Trix String (for UCSC Genome Browser search):</strong></p>
+            <ul style="margin-bottom: 5px; padding-left: 20px;">
+                <li>Use dropdown filters and click "Generate Trix String" to get a search based on your filter criteria.</li>
+                <li><em>Note:</em> Range filters (e.g., <code>100:1000</code>) are not supported by Trix and will be ignored, only exact numeric matches are supported.</li>
+                <li>Search terms use underscore format: <code>structural_category_intergenic</code>, <code>strand_plus</code>, <code>coding_coding</code></li>
+                <li>Click on a row to select it (highlighted in blue), then click "Generate Trix String" to get search terms for that specific isoform.</li>
+            </ul>
         </div>
 
         <p>Total transcripts: {count} | <a href="javascript:window.close();">Close Window</a></p>
@@ -118,6 +133,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         var tableColumns = {columns_json};
         var numericColumns = {numeric_columns_json};
         var categoricalColumns = {categorical_columns_json};
+        var currentCategory = "{category_safe}";
 
         // Custom filtering function for range search and special exact match cases
         $.fn.dataTable.ext.search.push(
@@ -253,29 +269,76 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     {{
                         text: 'Generate Trix String',
                         action: function ( e, dt, node, config ) {{
-                            var queryParts = [];
-                            var api = dt;
-                            var settings = api.settings()[0];
+                            // Check if a row is selected
+                            var selectedData = dt.rows('.selected').data();
                             
-                            api.columns().every(function(i) {{
-                                var colName = settings.aoColumns[i].data;
-                                // Target the correct input (handling scrolling duplicates)
-                                var input = $('.dataTables_scrollHead .filters [data-index="'+i+'"]');
-                                if (input.length === 0) {{
-                                    input = $('.filters [data-index="'+i+'"]');
+                            if (selectedData.length > 0) {{
+                                // Generate Trix string from selected row
+                                var rowData = selectedData[0];
+                                var queryParts = [];
+                                
+                                // Always include the structural category first (from the current page)
+                                queryParts.push('structural_category_' + currentCategory);
+                                
+                                // Columns to include in the Trix string (categorical/useful for searching)
+                                // Note: structural_category is already added above
+                                var trixCols = ['subcategory', 'strand', 'coding', 
+                                                'associated_gene', 'FSM_class', 'RTS_stage', 'all_canonical',
+                                                'bite', 'predicted_NMD', 'within_CAGE_peak', 'polyA_motif_found'];
+                                
+                                trixCols.forEach(function(col) {{
+                                    if (rowData[col] !== undefined && rowData[col] !== '' && rowData[col] !== null) {{
+                                        var val = String(rowData[col]);
+                                        // Convert strand symbols to words (ixIxx strips + and -)
+                                        if (val === '+') val = 'plus';
+                                        else if (val === '-') val = 'minus';
+                                        queryParts.push(col + '_' + val);
+                                    }}
+                                }});
+                                
+                                // Also add the isoform name for direct search
+                                var isoformCol = 'isoform';
+                                if (rowData[isoformCol]) {{
+                                    queryParts.unshift(rowData[isoformCol]);
                                 }}
                                 
-                                var val = input.val();
-                                if (val) {{
-                                    queryParts.push(colName + ":" + val);
-                                }}
-                            }});
-                            
-                            var searchString = queryParts.join(" ");
-                            if (!searchString) {{
-                                alert("No filters active.");
+                                var searchString = queryParts.join(" ");
+                                prompt("Trix search string for selected isoform:\\n(You can use just the isoform ID, or any combination of the terms below)", searchString);
                             }} else {{
-                                prompt("Copy this search string for UCSC Genome Browser:", searchString);
+                                // Generate from active filters (non-range values only)
+                                var queryParts = [];
+                                var api = dt;
+                                var settings = api.settings()[0];
+                                
+                                // Always include the structural category first (from the current page)
+                                queryParts.push('structural_category_' + currentCategory);
+                                
+                                api.columns().every(function(i) {{
+                                    var colName = settings.aoColumns[i].data;
+                                    // Skip structural_category since we already added it
+                                    if (colName === 'structural_category') return;
+                                    
+                                    var input = $('.dataTables_scrollHead .filters [data-index="'+i+'"]');
+                                    if (input.length === 0) {{
+                                        input = $('.filters [data-index="'+i+'"]');
+                                    }}
+                                    
+                                    var val = input.val();
+                                    if (val) {{
+                                        // Skip range filters (contain :) - Trix doesn't support ranges
+                                        if (val.indexOf(':') !== -1) {{
+                                            return; // Skip this column
+                                        }}
+                                        // Convert strand symbols
+                                        if (val === '+') val = 'plus';
+                                        else if (val === '-') val = 'minus';
+                                        // Use underscore format for Trix
+                                        queryParts.push(colName + '_' + val);
+                                    }}
+                                }});
+                                
+                                // queryParts always has at least structural_category now
+                                prompt("Trix search string from filters:\\n(Note: Range filters are ignored - Trix doesn't support ranges)", queryParts.join(" "));
                             }}
                         }}
                     }},
@@ -291,6 +354,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 ],
                 initComplete: function () {{
                     // No manual event binding here anymore, we use delegated events below
+                }}
+            }});
+            
+            // Row click handler for selection (toggle)
+            $('#isoformTable tbody').on('click', 'tr', function () {{
+                if ($(this).hasClass('selected')) {{
+                    $(this).removeClass('selected');
+                }} else {{
+                    table.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
                 }}
             }});
             
@@ -445,6 +518,7 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
         # Fill template
         html_content = HTML_TEMPLATE.format(
             category=cat_str,
+            category_safe=cat_str,  # Used for Trix string generation (matches Trix index format)
             category_description=cat_def,
             category_svg=cat_svg,
             count=len(cat_df),

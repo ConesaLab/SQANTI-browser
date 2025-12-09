@@ -55,6 +55,13 @@
             font-size: 0.8em;
         }
         .dataTables_wrapper { margin-top: 20px; }
+        /* Row selection styling */
+        table.dataTable tbody tr.selected {
+            background-color: #b3d4fc !important;
+        }
+        table.dataTable tbody tr:hover {
+            cursor: pointer;
+        }
     </style>
 
     <!-- jQuery and DataTables JS -->
@@ -86,6 +93,14 @@
                 <li><strong>Dropdowns:</strong> Select a value to filter for an exact match.</li>
                 <li><strong>Text Columns:</strong> Type to search for substrings (case-insensitive).</li>
             </ul>
+            <hr style="border-top: 1px solid #dee2e6; margin: 15px 0;">
+            <p><strong>Generate Trix String (for UCSC Genome Browser search):</strong></p>
+            <ul style="margin-bottom: 5px; padding-left: 20px;">
+                <li>Use dropdown filters and click "Generate Trix String" to get a search based on your filter criteria.</li>
+                <li><em>Note:</em> Range filters (e.g., <code>100:1000</code>) are not supported by Trix and will be ignored, only exact numeric matches are supported.</li>
+                <li>Search terms use underscore format: <code>structural_category_intergenic</code>, <code>strand_plus</code>, <code>coding_coding</code></li>
+                <li>Click on a row to select it (highlighted in blue), then click "Generate Trix String" to get search terms for that specific isoform.</li>
+            </ul>
         </div>
 
         <p>Total transcripts: 744 | <a href="javascript:window.close();">Close Window</a></p>
@@ -108,6 +123,7 @@
         var tableColumns = [{"data": "isoform", "title": "isoform"}, {"data": "chrom", "title": "chrom"}, {"data": "strand", "title": "strand"}, {"data": "length", "title": "length"}, {"data": "exons", "title": "exons"}, {"data": "structural_category", "title": "structural_category"}, {"data": "associated_gene", "title": "associated_gene"}, {"data": "associated_transcript", "title": "associated_transcript"}, {"data": "ref_length", "title": "ref_length"}, {"data": "ref_exons", "title": "ref_exons"}, {"data": "diff_to_TSS", "title": "diff_to_TSS"}, {"data": "diff_to_TTS", "title": "diff_to_TTS"}, {"data": "diff_to_gene_TSS", "title": "diff_to_gene_TSS"}, {"data": "diff_to_gene_TTS", "title": "diff_to_gene_TTS"}, {"data": "subcategory", "title": "subcategory"}, {"data": "RTS_stage", "title": "RTS_stage"}, {"data": "all_canonical", "title": "all_canonical"}, {"data": "min_sample_cov", "title": "min_sample_cov"}, {"data": "min_cov", "title": "min_cov"}, {"data": "min_cov_pos", "title": "min_cov_pos"}, {"data": "sd_cov", "title": "sd_cov"}, {"data": "FL", "title": "FL"}, {"data": "n_indels", "title": "n_indels"}, {"data": "n_indels_junc", "title": "n_indels_junc"}, {"data": "bite", "title": "bite"}, {"data": "iso_exp", "title": "iso_exp"}, {"data": "gene_exp", "title": "gene_exp"}, {"data": "ratio_exp", "title": "ratio_exp"}, {"data": "FSM_class", "title": "FSM_class"}, {"data": "coding", "title": "coding"}, {"data": "ORF_length", "title": "ORF_length"}, {"data": "CDS_length", "title": "CDS_length"}, {"data": "CDS_start", "title": "CDS_start"}, {"data": "CDS_end", "title": "CDS_end"}, {"data": "CDS_genomic_start", "title": "CDS_genomic_start"}, {"data": "CDS_genomic_end", "title": "CDS_genomic_end"}, {"data": "predicted_NMD", "title": "predicted_NMD"}, {"data": "perc_A_downstream_TTS", "title": "perc_A_downstream_TTS"}, {"data": "seq_A_downstream_TTS", "title": "seq_A_downstream_TTS"}, {"data": "dist_to_CAGE_peak", "title": "dist_to_CAGE_peak"}, {"data": "within_CAGE_peak", "title": "within_CAGE_peak"}, {"data": "dist_to_polyA_site", "title": "dist_to_polyA_site"}, {"data": "within_polyA_site", "title": "within_polyA_site"}, {"data": "polyA_motif", "title": "polyA_motif"}, {"data": "polyA_dist", "title": "polyA_dist"}, {"data": "polyA_motif_found", "title": "polyA_motif_found"}, {"data": "ratio_TSS", "title": "ratio_TSS"}];
         var numericColumns = ["length", "exons", "ref_length", "ref_exons", "diff_to_TSS", "diff_to_TTS", "diff_to_gene_TSS", "diff_to_gene_TTS", "min_sample_cov", "min_cov", "sd_cov", "FL", "n_indels", "n_indels_junc", "iso_exp", "gene_exp", "ratio_exp", "ORF_length", "CDS_length", "CDS_start", "CDS_end", "CDS_genomic_start", "CDS_genomic_end", "perc_A_downstream_TTS", "dist_to_CAGE_peak", "dist_to_polyA_site", "within_polyA_site", "polyA_dist", "ratio_TSS"];
         var categoricalColumns = ["strand", "structural_category", "subcategory", "RTS_stage", "all_canonical", "min_cov_pos", "bite", "FSM_class", "coding", "predicted_NMD", "within_CAGE_peak", "polyA_motif_found"];
+        var currentCategory = "novel_in_catalog";
 
         // Custom filtering function for range search and special exact match cases
         $.fn.dataTable.ext.search.push(
@@ -243,29 +259,76 @@
                     {
                         text: 'Generate Trix String',
                         action: function ( e, dt, node, config ) {
-                            var queryParts = [];
-                            var api = dt;
-                            var settings = api.settings()[0];
+                            // Check if a row is selected
+                            var selectedData = dt.rows('.selected').data();
                             
-                            api.columns().every(function(i) {
-                                var colName = settings.aoColumns[i].data;
-                                // Target the correct input (handling scrolling duplicates)
-                                var input = $('.dataTables_scrollHead .filters [data-index="'+i+'"]');
-                                if (input.length === 0) {
-                                    input = $('.filters [data-index="'+i+'"]');
+                            if (selectedData.length > 0) {
+                                // Generate Trix string from selected row
+                                var rowData = selectedData[0];
+                                var queryParts = [];
+                                
+                                // Always include the structural category first (from the current page)
+                                queryParts.push('structural_category_' + currentCategory);
+                                
+                                // Columns to include in the Trix string (categorical/useful for searching)
+                                // Note: structural_category is already added above
+                                var trixCols = ['subcategory', 'strand', 'coding', 
+                                                'associated_gene', 'FSM_class', 'RTS_stage', 'all_canonical',
+                                                'bite', 'predicted_NMD', 'within_CAGE_peak', 'polyA_motif_found'];
+                                
+                                trixCols.forEach(function(col) {
+                                    if (rowData[col] !== undefined && rowData[col] !== '' && rowData[col] !== null) {
+                                        var val = String(rowData[col]);
+                                        // Convert strand symbols to words (ixIxx strips + and -)
+                                        if (val === '+') val = 'plus';
+                                        else if (val === '-') val = 'minus';
+                                        queryParts.push(col + '_' + val);
+                                    }
+                                });
+                                
+                                // Also add the isoform name for direct search
+                                var isoformCol = 'isoform';
+                                if (rowData[isoformCol]) {
+                                    queryParts.unshift(rowData[isoformCol]);
                                 }
                                 
-                                var val = input.val();
-                                if (val) {
-                                    queryParts.push(colName + ":" + val);
-                                }
-                            });
-                            
-                            var searchString = queryParts.join(" ");
-                            if (!searchString) {
-                                alert("No filters active.");
+                                var searchString = queryParts.join(" ");
+                                prompt("Trix search string for selected isoform:\n(You can use just the isoform ID, or any combination of the terms below)", searchString);
                             } else {
-                                prompt("Copy this search string for UCSC Genome Browser:", searchString);
+                                // Generate from active filters (non-range values only)
+                                var queryParts = [];
+                                var api = dt;
+                                var settings = api.settings()[0];
+                                
+                                // Always include the structural category first (from the current page)
+                                queryParts.push('structural_category_' + currentCategory);
+                                
+                                api.columns().every(function(i) {
+                                    var colName = settings.aoColumns[i].data;
+                                    // Skip structural_category since we already added it
+                                    if (colName === 'structural_category') return;
+                                    
+                                    var input = $('.dataTables_scrollHead .filters [data-index="'+i+'"]');
+                                    if (input.length === 0) {
+                                        input = $('.filters [data-index="'+i+'"]');
+                                    }
+                                    
+                                    var val = input.val();
+                                    if (val) {
+                                        // Skip range filters (contain :) - Trix doesn't support ranges
+                                        if (val.indexOf(':') !== -1) {
+                                            return; // Skip this column
+                                        }
+                                        // Convert strand symbols
+                                        if (val === '+') val = 'plus';
+                                        else if (val === '-') val = 'minus';
+                                        // Use underscore format for Trix
+                                        queryParts.push(colName + '_' + val);
+                                    }
+                                });
+                                
+                                // queryParts always has at least structural_category now
+                                prompt("Trix search string from filters:\n(Note: Range filters are ignored - Trix doesn't support ranges)", queryParts.join(" "));
                             }
                         }
                     },
@@ -281,6 +344,16 @@
                 ],
                 initComplete: function () {
                     // No manual event binding here anymore, we use delegated events below
+                }
+            });
+            
+            // Row click handler for selection (toggle)
+            $('#isoformTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                } else {
+                    table.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
                 }
             });
             
