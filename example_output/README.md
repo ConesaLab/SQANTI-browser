@@ -22,13 +22,13 @@ To use this hub in the UCSC Genome Browser:
 
 **This hub uses the bigBed 12+44 format with native UCSC filters.**
 
-You can filter transcripts by:
-- **Structural Category:** FSM, ISM, NIC, NNC, genic, antisense, fusion, intergenic, genic_intron
-- **Subcategory:** mono-exon, multi-exon, novel, known, canonical, non-canonical
-- **Coding Status:** coding, non_coding, partial_coding, pseudo
+You can filter transcripts using dropdown menus and range sliders:
+- **Structural Category:** full-splice_match, incomplete-splice_match, novel_in_catalog, novel_not_in_catalog, genic, antisense, fusion, intergenic, genic_intron
+- **Subcategory:** mono-exon, multi-exon, 3prime_fragment, 5prime_fragment, reference_match, etc.
+- **Coding Status:** coding, non_coding
 - **FSM Class:** A, B, C, D
-- **Length:** Range-based filtering for transcript length
-- **Coverage:** Range-based filtering for minimum coverage
+- **Boolean Filters:** RTS_stage, bite, predicted_NMD, within_CAGE_peak, polyA_motif_found
+- **Numeric Ranges:** length, exons, expression, coverage, ORF_length, and more
 - **Expression:** Range-based filtering for isoform expression
 
 *Right-click on the track and select "Configure" or "Filter" to access these controls.*

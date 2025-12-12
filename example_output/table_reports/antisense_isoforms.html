@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQANTI3 antisense Isoforms</title>
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/fixedheader/3.4.0/css/fixedHeader.dataTables.min.css">
+    
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 20px; 
+            background-color: #f8f9fa;
+        }
+        h2 { color: #2c3e50; }
+        .container { 
+            background-color: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        }
+        .info-box {
+            background-color: #f1f3f5;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 5px solid #6c757d;
+        }
+        .info-box p {
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+        table.dataTable thead th {
+            background-color: #e9ecef;
+            color: #495057;
+            white-space: nowrap;
+        }
+        /* Table cells */
+        table.dataTable tbody td {
+            white-space: nowrap;
+            font-size: 0.9em;
+            padding: 4px 10px;
+        }
+        /* Filter input styling */
+        tfoot input, thead select {
+            width: 100%;
+            padding: 3px;
+            box-sizing: border-box;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+        .dataTables_wrapper { margin-top: 20px; }
+        /* Row selection styling */
+        table.dataTable tbody tr.selected {
+            background-color: #b3d4fc !important;
+        }
+        table.dataTable tbody tr:hover {
+            cursor: pointer;
+        }
+    </style>
+
+    <!-- jQuery and DataTables JS -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/fixedheader/3.4.0/js/dataTables.fixedHeader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h2>SQANTI3 Analysis: antisense Isoforms</h2>
+        
+        <div class="info-box">
+            <div style="text-align: center; margin-bottom: 15px; min-height: 80px;">
+                <svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="120" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><text x="130" y="15" font-size="12">→</text><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference (+)</text><line x1="10" y1="52" x2="120" y2="52" stroke="#66C2A4" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="#66C2A4" rx="2"/><rect x="80" y="48" width="40" height="8" fill="#66C2A4" rx="2"/><text x="130" y="55" font-size="12" fill="#66C2A4">←</text><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#66C2A4" font-weight="bold">Isoform (-)</text></svg>
+            </div>
+            <p><strong>Category Definition:</strong> <b>Antisense:</b> The query isoform does not overlap a same-strand reference gene but is anti-sense to an annotated gene.</p>
+            <p>
+                For more details on categories, visit here: <a href="https://github.com/ConesaLab/SQANTI3/wiki/SQANTI3-isoform-classification:-categories-and-subcategories" target="_blank">SQANTI3 Wiki: Categories</a>.
+                <br>
+                For a detailed explanation of each column of the table (SQANTI3 classification), see here: <a href="https://github.com/ConesaLab/SQANTI3/wiki/Understanding-the-output-of-SQANTI3-QC#classifcols" target="_blank">Column Glossary</a>.
+            </p>
+            <hr style="border-top: 1px solid #dee2e6; margin: 15px 0;">
+            <p><strong>How to Filter:</strong></p>
+            <ul style="margin-bottom: 5px; padding-left: 20px;">
+                <li><strong>Numeric Columns (e.g., length, exons):</strong> Use ranges like <code>100:1000</code> (values between 100 and 1000), <code>100:</code> (>100), or <code>:1000</code> (<1000). Single numbers perform an exact match.</li>
+                <li><strong>Dropdowns:</strong> Select a value to filter for an exact match.</li>
+                <li><strong>Text Columns:</strong> Type to search for substrings (case-insensitive).</li>
+            </ul>
+            <hr style="border-top: 1px solid #dee2e6; margin: 15px 0;">
+            <p><strong>Generate Trix String (for UCSC Genome Browser search):</strong></p>
+            <ul style="margin-bottom: 5px; padding-left: 20px;">
+                <li>Use dropdown filters and click "Generate Trix String" to get a search based on your filter criteria.</li>
+                <li><em>Note:</em> Range filters (e.g., <code>100:1000</code>) are not supported by Trix and will be ignored, only exact numeric matches are supported.</li>
+                <li>Search terms use underscore format: <code>structural_category_intergenic</code>, <code>strand_plus</code>, <code>coding_coding</code></li>
+                <li>Click on a row to select it (highlighted in blue), then click "Generate Trix String" to get search terms for that specific isoform.</li>
+            </ul>
+        </div>
+
+        <p>Total transcripts: 26 | <a href="javascript:window.close();">Close Window</a></p>
+        
+        <table id="isoformTable" class="display stripe hover row-border order-column" style="width:100%">
+            <thead>
+                <tr>
+                    <th>isoform</th><th>chrom</th><th>strand</th><th>length</th><th>exons</th><th>structural_category</th><th>associated_gene</th><th>associated_transcript</th><th>ref_length</th><th>ref_exons</th><th>diff_to_TSS</th><th>diff_to_TTS</th><th>diff_to_gene_TSS</th><th>diff_to_gene_TTS</th><th>subcategory</th><th>RTS_stage</th><th>all_canonical</th><th>min_sample_cov</th><th>min_cov</th><th>min_cov_pos</th><th>sd_cov</th><th>FL</th><th>n_indels</th><th>n_indels_junc</th><th>bite</th><th>iso_exp</th><th>gene_exp</th><th>ratio_exp</th><th>FSM_class</th><th>coding</th><th>ORF_length</th><th>CDS_length</th><th>CDS_start</th><th>CDS_end</th><th>CDS_genomic_start</th><th>CDS_genomic_end</th><th>predicted_NMD</th><th>perc_A_downstream_TTS</th><th>seq_A_downstream_TTS</th><th>dist_to_CAGE_peak</th><th>within_CAGE_peak</th><th>dist_to_polyA_site</th><th>within_polyA_site</th><th>polyA_motif</th><th>polyA_dist</th><th>polyA_motif_found</th><th>ratio_TSS</th>
+                </tr>
+                <tr class="filters">
+                    <th>isoform</th><th>chrom</th><th>strand</th><th>length</th><th>exons</th><th>structural_category</th><th>associated_gene</th><th>associated_transcript</th><th>ref_length</th><th>ref_exons</th><th>diff_to_TSS</th><th>diff_to_TTS</th><th>diff_to_gene_TSS</th><th>diff_to_gene_TTS</th><th>subcategory</th><th>RTS_stage</th><th>all_canonical</th><th>min_sample_cov</th><th>min_cov</th><th>min_cov_pos</th><th>sd_cov</th><th>FL</th><th>n_indels</th><th>n_indels_junc</th><th>bite</th><th>iso_exp</th><th>gene_exp</th><th>ratio_exp</th><th>FSM_class</th><th>coding</th><th>ORF_length</th><th>CDS_length</th><th>CDS_start</th><th>CDS_end</th><th>CDS_genomic_start</th><th>CDS_genomic_end</th><th>predicted_NMD</th><th>perc_A_downstream_TTS</th><th>seq_A_downstream_TTS</th><th>dist_to_CAGE_peak</th><th>within_CAGE_peak</th><th>dist_to_polyA_site</th><th>within_polyA_site</th><th>polyA_motif</th><th>polyA_dist</th><th>polyA_motif_found</th><th>ratio_TSS</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+
+    <script>
+        // The data is embedded directly into the HTML to make it self-contained (single file)
+        var tableData = [{"isoform":"PB.8718.1","chrom":"chr22","strand":"-","length":4245,"exons":3,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000100344.11_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"multi-exon","RTS_stage":false,"all_canonical":"canonical","min_sample_cov":0.0,"min_cov":0.0,"min_cov_pos":"junction_1","sd_cov":0.0,"FL":2,"n_indels":"","n_indels_junc":"","bite":false,"iso_exp":11.351685,"gene_exp":11.351685,"ratio_exp":1.0,"FSM_class":"A","coding":"coding","ORF_length":90.0,"CDS_length":270.0,"CDS_start":3.0,"CDS_end":272.0,"CDS_genomic_start":43924609.0,"CDS_genomic_end":43923252.0,"predicted_NMD":false,"perc_A_downstream_TTS":35.0,"seq_A_downstream_TTS":"AAACGTATAGTTCAGTTGCA","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"CATAAA","polyA_dist":-22.0,"polyA_motif_found":true,"ratio_TSS":2.4925373134},{"isoform":"PB.15815.1","chrom":"chr22","strand":"-","length":2366,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000223730.1_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":2,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":18.5889,"gene_exp":18.5889,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":90.0,"seq_A_downstream_TTS":"AAAAAAAAAAAAAAAAAGAG","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"","polyA_dist":"","polyA_motif_found":false,"ratio_TSS":""},{"isoform":"PB.22994.1","chrom":"chr22","strand":"-","length":2134,"exons":2,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000236499.2_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"multi-exon","RTS_stage":false,"all_canonical":"canonical","min_sample_cov":0.0,"min_cov":0.0,"min_cov_pos":"junction_1","sd_cov":0.0,"FL":9,"n_indels":"","n_indels_junc":"","bite":false,"iso_exp":61.938,"gene_exp":61.938,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":25.0,"seq_A_downstream_TTS":"AGCCCACGTGTGATCCAATT","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"AATAAA","polyA_dist":-20.0,"polyA_motif_found":true,"ratio_TSS":""},{"isoform":"PB.45380.1","chrom":"chr22","strand":"-","length":1846,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000099937.11_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":3,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":71.0206,"gene_exp":71.0206,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":100.0,"seq_A_downstream_TTS":"AAAAAAAAAAAAAAAAAAAA","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"","polyA_dist":"","polyA_motif_found":false,"ratio_TSS":0.9545661063},{"isoform":"PB.45383.1","chrom":"chr22","strand":"-","length":1791,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000237476.1_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":8,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":60.2701,"gene_exp":60.2701,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":100.0,"seq_A_downstream_TTS":"AAAAAAAAAAAAAAAAAAAA","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"AATACA","polyA_dist":-23.0,"polyA_motif_found":true,"ratio_TSS":""},{"isoform":"PB.53057.1","chrom":"chr22","strand":"-","length":1713,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000279345.1_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":2,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":123.51665,"gene_exp":123.51665,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":95.0,"seq_A_downstream_TTS":"AAAAAAAAAAAAAAAAAAGA","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"AATAGA","polyA_dist":-16.0,"polyA_motif_found":true,"ratio_TSS":1.0},{"isoform":"PB.68181.1","chrom":"chr22","strand":"+","length":1472,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000235992.1_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":2,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":63.51555,"gene_exp":63.51555,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":100.0,"seq_A_downstream_TTS":"AAAAAAAAAAAAAAAAAAAA","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"ATTAAA","polyA_dist":-21.0,"polyA_motif_found":true,"ratio_TSS":""},{"isoform":"PB.75694.1","chrom":"chr22","strand":"+","length":1318,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000161179.14_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":19,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":69.9462,"gene_exp":69.9462,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":25.0,"seq_A_downstream_TTS":"TATCACATTCTAGTAGTTTC","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"CATAAA","polyA_dist":-18.0,"polyA_motif_found":true,"ratio_TSS":1.0832986256},{"isoform":"PB.75781.3","chrom":"chr22","strand":"+","length":1177,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000172404.5_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":2,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":31.53095,"gene_exp":31.53095,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":35.0,"seq_A_downstream_TTS":"ATTCACTGTATAATTATTGA","dist_to_CAGE_peak":-4443.0,"within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"ATTAAA","polyA_dist":-26.0,"polyA_motif_found":true,"ratio_TSS":1.2497918401},{"isoform":"PB.83195.1","chrom":"chr22","strand":"+","length":1020,"exons":2,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000128346.11_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"multi-exon","RTS_stage":false,"all_canonical":"non_canonical","min_sample_cov":0.0,"min_cov":0.0,"min_cov_pos":"junction_1","sd_cov":0.0,"FL":2,"n_indels":"","n_indels_junc":"","bite":true,"iso_exp":264.6185,"gene_exp":264.6185,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":25.0,"seq_A_downstream_TTS":"AAATCTTTGTACCGATGCTT","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"AATAAA","polyA_dist":-15.0,"polyA_motif_found":true,"ratio_TSS":2.9801980198},{"isoform":"PB.83241.2","chrom":"chr22","strand":"-","length":1085,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000183569.18_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":2,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":0.0,"gene_exp":0.0,"ratio_exp":"","FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":90.0,"seq_A_downstream_TTS":"AAAAAAAAAAAAAAAAAAGC","dist_to_CAGE_peak":-4783.0,"within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"","polyA_dist":"","polyA_motif_found":false,"ratio_TSS":0.7144896502},{"isoform":"PB.96068.1","chrom":"chr22","strand":"-","length":794,"exons":3,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000286406.1_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"multi-exon","RTS_stage":false,"all_canonical":"canonical","min_sample_cov":0.0,"min_cov":0.0,"min_cov_pos":"junction_1","sd_cov":0.0,"FL":2,"n_indels":"","n_indels_junc":"","bite":true,"iso_exp":0.0,"gene_exp":0.0,"ratio_exp":"","FSM_class":"A","coding":"coding","ORF_length":112.0,"CDS_length":336.0,"CDS_start":40.0,"CDS_end":375.0,"CDS_genomic_start":11974149.0,"CDS_genomic_end":11868889.0,"predicted_NMD":false,"perc_A_downstream_TTS":80.0,"seq_A_downstream_TTS":"AAAAAAAAAAAAAAAGCAGC","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"AGTAAA","polyA_dist":-29.0,"polyA_motif_found":true,"ratio_TSS":""},{"isoform":"PB.103747.1","chrom":"chr22","strand":"-","length":582,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000240591.2_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":2,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":0.65745,"gene_exp":0.65745,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":90.0,"seq_A_downstream_TTS":"AAAAAAAAAAAAAAAAAGTA","dist_to_CAGE_peak":-1986.0,"within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"","polyA_dist":"","polyA_motif_found":false,"ratio_TSS":1.0},{"isoform":"PB.103781.1","chrom":"chr22","strand":"+","length":577,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000100242.15_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":11,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":311.7095,"gene_exp":311.7095,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":90.0,"seq_A_downstream_TTS":"AAAAAGAAAAAAAAAAAAGA","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"","polyA_dist":"","polyA_motif_found":false,"ratio_TSS":0.6923668525},{"isoform":"PB.111550.1","chrom":"chr22","strand":"-","length":538,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000206195.11_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":3,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":200.2355,"gene_exp":200.2355,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":95.0,"seq_A_downstream_TTS":"AAAAAAAAAAAAAAACAAAA","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"","polyA_dist":"","polyA_motif_found":false,"ratio_TSS":1.1080788976},{"isoform":"PB.111581.1","chrom":"chr22","strand":"+","length":475,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000275004.4_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":2,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":0.0,"gene_exp":0.0,"ratio_exp":"","FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":100.0,"seq_A_downstream_TTS":"AAAAAAAAAAAAAAAAAAAA","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"","polyA_dist":"","polyA_motif_found":false,"ratio_TSS":""},{"isoform":"PB.111694.1","chrom":"chr22","strand":"+","length":376,"exons":2,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000188511.12_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"multi-exon","RTS_stage":false,"all_canonical":"canonical","min_sample_cov":0.0,"min_cov":0.0,"min_cov_pos":"junction_1","sd_cov":0.0,"FL":2,"n_indels":"","n_indels_junc":"","bite":false,"iso_exp":0.0,"gene_exp":183.532,"ratio_exp":0.0,"FSM_class":"B","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":10.0,"seq_A_downstream_TTS":"TTTCATTGCCGCGTGCTATT","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"","polyA_dist":"","polyA_motif_found":false,"ratio_TSS":""},{"isoform":"PB.111702.1","chrom":"chr22","strand":"-","length":462,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000100239.16_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":9,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":477.9725,"gene_exp":477.9725,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":70.0,"seq_A_downstream_TTS":"AAAAAAAAAAAAGATTGCAT","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"ATTAAA","polyA_dist":-8.0,"polyA_motif_found":true,"ratio_TSS":1.3322259136},{"isoform":"PB.118973.1","chrom":"chr22","strand":"+","length":238,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000100201.23_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":9,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":1207.155,"gene_exp":1207.155,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":90.0,"seq_A_downstream_TTS":"AAAAATTAAAAAAAAAAAAA","dist_to_CAGE_peak":-1000.0,"within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"","polyA_dist":"","polyA_motif_found":false,"ratio_TSS":0.4707438989},{"isoform":"PB.119028.1","chrom":"chr22","strand":"+","length":351,"exons":2,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000188511.12_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"multi-exon","RTS_stage":false,"all_canonical":"canonical","min_sample_cov":0.0,"min_cov":0.0,"min_cov_pos":"junction_1","sd_cov":0.0,"FL":2,"n_indels":"","n_indels_junc":"","bite":false,"iso_exp":183.532,"gene_exp":183.532,"ratio_exp":1.0,"FSM_class":"B","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":50.0,"seq_A_downstream_TTS":"TGAAACAAAAGGAACATTTG","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"","polyA_dist":"","polyA_motif_found":false,"ratio_TSS":2.9801980198},{"isoform":"PB.130820.1","chrom":"chr22","strand":"+","length":3312,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000015475.19_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":2,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":212.4045,"gene_exp":212.4045,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":40.0,"seq_A_downstream_TTS":"AAAAAAATTGTATTTTGTTT","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"AATAAA","polyA_dist":-19.0,"polyA_motif_found":true,"ratio_TSS":0.8751560549},{"isoform":"PB.150536.1","chrom":"chr22","strand":"-","length":2682,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000100003.18_AS_novelGene_ENSG00000249590.7_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":2,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":126.8321,"gene_exp":126.8321,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":65.0,"seq_A_downstream_TTS":"AAAAAAGTTTTAAAAATTAA","dist_to_CAGE_peak":-4334.0,"within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"","polyA_dist":"","polyA_motif_found":false,"ratio_TSS":""},{"isoform":"PB.150623.1","chrom":"chr22","strand":"-","length":2687,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000100416.15_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":2,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":109.8405,"gene_exp":109.8405,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":90.0,"seq_A_downstream_TTS":"AAGAAAAAAAAAAAAAAACA","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"","polyA_dist":"","polyA_motif_found":false,"ratio_TSS":1.1109877913},{"isoform":"PB.157388.1","chrom":"chr22","strand":"-","length":2514,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000233471.2_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":2,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":18.93745,"gene_exp":18.93745,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":100.0,"seq_A_downstream_TTS":"AAAAAAAAAAAAAAAAAAAA","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"","polyA_dist":"","polyA_motif_found":false,"ratio_TSS":1.0},{"isoform":"PB.164510.1","chrom":"chr22","strand":"+","length":2412,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000215270.3_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":4,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":81.5545,"gene_exp":81.5545,"ratio_exp":1.0,"FSM_class":"A","coding":"non_coding","ORF_length":"","CDS_length":"","CDS_start":"","CDS_end":"","CDS_genomic_start":"","CDS_genomic_end":"","predicted_NMD":"","perc_A_downstream_TTS":20.0,"seq_A_downstream_TTS":"CTTCAGGGTGGCAAGTATCT","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"ATTAAA","polyA_dist":-17.0,"polyA_motif_found":true,"ratio_TSS":""},{"isoform":"PB.164521.5","chrom":"chr22","strand":"+","length":2356,"exons":1,"structural_category":"antisense","associated_gene":"novelGene_ENSG00000236540.7_AS","associated_transcript":"novel","ref_length":"","ref_exons":"","diff_to_TSS":"","diff_to_TTS":"","diff_to_gene_TSS":"","diff_to_gene_TTS":"","subcategory":"mono-exon","RTS_stage":false,"all_canonical":"","min_sample_cov":"","min_cov":"","min_cov_pos":"","sd_cov":"","FL":2,"n_indels":"","n_indels_junc":"","bite":"","iso_exp":111.6561,"gene_exp":111.6561,"ratio_exp":1.0,"FSM_class":"A","coding":"coding","ORF_length":242.0,"CDS_length":726.0,"CDS_start":3.0,"CDS_end":728.0,"CDS_genomic_start":20056288.0,"CDS_genomic_end":20057013.0,"predicted_NMD":"","perc_A_downstream_TTS":90.0,"seq_A_downstream_TTS":"AAAAAAAAAAAAAACAAAGA","dist_to_CAGE_peak":"","within_CAGE_peak":false,"dist_to_polyA_site":"","within_polyA_site":"","polyA_motif":"","polyA_dist":"","polyA_motif_found":false,"ratio_TSS":1.3322259136}];
+        var tableColumns = [{"data": "isoform", "title": "isoform"}, {"data": "chrom", "title": "chrom"}, {"data": "strand", "title": "strand"}, {"data": "length", "title": "length"}, {"data": "exons", "title": "exons"}, {"data": "structural_category", "title": "structural_category"}, {"data": "associated_gene", "title": "associated_gene"}, {"data": "associated_transcript", "title": "associated_transcript"}, {"data": "ref_length", "title": "ref_length"}, {"data": "ref_exons", "title": "ref_exons"}, {"data": "diff_to_TSS", "title": "diff_to_TSS"}, {"data": "diff_to_TTS", "title": "diff_to_TTS"}, {"data": "diff_to_gene_TSS", "title": "diff_to_gene_TSS"}, {"data": "diff_to_gene_TTS", "title": "diff_to_gene_TTS"}, {"data": "subcategory", "title": "subcategory"}, {"data": "RTS_stage", "title": "RTS_stage"}, {"data": "all_canonical", "title": "all_canonical"}, {"data": "min_sample_cov", "title": "min_sample_cov"}, {"data": "min_cov", "title": "min_cov"}, {"data": "min_cov_pos", "title": "min_cov_pos"}, {"data": "sd_cov", "title": "sd_cov"}, {"data": "FL", "title": "FL"}, {"data": "n_indels", "title": "n_indels"}, {"data": "n_indels_junc", "title": "n_indels_junc"}, {"data": "bite", "title": "bite"}, {"data": "iso_exp", "title": "iso_exp"}, {"data": "gene_exp", "title": "gene_exp"}, {"data": "ratio_exp", "title": "ratio_exp"}, {"data": "FSM_class", "title": "FSM_class"}, {"data": "coding", "title": "coding"}, {"data": "ORF_length", "title": "ORF_length"}, {"data": "CDS_length", "title": "CDS_length"}, {"data": "CDS_start", "title": "CDS_start"}, {"data": "CDS_end", "title": "CDS_end"}, {"data": "CDS_genomic_start", "title": "CDS_genomic_start"}, {"data": "CDS_genomic_end", "title": "CDS_genomic_end"}, {"data": "predicted_NMD", "title": "predicted_NMD"}, {"data": "perc_A_downstream_TTS", "title": "perc_A_downstream_TTS"}, {"data": "seq_A_downstream_TTS", "title": "seq_A_downstream_TTS"}, {"data": "dist_to_CAGE_peak", "title": "dist_to_CAGE_peak"}, {"data": "within_CAGE_peak", "title": "within_CAGE_peak"}, {"data": "dist_to_polyA_site", "title": "dist_to_polyA_site"}, {"data": "within_polyA_site", "title": "within_polyA_site"}, {"data": "polyA_motif", "title": "polyA_motif"}, {"data": "polyA_dist", "title": "polyA_dist"}, {"data": "polyA_motif_found", "title": "polyA_motif_found"}, {"data": "ratio_TSS", "title": "ratio_TSS"}];
+        var numericColumns = ["length", "exons", "ref_length", "ref_exons", "diff_to_TSS", "diff_to_TTS", "diff_to_gene_TSS", "diff_to_gene_TTS", "min_sample_cov", "min_cov", "sd_cov", "FL", "n_indels", "n_indels_junc", "iso_exp", "gene_exp", "ratio_exp", "ORF_length", "CDS_length", "CDS_start", "CDS_end", "CDS_genomic_start", "CDS_genomic_end", "perc_A_downstream_TTS", "dist_to_CAGE_peak", "dist_to_polyA_site", "within_polyA_site", "polyA_dist", "ratio_TSS"];
+        var categoricalColumns = ["strand", "structural_category", "subcategory", "RTS_stage", "all_canonical", "min_cov_pos", "bite", "FSM_class", "coding", "predicted_NMD", "within_CAGE_peak", "polyA_motif_found"];
+        var currentCategory = "antisense";
+
+        // Custom filtering function for range search and special exact match cases
+        $.fn.dataTable.ext.search.push(
+            function( settings, data, dataIndex ) {
+                var result = true;
+                
+                // Iterate over all columns to check for active range filters
+                // We use settings.aoColumns to get column info
+                for (var i = 0; i < settings.aoColumns.length; i++) {
+                    var colName = settings.aoColumns[i].data;
+                    
+                    // Find the input value for this column
+                    // We target the input in the visible scroll header first
+                    var input = $('.dataTables_scrollHead .filters [data-index="'+i+'"]');
+                    if (input.length === 0) {
+                        // Fallback to any input with this index (e.g. if not scrolling)
+                        input = $('.filters [data-index="'+i+'"]');
+                    }
+                    
+                    var filterVal = input.val();
+                    if (!filterVal) continue;
+                    
+                    // Special case: Exact match for categorical columns (dropdowns)
+                    if (categoricalColumns.includes(colName)) {
+                        // Exact string match (case sensitive)
+                        // We convert data to string just in case (e.g. numbers treated as categories)
+                        if (String(data[i]) !== filterVal) {
+                            result = false;
+                            break;
+                        }
+                        continue; 
+                    }
+                    
+                    // Only check numeric columns for range logic
+                    if (!numericColumns.includes(colName)) continue;
+                    
+                    // Only apply custom range logic if filter contains ':'
+                    if (filterVal.indexOf(':') !== -1) {
+                        var parts = filterVal.split(':');
+                        var minStr = parts[0].trim();
+                        var maxStr = parts[1].trim();
+                        
+                        var min = minStr !== "" ? parseFloat(minStr) : -Infinity;
+                        var max = maxStr !== "" ? parseFloat(maxStr) : Infinity;
+                        
+                        var cellVal = parseFloat(data[i]);
+                        
+                        if (isNaN(cellVal)) {
+                            result = false;
+                            break;
+                        }
+                        
+                        if (cellVal < min || cellVal > max) {
+                            result = false;
+                            break;
+                        }
+                    } else {
+                        // Exact numeric match (not substring match)
+                        var searchNum = parseFloat(filterVal);
+                        var cellVal = parseFloat(data[i]);
+                        
+                        // If the filter value is a valid number
+                        if (!isNaN(searchNum)) {
+                            // If cell is not a number (e.g. empty), it doesn't match
+                            if (isNaN(cellVal)) {
+                                result = false;
+                                break;
+                            }
+                            
+                            // Exact match check
+                            if (cellVal !== searchNum) {
+                                result = false;
+                                break;
+                            }
+                        }
+                        // If filter is not a number (e.g. text search in numeric col)
+                        else if (filterVal === data[i]) {
+                             // Exact string match allowed (e.g. for 'NA')
+                        }
+                        else {
+                            // Filter is text but doesn't match exact string
+                             result = false; 
+                             break;
+                        }
+                    }
+                }
+                
+                return result;
+            }
+        );
+
+        $(document).ready(function() {
+            // Setup - add inputs or dropdowns
+            $('#isoformTable thead tr.filters th').each( function (i) {
+                var title = $(this).text();
+                
+                if (categoricalColumns.includes(title)) {
+                    // Create dropdown
+                    var select = $('<select data-index="'+i+'"><option value="">All</option></select>');
+                    
+                    // Get unique values from tableData for this column
+                    // We use Set to get unique values
+                    var unique = [...new Set(tableData.map(item => item[title]))].sort();
+                    
+                    unique.forEach(function(d) {
+                        // Skip empty values for options
+                        if (d !== "" && d !== null && d !== undefined) {
+                            select.append('<option value="'+d+'">'+d+'</option>');
+                        }
+                    });
+                    
+                    $(this).html(select);
+                } else {
+                    // Create text input
+                    $(this).html( '<input type="text" placeholder="Search '+title+'" data-index="'+i+'" />' );
+                }
+            } );
+         
+            // Initialize DataTable
+            var table = $('#isoformTable').DataTable({
+                data: tableData,
+                columns: tableColumns,
+                dom: 'Bfrtip',
+                pageLength: 25,
+                lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                scrollX: true,     // Enable horizontal scrolling
+                scrollY: '70vh',   // Enable vertical scrolling with fixed header
+                scrollCollapse: true,
+                autoWidth: true,
+                orderCellsTop: true, // Important: tells DataTables the first row is for ordering
+                buttons: [
+                    'pageLength',
+                    {
+                        text: 'Generate Trix String',
+                        action: function ( e, dt, node, config ) {
+                            // Check if a row is selected
+                            var selectedData = dt.rows('.selected').data();
+                            
+                            if (selectedData.length > 0) {
+                                // Generate Trix string from selected row
+                                var rowData = selectedData[0];
+                                var queryParts = [];
+                                
+                                // Always include the structural category first (from the current page)
+                                queryParts.push('structural_category_' + currentCategory);
+                                
+                                // Columns to include in the Trix string (categorical/useful for searching)
+                                // Note: structural_category is already added above
+                                var trixCols = ['subcategory', 'strand', 'coding', 
+                                                'associated_gene', 'FSM_class', 'RTS_stage', 'all_canonical',
+                                                'bite', 'predicted_NMD', 'within_CAGE_peak', 'polyA_motif_found'];
+                                
+                                trixCols.forEach(function(col) {
+                                    if (rowData[col] !== undefined && rowData[col] !== '' && rowData[col] !== null) {
+                                        var val = String(rowData[col]);
+                                        // Convert strand symbols to words (ixIxx strips + and -)
+                                        if (val === '+') val = 'plus';
+                                        else if (val === '-') val = 'minus';
+                                        queryParts.push(col + '_' + val);
+                                    }
+                                });
+                                
+                                // Also add the isoform name for direct search
+                                var isoformCol = 'isoform';
+                                if (rowData[isoformCol]) {
+                                    queryParts.unshift(rowData[isoformCol]);
+                                }
+                                
+                                var searchString = queryParts.join(" ");
+                                prompt("Trix search string for selected isoform:\n(You can use just the isoform ID, or any combination of the terms below)", searchString);
+                            } else {
+                                // Generate from active filters (non-range values only)
+                                var queryParts = [];
+                                var api = dt;
+                                var settings = api.settings()[0];
+                                
+                                // Always include the structural category first (from the current page)
+                                queryParts.push('structural_category_' + currentCategory);
+                                
+                                api.columns().every(function(i) {
+                                    var colName = settings.aoColumns[i].data;
+                                    // Skip structural_category since we already added it
+                                    if (colName === 'structural_category') return;
+                                    
+                                    var input = $('.dataTables_scrollHead .filters [data-index="'+i+'"]');
+                                    if (input.length === 0) {
+                                        input = $('.filters [data-index="'+i+'"]');
+                                    }
+                                    
+                                    var val = input.val();
+                                    if (val) {
+                                        // Skip range filters (contain :) - Trix doesn't support ranges
+                                        if (val.indexOf(':') !== -1) {
+                                            return; // Skip this column
+                                        }
+                                        // Convert strand symbols
+                                        if (val === '+') val = 'plus';
+                                        else if (val === '-') val = 'minus';
+                                        // Use underscore format for Trix
+                                        queryParts.push(colName + '_' + val);
+                                    }
+                                });
+                                
+                                // queryParts always has at least structural_category now
+                                prompt("Trix search string from filters:\n(Note: Range filters are ignored - Trix doesn't support ranges)", queryParts.join(" "));
+                            }
+                        }
+                    },
+                    {
+                        extend: 'excelHtml5',
+                        title: 'SQANTI3_antisense_Isoforms'
+                    },
+                    {
+                        extend: 'csvHtml5',
+                        title: 'SQANTI3_antisense_Isoforms'
+                    },
+                    'copy'
+                ],
+                initComplete: function () {
+                    // No manual event binding here anymore, we use delegated events below
+                }
+            });
+            
+            // Row click handler for selection (toggle)
+            $('#isoformTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                } else {
+                    table.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                }
+            });
+            
+            // Delegated event listener for inputs AND selects
+            $(table.table().container()).on('keyup change clear', 'thead input, thead select', function () {
+                var input = $(this);
+                var colIdx = input.data('index');
+                var val = this.value;
+                
+                // Sync value to all inputs/selects for this column
+                var tagName = input.prop("tagName");
+                $(tagName + '[data-index="'+colIdx+'"]').val(val);
+                
+                var column = table.column(colIdx);
+                var colName = column.dataSrc();
+                
+                // If numeric column OR categorical column, ALWAYS use custom search (clear standard search)
+                if (numericColumns.includes(colName) || categoricalColumns.includes(colName)) {
+                    if (column.search() !== "") {
+                        column.search(""); 
+                    }
+                    table.draw(); // Trigger custom filter
+                } else {
+                    // Standard search behavior for other columns
+                    if (column.search() !== val) {
+                        column.search(val).draw();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

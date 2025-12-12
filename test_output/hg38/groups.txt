@@ -1,9 +1,0 @@
-name transcripts
-label Transcripts
-priority 1
-defaultIsClosed 0
-
-name junctions
-label Splice Junctions
-priority 2
-defaultIsClosed 0
