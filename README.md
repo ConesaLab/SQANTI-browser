@@ -194,6 +194,65 @@ python sqanti3_to_UCSC.py \
     --keep-temp
 ```
 
+### Isoform Ordering
+
+Control how isoforms are ordered in the genome browser visualization. The sorting strategy is:
+
+1. **Primary: Genomic position** (chromosome and start position) - *required by bigBed format*
+2. **Secondary: Reference transcript** (`associated_transcript`) - groups isoforms together
+3. **Tertiary: Your chosen metric** (default: `iso_exp`, highest first)
+
+You can change the sorting metric with `--sort-by`:
+
+```bash
+# Sort by transcript length (longest first)
+python sqanti3_to_UCSC.py \
+    --gtf your_corrected.gtf \
+    --classification your_classification.txt \
+    --output output_directory \
+    --genome hg38 \
+    --sort-by length
+
+# Sort by distance to CAGE peak (closest first)
+python sqanti3_to_UCSC.py \
+    --gtf your_corrected.gtf \
+    --classification your_classification.txt \
+    --output output_directory \
+    --genome hg38 \
+    --sort-by dist_to_CAGE_peak
+```
+
+**Available sorting options:**
+
+| Option | Description | Order |
+|--------|-------------|-------|
+| `iso_exp` (default) | Isoform expression | Highest first |
+| `length` | Transcript length | Longest first |
+| `FL` | Full-length reads | Highest first |
+| `diff_to_TSS` | Distance to reference TSS | Closest first |
+| `diff_to_TTS` | Distance to reference TTS | Closest first |
+| `diff_to_gene_TSS` | Distance to gene TSS | Closest first |
+| `diff_to_gene_TTS` | Distance to gene TTS | Closest first |
+| `dist_to_CAGE_peak` | Distance to CAGE peak | Closest first |
+| `dist_to_polyA_site` | Distance to polyA site | Closest first |
+
+**Important: Understanding Isoform Display Order**
+
+The bigBed format requires files to be sorted by genomic position (chromosome, then start coordinate). This means:
+
+- ✅ **Within the same start position**: Isoforms are sorted by your chosen metric (e.g., highest expression first)
+- ✅ **Same reference transcript at same position**: Grouped together and sorted by metric
+- ❌ **Different start positions**: Cannot be globally reordered by expression
+
+For example, if gene X has isoforms at positions 1000 and 1050:
+- Isoforms at position 1000 appear first (sorted by expression within that group)
+- Isoforms at position 1050 appear next (sorted by expression within that group)
+- The highest-expressed isoform overall might not appear first if it starts at position 1050
+
+This is a fundamental requirement of the UCSC Genome Browser's bigBed format.
+
+**Note:** If the specified column contains NA values, a warning is printed and NA values are sorted last. If all values are NA, the tool falls back to `iso_exp` sorting, and if that also fails, uses arbitrary ordering.
+
 ### Command Line Arguments
 
 | Argument | Required | Description |
@@ -207,9 +266,11 @@ python sqanti3_to_UCSC.py \
 | `--github-branch` | No | GitHub branch (default: main) |
 | `--star-sj` | No | Path to STAR `SJ.out.tab` to add a splice junctions track |
 | `--tables` | No | Generate interactive HTML tables for each structural category |
+| `--sort-by` | No | Sort isoforms by metric: `iso_exp` (default), `length`, `FL`, `diff_to_TSS`, `diff_to_TTS`, `diff_to_gene_TSS`, `diff_to_gene_TTS`, `dist_to_CAGE_peak`, `dist_to_polyA_site` |
 | `--keep-temp` | No | Keep temporary files for debugging |
 | `--validate-only` | No | Validate inputs and exit without processing |
 | `--dry-run` | No | Process up to enhanced BED, skip bigBed/hub creation |
+| `--no-category-tracks` | No | Only generate the main track without separate category tracks |
 
 **Output Directory Flexibility:**
 - **Relative paths**: `./my_project`, `../analysis`
@@ -220,6 +281,50 @@ python sqanti3_to_UCSC.py \
 - **Automatic raw URLs**: When `--github-repo` is specified, all file references use GitHub raw URLs via `https://raw.githubusercontent.com/{repo}/{branch}/...`
 - **No manual editing**: Hub files are ready to use directly in UCSC Genome Browser
 - **Branch support**: Specify different branches with `--github-branch`
+
+## Filtering in UCSC Genome Browser
+
+The tool generates comprehensive filters for the UCSC Genome Browser, similar to the [LRGASP hub](https://cgl.gi.ucsc.edu/data/LRGASP/hub/hg38/trackDb.txt). Access filters by right-clicking on a track and selecting "Configure" or through the track settings page.
+
+### Categorical Filters (Text/Wildcard)
+
+Use `*` as wildcard for flexible matching:
+
+| Filter | Description | Example Values |
+|--------|-------------|----------------|
+| structural_category | Structural category | FSM, ISM, NIC, NNC, genic, antisense, fusion, intergenic, genic_intron |
+| subcategory | Subcategory | mono-exon, multi-exon, 3prime_fragment, 5prime_fragment |
+| coding | Coding status | coding, non_coding |
+| FSM_class | FSM classification | FSMA, FSMB, FSMC, FSMD |
+| strand | Strand | +, - |
+| all_canonical | Canonical splice sites | canonical, non_canonical |
+| associated_gene | Gene name | BRCA1, ENSG00000012048 |
+| associated_transcript | Reference transcript | ENST00000357654, novel |
+| RTS_stage | RTS stage | True, False |
+| bite | BITE status | True, False |
+| predicted_NMD | NMD prediction | True, False |
+| within_CAGE_peak | Within CAGE peak | True, False |
+| polyA_motif_found | PolyA motif found | True, False |
+
+### Numeric Range Filters
+
+Set minimum and maximum values using sliders:
+
+| Filter | Description | Range |
+|--------|-------------|-------|
+| length | Transcript length (bp) | 0 - 100,000 |
+| exons | Number of exons | 0 - 200 |
+| iso_exp | Isoform expression (TPM) | 0 - 100,000 |
+| gene_exp | Gene expression (TPM) | 0 - 100,000 |
+| ratio_exp | Expression ratio | 0 - 1 |
+| FL | Full-length read count | 0 - 100,000 |
+| min_cov | Minimum junction coverage | 0 - 10,000 |
+| ORF_length | ORF length (aa) | 0 - 50,000 |
+| CDS_length | CDS length (bp) | 0 - 50,000 |
+| diff_to_TSS | Distance to reference TSS | -100,000 - 100,000 |
+| diff_to_TTS | Distance to reference TTS | -100,000 - 100,000 |
+| dist_to_CAGE_peak | Distance to CAGE peak | -10,000 - 10,000 |
+| dist_to_polyA_site | Distance to polyA site | -10,000 - 10,000 |
 
 ## Searching in UCSC Genome Browser
 

@@ -3,24 +3,149 @@ bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/ma
 shortLabel SQANTI3 Transcripts
 longLabel SQANTI3 Transcriptome Analysis Results
 type bigBed 12 + 44
-filter.structural_category on
-filter.subcategory on
-filter.coding on
-filter.FSM_class on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.min_cov 0:1000
-filterByRange.iso_exp 0:1000
+filter.length 0:100000
+filterByRange.length on
+filterLimits.length 0:100000
+filterLabel.length Transcript length (bp)
+filter.exons 0:200
+filterByRange.exons on
+filterLimits.exons 0:200
+filterLabel.exons Number of exons
+filterValues.structural_category antisense,full-splice_match,fusion,genic,genic_intron,incomplete-splice_match,intergenic,novel_in_catalog,novel_not_in_catalog
+filterLabel.structural_category Structural category (FSM, ISM, NIC, NNC, etc.)
+filterText.associated_gene *
+filterType.associated_gene wildcard
+filterLabel.associated_gene Associated gene
+filterText.associated_transcript *
+filterType.associated_transcript wildcard
+filterLabel.associated_transcript Associated transcript
+filter.ref_length 0:100000
+filterByRange.ref_length on
+filterLimits.ref_length 0:100000
+filterLabel.ref_length Reference transcript length
+filter.ref_exons 0:200
+filterByRange.ref_exons on
+filterLimits.ref_exons 0:200
+filterLabel.ref_exons Reference exon count
+filter.diff_to_TSS -100000:100000
+filterByRange.diff_to_TSS on
+filterLimits.diff_to_TSS -100000:100000
+filterLabel.diff_to_TSS Distance to reference TSS
+filter.diff_to_TTS -100000:100000
+filterByRange.diff_to_TTS on
+filterLimits.diff_to_TTS -100000:100000
+filterLabel.diff_to_TTS Distance to reference TTS
+filter.diff_to_gene_TSS -100000:100000
+filterByRange.diff_to_gene_TSS on
+filterLimits.diff_to_gene_TSS -100000:100000
+filterLabel.diff_to_gene_TSS Distance to gene TSS
+filter.diff_to_gene_TTS -100000:100000
+filterByRange.diff_to_gene_TTS on
+filterLimits.diff_to_gene_TTS -100000:100000
+filterLabel.diff_to_gene_TTS Distance to gene TTS
+filterValues.subcategory 3prime_fragment,5prime_fragment,alternative_3end,alternative_3end5end,alternative_5end,at_least_one_novel_splicesite,combination_of_known_junctions,combination_of_known_splicesites,internal_fragment,intron_retention,mono-exon,mono-exon_by_intron_retention,multi-exon,reference_match
+filterLabel.subcategory Subcategory (mono-exon, multi-exon, etc.)
+filterValues.RTS_stage False,True
+filterLabel.RTS_stage RTS stage
+filterValues.all_canonical canonical,non_canonical
+filterLabel.all_canonical All canonical splice sites
+filter.min_sample_cov 0:10000
+filterByRange.min_sample_cov on
+filterLimits.min_sample_cov 0:10000
+filterLabel.min_sample_cov Minimum sample coverage
+filter.min_cov 0:10000
+filterByRange.min_cov on
+filterLimits.min_cov 0:10000
+filterLabel.min_cov Minimum junction coverage
+filterText.min_cov_pos *
+filterType.min_cov_pos wildcard
+filterLabel.min_cov_pos Minimum coverage position
+filter.sd_cov 0:1000
+filterByRange.sd_cov on
+filterLimits.sd_cov 0:1000
+filterLabel.sd_cov Coverage standard deviation
+filter.FL 0:100000
+filterByRange.FL on
+filterLimits.FL 0:100000
+filterLabel.FL Full-length read count
+filter.n_indels 0:100
+filterByRange.n_indels on
+filterLimits.n_indels 0:100
+filterLabel.n_indels Number of indels
+filter.n_indels_junc 0:100
+filterByRange.n_indels_junc on
+filterLimits.n_indels_junc 0:100
+filterLabel.n_indels_junc Number of indels at junctions
+filterValues.bite False,True
+filterLabel.bite BITE status
+filter.iso_exp 0:100000
+filterByRange.iso_exp on
+filterLimits.iso_exp 0:100000
+filterLabel.iso_exp Isoform expression (TPM)
+filter.gene_exp 0:100000
+filterByRange.gene_exp on
+filterLimits.gene_exp 0:100000
+filterLabel.gene_exp Gene expression (TPM)
+filter.ratio_exp 0:1
+filterByRange.ratio_exp on
+filterLimits.ratio_exp 0:1
+filterLabel.ratio_exp Expression ratio (isoform/gene)
+filterValues.FSM_class A,B,C
+filterLabel.FSM_class FSM class (A, B, C, D)
+filterValues.coding coding,non_coding
+filterLabel.coding Coding status (coding, non_coding)
+filter.ORF_length 0:50000
+filterByRange.ORF_length on
+filterLimits.ORF_length 0:50000
+filterLabel.ORF_length ORF length (aa)
+filter.CDS_length 0:50000
+filterByRange.CDS_length on
+filterLimits.CDS_length 0:50000
+filterLabel.CDS_length CDS length (bp)
+filter.CDS_start 0:100000
+filterByRange.CDS_start on
+filterLimits.CDS_start 0:100000
+filterLabel.CDS_start CDS start position
+filter.CDS_end 0:100000
+filterByRange.CDS_end on
+filterLimits.CDS_end 0:100000
+filterLabel.CDS_end CDS end position
+filterValues.predicted_NMD False,True
+filterLabel.predicted_NMD Predicted NMD
+filter.perc_A_downstream_TTS 0:100
+filterByRange.perc_A_downstream_TTS on
+filterLimits.perc_A_downstream_TTS 0:100
+filterLabel.perc_A_downstream_TTS Percent A downstream of TTS
+filter.dist_to_CAGE_peak -10000:10000
+filterByRange.dist_to_CAGE_peak on
+filterLimits.dist_to_CAGE_peak -10000:10000
+filterLabel.dist_to_CAGE_peak Distance to CAGE peak
+filterValues.within_CAGE_peak False,True
+filterLabel.within_CAGE_peak Within CAGE peak
+filter.dist_to_polyA_site -10000:10000
+filterByRange.dist_to_polyA_site on
+filterLimits.dist_to_polyA_site -10000:10000
+filterLabel.dist_to_polyA_site Distance to polyA site
+filter.polyA_dist -1000:1000
+filterByRange.polyA_dist on
+filterLimits.polyA_dist -1000:1000
+filterLabel.polyA_dist PolyA distance
+filterValues.polyA_motif_found False,True
+filterLabel.polyA_motif_found PolyA motif found
+filter.ratio_TSS 0:10
+filterByRange.ratio_TSS on
+filterLimits.ratio_TSS 0:10
+filterLabel.ratio_TSS TSS ratio
+filter.blockCount 0:200
+filterByRange.blockCount on
+filterLimits.blockCount 0:200
+filterLabel.blockCount Number of exons (from BED)
 visibility full
 group transcripts
 itemRgb on
-color 107,174,214
 priority 1
 html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_track.html
 searchIndex name
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
-searchTrix trix.ix
 
 track hg38_sqanti3_intergenic
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_intergenic.bb
@@ -32,15 +157,143 @@ group transcripts
 itemRgb on
 priority 3
 html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_intergenic.html
-filter.subcategory on
-filter.coding on
-filter.FSM_class on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.min_cov 0:1000
-filterByRange.iso_exp 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
+filter.length 0:100000
+filterByRange.length on
+filterLimits.length 0:100000
+filterLabel.length Transcript length (bp)
+filter.exons 0:200
+filterByRange.exons on
+filterLimits.exons 0:200
+filterLabel.exons Number of exons
+filterValues.structural_category intergenic
+filterLabel.structural_category Structural category (FSM, ISM, NIC, NNC, etc.)
+filterText.associated_gene *
+filterType.associated_gene wildcard
+filterLabel.associated_gene Associated gene
+filterText.associated_transcript *
+filterType.associated_transcript wildcard
+filterLabel.associated_transcript Associated transcript
+filter.ref_length 0:100000
+filterByRange.ref_length on
+filterLimits.ref_length 0:100000
+filterLabel.ref_length Reference transcript length
+filter.ref_exons 0:200
+filterByRange.ref_exons on
+filterLimits.ref_exons 0:200
+filterLabel.ref_exons Reference exon count
+filter.diff_to_TSS -100000:100000
+filterByRange.diff_to_TSS on
+filterLimits.diff_to_TSS -100000:100000
+filterLabel.diff_to_TSS Distance to reference TSS
+filter.diff_to_TTS -100000:100000
+filterByRange.diff_to_TTS on
+filterLimits.diff_to_TTS -100000:100000
+filterLabel.diff_to_TTS Distance to reference TTS
+filter.diff_to_gene_TSS -100000:100000
+filterByRange.diff_to_gene_TSS on
+filterLimits.diff_to_gene_TSS -100000:100000
+filterLabel.diff_to_gene_TSS Distance to gene TSS
+filter.diff_to_gene_TTS -100000:100000
+filterByRange.diff_to_gene_TTS on
+filterLimits.diff_to_gene_TTS -100000:100000
+filterLabel.diff_to_gene_TTS Distance to gene TTS
+filterValues.subcategory mono-exon,multi-exon
+filterLabel.subcategory Subcategory (mono-exon, multi-exon, etc.)
+filterValues.RTS_stage False,True
+filterLabel.RTS_stage RTS stage
+filterValues.all_canonical canonical,non_canonical
+filterLabel.all_canonical All canonical splice sites
+filter.min_sample_cov 0:10000
+filterByRange.min_sample_cov on
+filterLimits.min_sample_cov 0:10000
+filterLabel.min_sample_cov Minimum sample coverage
+filter.min_cov 0:10000
+filterByRange.min_cov on
+filterLimits.min_cov 0:10000
+filterLabel.min_cov Minimum junction coverage
+filterText.min_cov_pos *
+filterType.min_cov_pos wildcard
+filterLabel.min_cov_pos Minimum coverage position
+filter.sd_cov 0:1000
+filterByRange.sd_cov on
+filterLimits.sd_cov 0:1000
+filterLabel.sd_cov Coverage standard deviation
+filter.FL 0:100000
+filterByRange.FL on
+filterLimits.FL 0:100000
+filterLabel.FL Full-length read count
+filter.n_indels 0:100
+filterByRange.n_indels on
+filterLimits.n_indels 0:100
+filterLabel.n_indels Number of indels
+filter.n_indels_junc 0:100
+filterByRange.n_indels_junc on
+filterLimits.n_indels_junc 0:100
+filterLabel.n_indels_junc Number of indels at junctions
+filterValues.bite False,True
+filterLabel.bite BITE status
+filter.iso_exp 0:100000
+filterByRange.iso_exp on
+filterLimits.iso_exp 0:100000
+filterLabel.iso_exp Isoform expression (TPM)
+filter.gene_exp 0:100000
+filterByRange.gene_exp on
+filterLimits.gene_exp 0:100000
+filterLabel.gene_exp Gene expression (TPM)
+filter.ratio_exp 0:1
+filterByRange.ratio_exp on
+filterLimits.ratio_exp 0:1
+filterLabel.ratio_exp Expression ratio (isoform/gene)
+filterValues.FSM_class A
+filterLabel.FSM_class FSM class (A, B, C, D)
+filterValues.coding coding,non_coding
+filterLabel.coding Coding status (coding, non_coding)
+filter.ORF_length 0:50000
+filterByRange.ORF_length on
+filterLimits.ORF_length 0:50000
+filterLabel.ORF_length ORF length (aa)
+filter.CDS_length 0:50000
+filterByRange.CDS_length on
+filterLimits.CDS_length 0:50000
+filterLabel.CDS_length CDS length (bp)
+filter.CDS_start 0:100000
+filterByRange.CDS_start on
+filterLimits.CDS_start 0:100000
+filterLabel.CDS_start CDS start position
+filter.CDS_end 0:100000
+filterByRange.CDS_end on
+filterLimits.CDS_end 0:100000
+filterLabel.CDS_end CDS end position
+filterValues.predicted_NMD False,True
+filterLabel.predicted_NMD Predicted NMD
+filter.perc_A_downstream_TTS 0:100
+filterByRange.perc_A_downstream_TTS on
+filterLimits.perc_A_downstream_TTS 0:100
+filterLabel.perc_A_downstream_TTS Percent A downstream of TTS
+filter.dist_to_CAGE_peak -10000:10000
+filterByRange.dist_to_CAGE_peak on
+filterLimits.dist_to_CAGE_peak -10000:10000
+filterLabel.dist_to_CAGE_peak Distance to CAGE peak
+filterValues.within_CAGE_peak False,True
+filterLabel.within_CAGE_peak Within CAGE peak
+filter.dist_to_polyA_site -10000:10000
+filterByRange.dist_to_polyA_site on
+filterLimits.dist_to_polyA_site -10000:10000
+filterLabel.dist_to_polyA_site Distance to polyA site
+filter.polyA_dist -1000:1000
+filterByRange.polyA_dist on
+filterLimits.polyA_dist -1000:1000
+filterLabel.polyA_dist PolyA distance
+filterValues.polyA_motif_found False,True
+filterLabel.polyA_motif_found PolyA motif found
+filter.ratio_TSS 0:10
+filterByRange.ratio_TSS on
+filterLimits.ratio_TSS 0:10
+filterLabel.ratio_TSS TSS ratio
+filter.blockCount 0:200
+filterByRange.blockCount on
+filterLimits.blockCount 0:200
+filterLabel.blockCount Number of exons (from BED)
 
 track hg38_sqanti3_novel_not_in_catalog
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_novel_not_in_catalog.bb
@@ -52,15 +305,143 @@ group transcripts
 itemRgb on
 priority 3
 html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_novel_not_in_catalog.html
-filter.subcategory on
-filter.coding on
-filter.FSM_class on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.min_cov 0:1000
-filterByRange.iso_exp 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
+filter.length 0:100000
+filterByRange.length on
+filterLimits.length 0:100000
+filterLabel.length Transcript length (bp)
+filter.exons 0:200
+filterByRange.exons on
+filterLimits.exons 0:200
+filterLabel.exons Number of exons
+filterValues.structural_category novel_not_in_catalog
+filterLabel.structural_category Structural category (FSM, ISM, NIC, NNC, etc.)
+filterText.associated_gene *
+filterType.associated_gene wildcard
+filterLabel.associated_gene Associated gene
+filterText.associated_transcript *
+filterType.associated_transcript wildcard
+filterLabel.associated_transcript Associated transcript
+filter.ref_length 0:100000
+filterByRange.ref_length on
+filterLimits.ref_length 0:100000
+filterLabel.ref_length Reference transcript length
+filter.ref_exons 0:200
+filterByRange.ref_exons on
+filterLimits.ref_exons 0:200
+filterLabel.ref_exons Reference exon count
+filter.diff_to_TSS -100000:100000
+filterByRange.diff_to_TSS on
+filterLimits.diff_to_TSS -100000:100000
+filterLabel.diff_to_TSS Distance to reference TSS
+filter.diff_to_TTS -100000:100000
+filterByRange.diff_to_TTS on
+filterLimits.diff_to_TTS -100000:100000
+filterLabel.diff_to_TTS Distance to reference TTS
+filter.diff_to_gene_TSS -100000:100000
+filterByRange.diff_to_gene_TSS on
+filterLimits.diff_to_gene_TSS -100000:100000
+filterLabel.diff_to_gene_TSS Distance to gene TSS
+filter.diff_to_gene_TTS -100000:100000
+filterByRange.diff_to_gene_TTS on
+filterLimits.diff_to_gene_TTS -100000:100000
+filterLabel.diff_to_gene_TTS Distance to gene TTS
+filterValues.subcategory at_least_one_novel_splicesite,intron_retention
+filterLabel.subcategory Subcategory (mono-exon, multi-exon, etc.)
+filterValues.RTS_stage False,True
+filterLabel.RTS_stage RTS stage
+filterValues.all_canonical canonical,non_canonical
+filterLabel.all_canonical All canonical splice sites
+filter.min_sample_cov 0:10000
+filterByRange.min_sample_cov on
+filterLimits.min_sample_cov 0:10000
+filterLabel.min_sample_cov Minimum sample coverage
+filter.min_cov 0:10000
+filterByRange.min_cov on
+filterLimits.min_cov 0:10000
+filterLabel.min_cov Minimum junction coverage
+filterText.min_cov_pos *
+filterType.min_cov_pos wildcard
+filterLabel.min_cov_pos Minimum coverage position
+filter.sd_cov 0:1000
+filterByRange.sd_cov on
+filterLimits.sd_cov 0:1000
+filterLabel.sd_cov Coverage standard deviation
+filter.FL 0:100000
+filterByRange.FL on
+filterLimits.FL 0:100000
+filterLabel.FL Full-length read count
+filter.n_indels 0:100
+filterByRange.n_indels on
+filterLimits.n_indels 0:100
+filterLabel.n_indels Number of indels
+filter.n_indels_junc 0:100
+filterByRange.n_indels_junc on
+filterLimits.n_indels_junc 0:100
+filterLabel.n_indels_junc Number of indels at junctions
+filterValues.bite False,True
+filterLabel.bite BITE status
+filter.iso_exp 0:100000
+filterByRange.iso_exp on
+filterLimits.iso_exp 0:100000
+filterLabel.iso_exp Isoform expression (TPM)
+filter.gene_exp 0:100000
+filterByRange.gene_exp on
+filterLimits.gene_exp 0:100000
+filterLabel.gene_exp Gene expression (TPM)
+filter.ratio_exp 0:1
+filterByRange.ratio_exp on
+filterLimits.ratio_exp 0:1
+filterLabel.ratio_exp Expression ratio (isoform/gene)
+filterValues.FSM_class A,B,C
+filterLabel.FSM_class FSM class (A, B, C, D)
+filterValues.coding coding,non_coding
+filterLabel.coding Coding status (coding, non_coding)
+filter.ORF_length 0:50000
+filterByRange.ORF_length on
+filterLimits.ORF_length 0:50000
+filterLabel.ORF_length ORF length (aa)
+filter.CDS_length 0:50000
+filterByRange.CDS_length on
+filterLimits.CDS_length 0:50000
+filterLabel.CDS_length CDS length (bp)
+filter.CDS_start 0:100000
+filterByRange.CDS_start on
+filterLimits.CDS_start 0:100000
+filterLabel.CDS_start CDS start position
+filter.CDS_end 0:100000
+filterByRange.CDS_end on
+filterLimits.CDS_end 0:100000
+filterLabel.CDS_end CDS end position
+filterValues.predicted_NMD False,True
+filterLabel.predicted_NMD Predicted NMD
+filter.perc_A_downstream_TTS 0:100
+filterByRange.perc_A_downstream_TTS on
+filterLimits.perc_A_downstream_TTS 0:100
+filterLabel.perc_A_downstream_TTS Percent A downstream of TTS
+filter.dist_to_CAGE_peak -10000:10000
+filterByRange.dist_to_CAGE_peak on
+filterLimits.dist_to_CAGE_peak -10000:10000
+filterLabel.dist_to_CAGE_peak Distance to CAGE peak
+filterValues.within_CAGE_peak False,True
+filterLabel.within_CAGE_peak Within CAGE peak
+filter.dist_to_polyA_site -10000:10000
+filterByRange.dist_to_polyA_site on
+filterLimits.dist_to_polyA_site -10000:10000
+filterLabel.dist_to_polyA_site Distance to polyA site
+filter.polyA_dist -1000:1000
+filterByRange.polyA_dist on
+filterLimits.polyA_dist -1000:1000
+filterLabel.polyA_dist PolyA distance
+filterValues.polyA_motif_found False,True
+filterLabel.polyA_motif_found PolyA motif found
+filter.ratio_TSS 0:10
+filterByRange.ratio_TSS on
+filterLimits.ratio_TSS 0:10
+filterLabel.ratio_TSS TSS ratio
+filter.blockCount 0:200
+filterByRange.blockCount on
+filterLimits.blockCount 0:200
+filterLabel.blockCount Number of exons (from BED)
 
 track hg38_sqanti3_antisense
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_antisense.bb
@@ -72,15 +453,143 @@ group transcripts
 itemRgb on
 priority 3
 html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_antisense.html
-filter.subcategory on
-filter.coding on
-filter.FSM_class on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.min_cov 0:1000
-filterByRange.iso_exp 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
+filter.length 0:100000
+filterByRange.length on
+filterLimits.length 0:100000
+filterLabel.length Transcript length (bp)
+filter.exons 0:200
+filterByRange.exons on
+filterLimits.exons 0:200
+filterLabel.exons Number of exons
+filterValues.structural_category antisense
+filterLabel.structural_category Structural category (FSM, ISM, NIC, NNC, etc.)
+filterText.associated_gene *
+filterType.associated_gene wildcard
+filterLabel.associated_gene Associated gene
+filterText.associated_transcript *
+filterType.associated_transcript wildcard
+filterLabel.associated_transcript Associated transcript
+filter.ref_length 0:100000
+filterByRange.ref_length on
+filterLimits.ref_length 0:100000
+filterLabel.ref_length Reference transcript length
+filter.ref_exons 0:200
+filterByRange.ref_exons on
+filterLimits.ref_exons 0:200
+filterLabel.ref_exons Reference exon count
+filter.diff_to_TSS -100000:100000
+filterByRange.diff_to_TSS on
+filterLimits.diff_to_TSS -100000:100000
+filterLabel.diff_to_TSS Distance to reference TSS
+filter.diff_to_TTS -100000:100000
+filterByRange.diff_to_TTS on
+filterLimits.diff_to_TTS -100000:100000
+filterLabel.diff_to_TTS Distance to reference TTS
+filter.diff_to_gene_TSS -100000:100000
+filterByRange.diff_to_gene_TSS on
+filterLimits.diff_to_gene_TSS -100000:100000
+filterLabel.diff_to_gene_TSS Distance to gene TSS
+filter.diff_to_gene_TTS -100000:100000
+filterByRange.diff_to_gene_TTS on
+filterLimits.diff_to_gene_TTS -100000:100000
+filterLabel.diff_to_gene_TTS Distance to gene TTS
+filterValues.subcategory mono-exon,multi-exon
+filterLabel.subcategory Subcategory (mono-exon, multi-exon, etc.)
+filterValues.RTS_stage False
+filterLabel.RTS_stage RTS stage
+filterValues.all_canonical canonical,non_canonical
+filterLabel.all_canonical All canonical splice sites
+filter.min_sample_cov 0:10000
+filterByRange.min_sample_cov on
+filterLimits.min_sample_cov 0:10000
+filterLabel.min_sample_cov Minimum sample coverage
+filter.min_cov 0:10000
+filterByRange.min_cov on
+filterLimits.min_cov 0:10000
+filterLabel.min_cov Minimum junction coverage
+filterText.min_cov_pos *
+filterType.min_cov_pos wildcard
+filterLabel.min_cov_pos Minimum coverage position
+filter.sd_cov 0:1000
+filterByRange.sd_cov on
+filterLimits.sd_cov 0:1000
+filterLabel.sd_cov Coverage standard deviation
+filter.FL 0:100000
+filterByRange.FL on
+filterLimits.FL 0:100000
+filterLabel.FL Full-length read count
+filter.n_indels 0:100
+filterByRange.n_indels on
+filterLimits.n_indels 0:100
+filterLabel.n_indels Number of indels
+filter.n_indels_junc 0:100
+filterByRange.n_indels_junc on
+filterLimits.n_indels_junc 0:100
+filterLabel.n_indels_junc Number of indels at junctions
+filterValues.bite False,True
+filterLabel.bite BITE status
+filter.iso_exp 0:100000
+filterByRange.iso_exp on
+filterLimits.iso_exp 0:100000
+filterLabel.iso_exp Isoform expression (TPM)
+filter.gene_exp 0:100000
+filterByRange.gene_exp on
+filterLimits.gene_exp 0:100000
+filterLabel.gene_exp Gene expression (TPM)
+filter.ratio_exp 0:1
+filterByRange.ratio_exp on
+filterLimits.ratio_exp 0:1
+filterLabel.ratio_exp Expression ratio (isoform/gene)
+filterValues.FSM_class A,B
+filterLabel.FSM_class FSM class (A, B, C, D)
+filterValues.coding coding,non_coding
+filterLabel.coding Coding status (coding, non_coding)
+filter.ORF_length 0:50000
+filterByRange.ORF_length on
+filterLimits.ORF_length 0:50000
+filterLabel.ORF_length ORF length (aa)
+filter.CDS_length 0:50000
+filterByRange.CDS_length on
+filterLimits.CDS_length 0:50000
+filterLabel.CDS_length CDS length (bp)
+filter.CDS_start 0:100000
+filterByRange.CDS_start on
+filterLimits.CDS_start 0:100000
+filterLabel.CDS_start CDS start position
+filter.CDS_end 0:100000
+filterByRange.CDS_end on
+filterLimits.CDS_end 0:100000
+filterLabel.CDS_end CDS end position
+filterValues.predicted_NMD False
+filterLabel.predicted_NMD Predicted NMD
+filter.perc_A_downstream_TTS 0:100
+filterByRange.perc_A_downstream_TTS on
+filterLimits.perc_A_downstream_TTS 0:100
+filterLabel.perc_A_downstream_TTS Percent A downstream of TTS
+filter.dist_to_CAGE_peak -10000:10000
+filterByRange.dist_to_CAGE_peak on
+filterLimits.dist_to_CAGE_peak -10000:10000
+filterLabel.dist_to_CAGE_peak Distance to CAGE peak
+filterValues.within_CAGE_peak False
+filterLabel.within_CAGE_peak Within CAGE peak
+filter.dist_to_polyA_site -10000:10000
+filterByRange.dist_to_polyA_site on
+filterLimits.dist_to_polyA_site -10000:10000
+filterLabel.dist_to_polyA_site Distance to polyA site
+filter.polyA_dist -1000:1000
+filterByRange.polyA_dist on
+filterLimits.polyA_dist -1000:1000
+filterLabel.polyA_dist PolyA distance
+filterValues.polyA_motif_found False,True
+filterLabel.polyA_motif_found PolyA motif found
+filter.ratio_TSS 0:10
+filterByRange.ratio_TSS on
+filterLimits.ratio_TSS 0:10
+filterLabel.ratio_TSS TSS ratio
+filter.blockCount 0:200
+filterByRange.blockCount on
+filterLimits.blockCount 0:200
+filterLabel.blockCount Number of exons (from BED)
 
 track hg38_sqanti3_genic_intron
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_genic_intron.bb
@@ -92,15 +601,144 @@ group transcripts
 itemRgb on
 priority 3
 html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_genic_intron.html
-filter.subcategory on
-filter.coding on
-filter.FSM_class on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.min_cov 0:1000
-filterByRange.iso_exp 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
+filter.length 0:100000
+filterByRange.length on
+filterLimits.length 0:100000
+filterLabel.length Transcript length (bp)
+filter.exons 0:200
+filterByRange.exons on
+filterLimits.exons 0:200
+filterLabel.exons Number of exons
+filterValues.structural_category genic_intron
+filterLabel.structural_category Structural category (FSM, ISM, NIC, NNC, etc.)
+filterText.associated_gene *
+filterType.associated_gene wildcard
+filterLabel.associated_gene Associated gene
+filterText.associated_transcript *
+filterType.associated_transcript wildcard
+filterLabel.associated_transcript Associated transcript
+filter.ref_length 0:100000
+filterByRange.ref_length on
+filterLimits.ref_length 0:100000
+filterLabel.ref_length Reference transcript length
+filter.ref_exons 0:200
+filterByRange.ref_exons on
+filterLimits.ref_exons 0:200
+filterLabel.ref_exons Reference exon count
+filter.diff_to_TSS -100000:100000
+filterByRange.diff_to_TSS on
+filterLimits.diff_to_TSS -100000:100000
+filterLabel.diff_to_TSS Distance to reference TSS
+filter.diff_to_TTS -100000:100000
+filterByRange.diff_to_TTS on
+filterLimits.diff_to_TTS -100000:100000
+filterLabel.diff_to_TTS Distance to reference TTS
+filter.diff_to_gene_TSS -100000:100000
+filterByRange.diff_to_gene_TSS on
+filterLimits.diff_to_gene_TSS -100000:100000
+filterLabel.diff_to_gene_TSS Distance to gene TSS
+filter.diff_to_gene_TTS -100000:100000
+filterByRange.diff_to_gene_TTS on
+filterLimits.diff_to_gene_TTS -100000:100000
+filterLabel.diff_to_gene_TTS Distance to gene TTS
+filterValues.subcategory mono-exon,multi-exon
+filterLabel.subcategory Subcategory (mono-exon, multi-exon, etc.)
+filterValues.RTS_stage False,True
+filterLabel.RTS_stage RTS stage
+filterValues.all_canonical non_canonical
+filterLabel.all_canonical All canonical splice sites
+filter.min_sample_cov 0:10000
+filterByRange.min_sample_cov on
+filterLimits.min_sample_cov 0:10000
+filterLabel.min_sample_cov Minimum sample coverage
+filter.min_cov 0:10000
+filterByRange.min_cov on
+filterLimits.min_cov 0:10000
+filterLabel.min_cov Minimum junction coverage
+filterText.min_cov_pos *
+filterType.min_cov_pos wildcard
+filterLabel.min_cov_pos Minimum coverage position
+filter.sd_cov 0:1000
+filterByRange.sd_cov on
+filterLimits.sd_cov 0:1000
+filterLabel.sd_cov Coverage standard deviation
+filter.FL 0:100000
+filterByRange.FL on
+filterLimits.FL 0:100000
+filterLabel.FL Full-length read count
+filter.n_indels 0:100
+filterByRange.n_indels on
+filterLimits.n_indels 0:100
+filterLabel.n_indels Number of indels
+filter.n_indels_junc 0:100
+filterByRange.n_indels_junc on
+filterLimits.n_indels_junc 0:100
+filterLabel.n_indels_junc Number of indels at junctions
+filterValues.bite False
+filterLabel.bite BITE status
+filter.iso_exp 0:100000
+filterByRange.iso_exp on
+filterLimits.iso_exp 0:100000
+filterLabel.iso_exp Isoform expression (TPM)
+filter.gene_exp 0:100000
+filterByRange.gene_exp on
+filterLimits.gene_exp 0:100000
+filterLabel.gene_exp Gene expression (TPM)
+filter.ratio_exp 0:1
+filterByRange.ratio_exp on
+filterLimits.ratio_exp 0:1
+filterLabel.ratio_exp Expression ratio (isoform/gene)
+filterValues.FSM_class A
+filterLabel.FSM_class FSM class (A, B, C, D)
+filterValues.coding coding,non_coding
+filterLabel.coding Coding status (coding, non_coding)
+filter.ORF_length 0:50000
+filterByRange.ORF_length on
+filterLimits.ORF_length 0:50000
+filterLabel.ORF_length ORF length (aa)
+filter.CDS_length 0:50000
+filterByRange.CDS_length on
+filterLimits.CDS_length 0:50000
+filterLabel.CDS_length CDS length (bp)
+filter.CDS_start 0:100000
+filterByRange.CDS_start on
+filterLimits.CDS_start 0:100000
+filterLabel.CDS_start CDS start position
+filter.CDS_end 0:100000
+filterByRange.CDS_end on
+filterLimits.CDS_end 0:100000
+filterLabel.CDS_end CDS end position
+filterText.predicted_NMD *
+filterType.predicted_NMD wildcard
+filterLabel.predicted_NMD Predicted NMD
+filter.perc_A_downstream_TTS 0:100
+filterByRange.perc_A_downstream_TTS on
+filterLimits.perc_A_downstream_TTS 0:100
+filterLabel.perc_A_downstream_TTS Percent A downstream of TTS
+filter.dist_to_CAGE_peak -10000:10000
+filterByRange.dist_to_CAGE_peak on
+filterLimits.dist_to_CAGE_peak -10000:10000
+filterLabel.dist_to_CAGE_peak Distance to CAGE peak
+filterValues.within_CAGE_peak False,True
+filterLabel.within_CAGE_peak Within CAGE peak
+filter.dist_to_polyA_site -10000:10000
+filterByRange.dist_to_polyA_site on
+filterLimits.dist_to_polyA_site -10000:10000
+filterLabel.dist_to_polyA_site Distance to polyA site
+filter.polyA_dist -1000:1000
+filterByRange.polyA_dist on
+filterLimits.polyA_dist -1000:1000
+filterLabel.polyA_dist PolyA distance
+filterValues.polyA_motif_found False,True
+filterLabel.polyA_motif_found PolyA motif found
+filter.ratio_TSS 0:10
+filterByRange.ratio_TSS on
+filterLimits.ratio_TSS 0:10
+filterLabel.ratio_TSS TSS ratio
+filter.blockCount 0:200
+filterByRange.blockCount on
+filterLimits.blockCount 0:200
+filterLabel.blockCount Number of exons (from BED)
 
 track hg38_sqanti3_fusion
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_fusion.bb
@@ -112,15 +750,143 @@ group transcripts
 itemRgb on
 priority 3
 html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_fusion.html
-filter.subcategory on
-filter.coding on
-filter.FSM_class on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.min_cov 0:1000
-filterByRange.iso_exp 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
+filter.length 0:100000
+filterByRange.length on
+filterLimits.length 0:100000
+filterLabel.length Transcript length (bp)
+filter.exons 0:200
+filterByRange.exons on
+filterLimits.exons 0:200
+filterLabel.exons Number of exons
+filterValues.structural_category fusion
+filterLabel.structural_category Structural category (FSM, ISM, NIC, NNC, etc.)
+filterText.associated_gene *
+filterType.associated_gene wildcard
+filterLabel.associated_gene Associated gene
+filterText.associated_transcript *
+filterType.associated_transcript wildcard
+filterLabel.associated_transcript Associated transcript
+filter.ref_length 0:100000
+filterByRange.ref_length on
+filterLimits.ref_length 0:100000
+filterLabel.ref_length Reference transcript length
+filter.ref_exons 0:200
+filterByRange.ref_exons on
+filterLimits.ref_exons 0:200
+filterLabel.ref_exons Reference exon count
+filter.diff_to_TSS -100000:100000
+filterByRange.diff_to_TSS on
+filterLimits.diff_to_TSS -100000:100000
+filterLabel.diff_to_TSS Distance to reference TSS
+filter.diff_to_TTS -100000:100000
+filterByRange.diff_to_TTS on
+filterLimits.diff_to_TTS -100000:100000
+filterLabel.diff_to_TTS Distance to reference TTS
+filter.diff_to_gene_TSS -100000:100000
+filterByRange.diff_to_gene_TSS on
+filterLimits.diff_to_gene_TSS -100000:100000
+filterLabel.diff_to_gene_TSS Distance to gene TSS
+filter.diff_to_gene_TTS -100000:100000
+filterByRange.diff_to_gene_TTS on
+filterLimits.diff_to_gene_TTS -100000:100000
+filterLabel.diff_to_gene_TTS Distance to gene TTS
+filterValues.subcategory intron_retention,multi-exon
+filterLabel.subcategory Subcategory (mono-exon, multi-exon, etc.)
+filterValues.RTS_stage False,True
+filterLabel.RTS_stage RTS stage
+filterValues.all_canonical canonical,non_canonical
+filterLabel.all_canonical All canonical splice sites
+filter.min_sample_cov 0:10000
+filterByRange.min_sample_cov on
+filterLimits.min_sample_cov 0:10000
+filterLabel.min_sample_cov Minimum sample coverage
+filter.min_cov 0:10000
+filterByRange.min_cov on
+filterLimits.min_cov 0:10000
+filterLabel.min_cov Minimum junction coverage
+filterText.min_cov_pos *
+filterType.min_cov_pos wildcard
+filterLabel.min_cov_pos Minimum coverage position
+filter.sd_cov 0:1000
+filterByRange.sd_cov on
+filterLimits.sd_cov 0:1000
+filterLabel.sd_cov Coverage standard deviation
+filter.FL 0:100000
+filterByRange.FL on
+filterLimits.FL 0:100000
+filterLabel.FL Full-length read count
+filter.n_indels 0:100
+filterByRange.n_indels on
+filterLimits.n_indels 0:100
+filterLabel.n_indels Number of indels
+filter.n_indels_junc 0:100
+filterByRange.n_indels_junc on
+filterLimits.n_indels_junc 0:100
+filterLabel.n_indels_junc Number of indels at junctions
+filterValues.bite False,True
+filterLabel.bite BITE status
+filter.iso_exp 0:100000
+filterByRange.iso_exp on
+filterLimits.iso_exp 0:100000
+filterLabel.iso_exp Isoform expression (TPM)
+filter.gene_exp 0:100000
+filterByRange.gene_exp on
+filterLimits.gene_exp 0:100000
+filterLabel.gene_exp Gene expression (TPM)
+filter.ratio_exp 0:1
+filterByRange.ratio_exp on
+filterLimits.ratio_exp 0:1
+filterLabel.ratio_exp Expression ratio (isoform/gene)
+filterValues.FSM_class A,B
+filterLabel.FSM_class FSM class (A, B, C, D)
+filterValues.coding coding,non_coding
+filterLabel.coding Coding status (coding, non_coding)
+filter.ORF_length 0:50000
+filterByRange.ORF_length on
+filterLimits.ORF_length 0:50000
+filterLabel.ORF_length ORF length (aa)
+filter.CDS_length 0:50000
+filterByRange.CDS_length on
+filterLimits.CDS_length 0:50000
+filterLabel.CDS_length CDS length (bp)
+filter.CDS_start 0:100000
+filterByRange.CDS_start on
+filterLimits.CDS_start 0:100000
+filterLabel.CDS_start CDS start position
+filter.CDS_end 0:100000
+filterByRange.CDS_end on
+filterLimits.CDS_end 0:100000
+filterLabel.CDS_end CDS end position
+filterValues.predicted_NMD False,True
+filterLabel.predicted_NMD Predicted NMD
+filter.perc_A_downstream_TTS 0:100
+filterByRange.perc_A_downstream_TTS on
+filterLimits.perc_A_downstream_TTS 0:100
+filterLabel.perc_A_downstream_TTS Percent A downstream of TTS
+filter.dist_to_CAGE_peak -10000:10000
+filterByRange.dist_to_CAGE_peak on
+filterLimits.dist_to_CAGE_peak -10000:10000
+filterLabel.dist_to_CAGE_peak Distance to CAGE peak
+filterValues.within_CAGE_peak False,True
+filterLabel.within_CAGE_peak Within CAGE peak
+filter.dist_to_polyA_site -10000:10000
+filterByRange.dist_to_polyA_site on
+filterLimits.dist_to_polyA_site -10000:10000
+filterLabel.dist_to_polyA_site Distance to polyA site
+filter.polyA_dist -1000:1000
+filterByRange.polyA_dist on
+filterLimits.polyA_dist -1000:1000
+filterLabel.polyA_dist PolyA distance
+filterValues.polyA_motif_found False,True
+filterLabel.polyA_motif_found PolyA motif found
+filter.ratio_TSS 0:10
+filterByRange.ratio_TSS on
+filterLimits.ratio_TSS 0:10
+filterLabel.ratio_TSS TSS ratio
+filter.blockCount 0:200
+filterByRange.blockCount on
+filterLimits.blockCount 0:200
+filterLabel.blockCount Number of exons (from BED)
 
 track hg38_sqanti3_novel_in_catalog
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_novel_in_catalog.bb
@@ -132,15 +898,143 @@ group transcripts
 itemRgb on
 priority 3
 html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_novel_in_catalog.html
-filter.subcategory on
-filter.coding on
-filter.FSM_class on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.min_cov 0:1000
-filterByRange.iso_exp 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
+filter.length 0:100000
+filterByRange.length on
+filterLimits.length 0:100000
+filterLabel.length Transcript length (bp)
+filter.exons 0:200
+filterByRange.exons on
+filterLimits.exons 0:200
+filterLabel.exons Number of exons
+filterValues.structural_category novel_in_catalog
+filterLabel.structural_category Structural category (FSM, ISM, NIC, NNC, etc.)
+filterText.associated_gene *
+filterType.associated_gene wildcard
+filterLabel.associated_gene Associated gene
+filterText.associated_transcript *
+filterType.associated_transcript wildcard
+filterLabel.associated_transcript Associated transcript
+filter.ref_length 0:100000
+filterByRange.ref_length on
+filterLimits.ref_length 0:100000
+filterLabel.ref_length Reference transcript length
+filter.ref_exons 0:200
+filterByRange.ref_exons on
+filterLimits.ref_exons 0:200
+filterLabel.ref_exons Reference exon count
+filter.diff_to_TSS -100000:100000
+filterByRange.diff_to_TSS on
+filterLimits.diff_to_TSS -100000:100000
+filterLabel.diff_to_TSS Distance to reference TSS
+filter.diff_to_TTS -100000:100000
+filterByRange.diff_to_TTS on
+filterLimits.diff_to_TTS -100000:100000
+filterLabel.diff_to_TTS Distance to reference TTS
+filter.diff_to_gene_TSS -100000:100000
+filterByRange.diff_to_gene_TSS on
+filterLimits.diff_to_gene_TSS -100000:100000
+filterLabel.diff_to_gene_TSS Distance to gene TSS
+filter.diff_to_gene_TTS -100000:100000
+filterByRange.diff_to_gene_TTS on
+filterLimits.diff_to_gene_TTS -100000:100000
+filterLabel.diff_to_gene_TTS Distance to gene TTS
+filterValues.subcategory combination_of_known_junctions,combination_of_known_splicesites,intron_retention,mono-exon_by_intron_retention
+filterLabel.subcategory Subcategory (mono-exon, multi-exon, etc.)
+filterValues.RTS_stage False,True
+filterLabel.RTS_stage RTS stage
+filterValues.all_canonical canonical,non_canonical
+filterLabel.all_canonical All canonical splice sites
+filter.min_sample_cov 0:10000
+filterByRange.min_sample_cov on
+filterLimits.min_sample_cov 0:10000
+filterLabel.min_sample_cov Minimum sample coverage
+filter.min_cov 0:10000
+filterByRange.min_cov on
+filterLimits.min_cov 0:10000
+filterLabel.min_cov Minimum junction coverage
+filterText.min_cov_pos *
+filterType.min_cov_pos wildcard
+filterLabel.min_cov_pos Minimum coverage position
+filter.sd_cov 0:1000
+filterByRange.sd_cov on
+filterLimits.sd_cov 0:1000
+filterLabel.sd_cov Coverage standard deviation
+filter.FL 0:100000
+filterByRange.FL on
+filterLimits.FL 0:100000
+filterLabel.FL Full-length read count
+filter.n_indels 0:100
+filterByRange.n_indels on
+filterLimits.n_indels 0:100
+filterLabel.n_indels Number of indels
+filter.n_indels_junc 0:100
+filterByRange.n_indels_junc on
+filterLimits.n_indels_junc 0:100
+filterLabel.n_indels_junc Number of indels at junctions
+filterValues.bite False
+filterLabel.bite BITE status
+filter.iso_exp 0:100000
+filterByRange.iso_exp on
+filterLimits.iso_exp 0:100000
+filterLabel.iso_exp Isoform expression (TPM)
+filter.gene_exp 0:100000
+filterByRange.gene_exp on
+filterLimits.gene_exp 0:100000
+filterLabel.gene_exp Gene expression (TPM)
+filter.ratio_exp 0:1
+filterByRange.ratio_exp on
+filterLimits.ratio_exp 0:1
+filterLabel.ratio_exp Expression ratio (isoform/gene)
+filterValues.FSM_class A,B,C
+filterLabel.FSM_class FSM class (A, B, C, D)
+filterValues.coding coding,non_coding
+filterLabel.coding Coding status (coding, non_coding)
+filter.ORF_length 0:50000
+filterByRange.ORF_length on
+filterLimits.ORF_length 0:50000
+filterLabel.ORF_length ORF length (aa)
+filter.CDS_length 0:50000
+filterByRange.CDS_length on
+filterLimits.CDS_length 0:50000
+filterLabel.CDS_length CDS length (bp)
+filter.CDS_start 0:100000
+filterByRange.CDS_start on
+filterLimits.CDS_start 0:100000
+filterLabel.CDS_start CDS start position
+filter.CDS_end 0:100000
+filterByRange.CDS_end on
+filterLimits.CDS_end 0:100000
+filterLabel.CDS_end CDS end position
+filterValues.predicted_NMD False,True
+filterLabel.predicted_NMD Predicted NMD
+filter.perc_A_downstream_TTS 0:100
+filterByRange.perc_A_downstream_TTS on
+filterLimits.perc_A_downstream_TTS 0:100
+filterLabel.perc_A_downstream_TTS Percent A downstream of TTS
+filter.dist_to_CAGE_peak -10000:10000
+filterByRange.dist_to_CAGE_peak on
+filterLimits.dist_to_CAGE_peak -10000:10000
+filterLabel.dist_to_CAGE_peak Distance to CAGE peak
+filterValues.within_CAGE_peak False,True
+filterLabel.within_CAGE_peak Within CAGE peak
+filter.dist_to_polyA_site -10000:10000
+filterByRange.dist_to_polyA_site on
+filterLimits.dist_to_polyA_site -10000:10000
+filterLabel.dist_to_polyA_site Distance to polyA site
+filter.polyA_dist -1000:1000
+filterByRange.polyA_dist on
+filterLimits.polyA_dist -1000:1000
+filterLabel.polyA_dist PolyA distance
+filterValues.polyA_motif_found False,True
+filterLabel.polyA_motif_found PolyA motif found
+filter.ratio_TSS 0:10
+filterByRange.ratio_TSS on
+filterLimits.ratio_TSS 0:10
+filterLabel.ratio_TSS TSS ratio
+filter.blockCount 0:200
+filterByRange.blockCount on
+filterLimits.blockCount 0:200
+filterLabel.blockCount Number of exons (from BED)
 
 track hg38_sqanti3_incomplete-splice_match
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_incomplete-splice_match.bb
@@ -152,15 +1046,143 @@ group transcripts
 itemRgb on
 priority 3
 html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_incomplete-splice_match.html
-filter.subcategory on
-filter.coding on
-filter.FSM_class on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.min_cov 0:1000
-filterByRange.iso_exp 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
+filter.length 0:100000
+filterByRange.length on
+filterLimits.length 0:100000
+filterLabel.length Transcript length (bp)
+filter.exons 0:200
+filterByRange.exons on
+filterLimits.exons 0:200
+filterLabel.exons Number of exons
+filterValues.structural_category incomplete-splice_match
+filterLabel.structural_category Structural category (FSM, ISM, NIC, NNC, etc.)
+filterText.associated_gene *
+filterType.associated_gene wildcard
+filterLabel.associated_gene Associated gene
+filterText.associated_transcript *
+filterType.associated_transcript wildcard
+filterLabel.associated_transcript Associated transcript
+filter.ref_length 0:100000
+filterByRange.ref_length on
+filterLimits.ref_length 0:100000
+filterLabel.ref_length Reference transcript length
+filter.ref_exons 0:200
+filterByRange.ref_exons on
+filterLimits.ref_exons 0:200
+filterLabel.ref_exons Reference exon count
+filter.diff_to_TSS -100000:100000
+filterByRange.diff_to_TSS on
+filterLimits.diff_to_TSS -100000:100000
+filterLabel.diff_to_TSS Distance to reference TSS
+filter.diff_to_TTS -100000:100000
+filterByRange.diff_to_TTS on
+filterLimits.diff_to_TTS -100000:100000
+filterLabel.diff_to_TTS Distance to reference TTS
+filter.diff_to_gene_TSS -100000:100000
+filterByRange.diff_to_gene_TSS on
+filterLimits.diff_to_gene_TSS -100000:100000
+filterLabel.diff_to_gene_TSS Distance to gene TSS
+filter.diff_to_gene_TTS -100000:100000
+filterByRange.diff_to_gene_TTS on
+filterLimits.diff_to_gene_TTS -100000:100000
+filterLabel.diff_to_gene_TTS Distance to gene TTS
+filterValues.subcategory 3prime_fragment,5prime_fragment,internal_fragment,intron_retention,mono-exon
+filterLabel.subcategory Subcategory (mono-exon, multi-exon, etc.)
+filterValues.RTS_stage False,True
+filterLabel.RTS_stage RTS stage
+filterValues.all_canonical canonical,non_canonical
+filterLabel.all_canonical All canonical splice sites
+filter.min_sample_cov 0:10000
+filterByRange.min_sample_cov on
+filterLimits.min_sample_cov 0:10000
+filterLabel.min_sample_cov Minimum sample coverage
+filter.min_cov 0:10000
+filterByRange.min_cov on
+filterLimits.min_cov 0:10000
+filterLabel.min_cov Minimum junction coverage
+filterText.min_cov_pos *
+filterType.min_cov_pos wildcard
+filterLabel.min_cov_pos Minimum coverage position
+filter.sd_cov 0:1000
+filterByRange.sd_cov on
+filterLimits.sd_cov 0:1000
+filterLabel.sd_cov Coverage standard deviation
+filter.FL 0:100000
+filterByRange.FL on
+filterLimits.FL 0:100000
+filterLabel.FL Full-length read count
+filter.n_indels 0:100
+filterByRange.n_indels on
+filterLimits.n_indels 0:100
+filterLabel.n_indels Number of indels
+filter.n_indels_junc 0:100
+filterByRange.n_indels_junc on
+filterLimits.n_indels_junc 0:100
+filterLabel.n_indels_junc Number of indels at junctions
+filterValues.bite False
+filterLabel.bite BITE status
+filter.iso_exp 0:100000
+filterByRange.iso_exp on
+filterLimits.iso_exp 0:100000
+filterLabel.iso_exp Isoform expression (TPM)
+filter.gene_exp 0:100000
+filterByRange.gene_exp on
+filterLimits.gene_exp 0:100000
+filterLabel.gene_exp Gene expression (TPM)
+filter.ratio_exp 0:1
+filterByRange.ratio_exp on
+filterLimits.ratio_exp 0:1
+filterLabel.ratio_exp Expression ratio (isoform/gene)
+filterValues.FSM_class A,B,C
+filterLabel.FSM_class FSM class (A, B, C, D)
+filterValues.coding coding,non_coding
+filterLabel.coding Coding status (coding, non_coding)
+filter.ORF_length 0:50000
+filterByRange.ORF_length on
+filterLimits.ORF_length 0:50000
+filterLabel.ORF_length ORF length (aa)
+filter.CDS_length 0:50000
+filterByRange.CDS_length on
+filterLimits.CDS_length 0:50000
+filterLabel.CDS_length CDS length (bp)
+filter.CDS_start 0:100000
+filterByRange.CDS_start on
+filterLimits.CDS_start 0:100000
+filterLabel.CDS_start CDS start position
+filter.CDS_end 0:100000
+filterByRange.CDS_end on
+filterLimits.CDS_end 0:100000
+filterLabel.CDS_end CDS end position
+filterValues.predicted_NMD False,True
+filterLabel.predicted_NMD Predicted NMD
+filter.perc_A_downstream_TTS 0:100
+filterByRange.perc_A_downstream_TTS on
+filterLimits.perc_A_downstream_TTS 0:100
+filterLabel.perc_A_downstream_TTS Percent A downstream of TTS
+filter.dist_to_CAGE_peak -10000:10000
+filterByRange.dist_to_CAGE_peak on
+filterLimits.dist_to_CAGE_peak -10000:10000
+filterLabel.dist_to_CAGE_peak Distance to CAGE peak
+filterValues.within_CAGE_peak False,True
+filterLabel.within_CAGE_peak Within CAGE peak
+filter.dist_to_polyA_site -10000:10000
+filterByRange.dist_to_polyA_site on
+filterLimits.dist_to_polyA_site -10000:10000
+filterLabel.dist_to_polyA_site Distance to polyA site
+filter.polyA_dist -1000:1000
+filterByRange.polyA_dist on
+filterLimits.polyA_dist -1000:1000
+filterLabel.polyA_dist PolyA distance
+filterValues.polyA_motif_found False,True
+filterLabel.polyA_motif_found PolyA motif found
+filter.ratio_TSS 0:10
+filterByRange.ratio_TSS on
+filterLimits.ratio_TSS 0:10
+filterLabel.ratio_TSS TSS ratio
+filter.blockCount 0:200
+filterByRange.blockCount on
+filterLimits.blockCount 0:200
+filterLabel.blockCount Number of exons (from BED)
 
 track hg38_sqanti3_full-splice_match
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_full-splice_match.bb
@@ -172,15 +1194,143 @@ group transcripts
 itemRgb on
 priority 3
 html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_full-splice_match.html
-filter.subcategory on
-filter.coding on
-filter.FSM_class on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.min_cov 0:1000
-filterByRange.iso_exp 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
+filter.length 0:100000
+filterByRange.length on
+filterLimits.length 0:100000
+filterLabel.length Transcript length (bp)
+filter.exons 0:200
+filterByRange.exons on
+filterLimits.exons 0:200
+filterLabel.exons Number of exons
+filterValues.structural_category full-splice_match
+filterLabel.structural_category Structural category (FSM, ISM, NIC, NNC, etc.)
+filterText.associated_gene *
+filterType.associated_gene wildcard
+filterLabel.associated_gene Associated gene
+filterText.associated_transcript *
+filterType.associated_transcript wildcard
+filterLabel.associated_transcript Associated transcript
+filter.ref_length 0:100000
+filterByRange.ref_length on
+filterLimits.ref_length 0:100000
+filterLabel.ref_length Reference transcript length
+filter.ref_exons 0:200
+filterByRange.ref_exons on
+filterLimits.ref_exons 0:200
+filterLabel.ref_exons Reference exon count
+filter.diff_to_TSS -100000:100000
+filterByRange.diff_to_TSS on
+filterLimits.diff_to_TSS -100000:100000
+filterLabel.diff_to_TSS Distance to reference TSS
+filter.diff_to_TTS -100000:100000
+filterByRange.diff_to_TTS on
+filterLimits.diff_to_TTS -100000:100000
+filterLabel.diff_to_TTS Distance to reference TTS
+filter.diff_to_gene_TSS -100000:100000
+filterByRange.diff_to_gene_TSS on
+filterLimits.diff_to_gene_TSS -100000:100000
+filterLabel.diff_to_gene_TSS Distance to gene TSS
+filter.diff_to_gene_TTS -100000:100000
+filterByRange.diff_to_gene_TTS on
+filterLimits.diff_to_gene_TTS -100000:100000
+filterLabel.diff_to_gene_TTS Distance to gene TTS
+filterValues.subcategory alternative_3end,alternative_3end5end,alternative_5end,mono-exon,reference_match
+filterLabel.subcategory Subcategory (mono-exon, multi-exon, etc.)
+filterValues.RTS_stage False,True
+filterLabel.RTS_stage RTS stage
+filterValues.all_canonical canonical,non_canonical
+filterLabel.all_canonical All canonical splice sites
+filter.min_sample_cov 0:10000
+filterByRange.min_sample_cov on
+filterLimits.min_sample_cov 0:10000
+filterLabel.min_sample_cov Minimum sample coverage
+filter.min_cov 0:10000
+filterByRange.min_cov on
+filterLimits.min_cov 0:10000
+filterLabel.min_cov Minimum junction coverage
+filterText.min_cov_pos *
+filterType.min_cov_pos wildcard
+filterLabel.min_cov_pos Minimum coverage position
+filter.sd_cov 0:1000
+filterByRange.sd_cov on
+filterLimits.sd_cov 0:1000
+filterLabel.sd_cov Coverage standard deviation
+filter.FL 0:100000
+filterByRange.FL on
+filterLimits.FL 0:100000
+filterLabel.FL Full-length read count
+filter.n_indels 0:100
+filterByRange.n_indels on
+filterLimits.n_indels 0:100
+filterLabel.n_indels Number of indels
+filter.n_indels_junc 0:100
+filterByRange.n_indels_junc on
+filterLimits.n_indels_junc 0:100
+filterLabel.n_indels_junc Number of indels at junctions
+filterValues.bite False
+filterLabel.bite BITE status
+filter.iso_exp 0:100000
+filterByRange.iso_exp on
+filterLimits.iso_exp 0:100000
+filterLabel.iso_exp Isoform expression (TPM)
+filter.gene_exp 0:100000
+filterByRange.gene_exp on
+filterLimits.gene_exp 0:100000
+filterLabel.gene_exp Gene expression (TPM)
+filter.ratio_exp 0:1
+filterByRange.ratio_exp on
+filterLimits.ratio_exp 0:1
+filterLabel.ratio_exp Expression ratio (isoform/gene)
+filterValues.FSM_class A,C
+filterLabel.FSM_class FSM class (A, B, C, D)
+filterValues.coding coding,non_coding
+filterLabel.coding Coding status (coding, non_coding)
+filter.ORF_length 0:50000
+filterByRange.ORF_length on
+filterLimits.ORF_length 0:50000
+filterLabel.ORF_length ORF length (aa)
+filter.CDS_length 0:50000
+filterByRange.CDS_length on
+filterLimits.CDS_length 0:50000
+filterLabel.CDS_length CDS length (bp)
+filter.CDS_start 0:100000
+filterByRange.CDS_start on
+filterLimits.CDS_start 0:100000
+filterLabel.CDS_start CDS start position
+filter.CDS_end 0:100000
+filterByRange.CDS_end on
+filterLimits.CDS_end 0:100000
+filterLabel.CDS_end CDS end position
+filterValues.predicted_NMD False,True
+filterLabel.predicted_NMD Predicted NMD
+filter.perc_A_downstream_TTS 0:100
+filterByRange.perc_A_downstream_TTS on
+filterLimits.perc_A_downstream_TTS 0:100
+filterLabel.perc_A_downstream_TTS Percent A downstream of TTS
+filter.dist_to_CAGE_peak -10000:10000
+filterByRange.dist_to_CAGE_peak on
+filterLimits.dist_to_CAGE_peak -10000:10000
+filterLabel.dist_to_CAGE_peak Distance to CAGE peak
+filterValues.within_CAGE_peak False,True
+filterLabel.within_CAGE_peak Within CAGE peak
+filter.dist_to_polyA_site -10000:10000
+filterByRange.dist_to_polyA_site on
+filterLimits.dist_to_polyA_site -10000:10000
+filterLabel.dist_to_polyA_site Distance to polyA site
+filter.polyA_dist -1000:1000
+filterByRange.polyA_dist on
+filterLimits.polyA_dist -1000:1000
+filterLabel.polyA_dist PolyA distance
+filterValues.polyA_motif_found False,True
+filterLabel.polyA_motif_found PolyA motif found
+filter.ratio_TSS 0:10
+filterByRange.ratio_TSS on
+filterLimits.ratio_TSS 0:10
+filterLabel.ratio_TSS TSS ratio
+filter.blockCount 0:200
+filterByRange.blockCount on
+filterLimits.blockCount 0:200
+filterLabel.blockCount Number of exons (from BED)
 
 track hg38_sqanti3_genic
 bigDataUrl https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_genic.bb
@@ -192,12 +1342,140 @@ group transcripts
 itemRgb on
 priority 3
 html https://raw.githubusercontent.com/carolinamonzo/test_genomebrowser/main/hg38_sqanti3_genic.html
-filter.subcategory on
-filter.coding on
-filter.FSM_class on
-filterByRange.length 0:50000
-filterByRange.exons 0:100
-filterByRange.min_cov 0:1000
-filterByRange.iso_exp 0:1000
-filterByRange.blockCount 0:100
-filterLabel.blockCount Number of exons
+filter.length 0:100000
+filterByRange.length on
+filterLimits.length 0:100000
+filterLabel.length Transcript length (bp)
+filter.exons 0:200
+filterByRange.exons on
+filterLimits.exons 0:200
+filterLabel.exons Number of exons
+filterValues.structural_category genic
+filterLabel.structural_category Structural category (FSM, ISM, NIC, NNC, etc.)
+filterText.associated_gene *
+filterType.associated_gene wildcard
+filterLabel.associated_gene Associated gene
+filterText.associated_transcript *
+filterType.associated_transcript wildcard
+filterLabel.associated_transcript Associated transcript
+filter.ref_length 0:100000
+filterByRange.ref_length on
+filterLimits.ref_length 0:100000
+filterLabel.ref_length Reference transcript length
+filter.ref_exons 0:200
+filterByRange.ref_exons on
+filterLimits.ref_exons 0:200
+filterLabel.ref_exons Reference exon count
+filter.diff_to_TSS -100000:100000
+filterByRange.diff_to_TSS on
+filterLimits.diff_to_TSS -100000:100000
+filterLabel.diff_to_TSS Distance to reference TSS
+filter.diff_to_TTS -100000:100000
+filterByRange.diff_to_TTS on
+filterLimits.diff_to_TTS -100000:100000
+filterLabel.diff_to_TTS Distance to reference TTS
+filter.diff_to_gene_TSS -100000:100000
+filterByRange.diff_to_gene_TSS on
+filterLimits.diff_to_gene_TSS -100000:100000
+filterLabel.diff_to_gene_TSS Distance to gene TSS
+filter.diff_to_gene_TTS -100000:100000
+filterByRange.diff_to_gene_TTS on
+filterLimits.diff_to_gene_TTS -100000:100000
+filterLabel.diff_to_gene_TTS Distance to gene TTS
+filterValues.subcategory mono-exon,multi-exon
+filterLabel.subcategory Subcategory (mono-exon, multi-exon, etc.)
+filterValues.RTS_stage False,True
+filterLabel.RTS_stage RTS stage
+filterValues.all_canonical canonical,non_canonical
+filterLabel.all_canonical All canonical splice sites
+filter.min_sample_cov 0:10000
+filterByRange.min_sample_cov on
+filterLimits.min_sample_cov 0:10000
+filterLabel.min_sample_cov Minimum sample coverage
+filter.min_cov 0:10000
+filterByRange.min_cov on
+filterLimits.min_cov 0:10000
+filterLabel.min_cov Minimum junction coverage
+filterText.min_cov_pos *
+filterType.min_cov_pos wildcard
+filterLabel.min_cov_pos Minimum coverage position
+filter.sd_cov 0:1000
+filterByRange.sd_cov on
+filterLimits.sd_cov 0:1000
+filterLabel.sd_cov Coverage standard deviation
+filter.FL 0:100000
+filterByRange.FL on
+filterLimits.FL 0:100000
+filterLabel.FL Full-length read count
+filter.n_indels 0:100
+filterByRange.n_indels on
+filterLimits.n_indels 0:100
+filterLabel.n_indels Number of indels
+filter.n_indels_junc 0:100
+filterByRange.n_indels_junc on
+filterLimits.n_indels_junc 0:100
+filterLabel.n_indels_junc Number of indels at junctions
+filterValues.bite False
+filterLabel.bite BITE status
+filter.iso_exp 0:100000
+filterByRange.iso_exp on
+filterLimits.iso_exp 0:100000
+filterLabel.iso_exp Isoform expression (TPM)
+filter.gene_exp 0:100000
+filterByRange.gene_exp on
+filterLimits.gene_exp 0:100000
+filterLabel.gene_exp Gene expression (TPM)
+filter.ratio_exp 0:1
+filterByRange.ratio_exp on
+filterLimits.ratio_exp 0:1
+filterLabel.ratio_exp Expression ratio (isoform/gene)
+filterValues.FSM_class A,B,C
+filterLabel.FSM_class FSM class (A, B, C, D)
+filterValues.coding coding,non_coding
+filterLabel.coding Coding status (coding, non_coding)
+filter.ORF_length 0:50000
+filterByRange.ORF_length on
+filterLimits.ORF_length 0:50000
+filterLabel.ORF_length ORF length (aa)
+filter.CDS_length 0:50000
+filterByRange.CDS_length on
+filterLimits.CDS_length 0:50000
+filterLabel.CDS_length CDS length (bp)
+filter.CDS_start 0:100000
+filterByRange.CDS_start on
+filterLimits.CDS_start 0:100000
+filterLabel.CDS_start CDS start position
+filter.CDS_end 0:100000
+filterByRange.CDS_end on
+filterLimits.CDS_end 0:100000
+filterLabel.CDS_end CDS end position
+filterValues.predicted_NMD False,True
+filterLabel.predicted_NMD Predicted NMD
+filter.perc_A_downstream_TTS 0:100
+filterByRange.perc_A_downstream_TTS on
+filterLimits.perc_A_downstream_TTS 0:100
+filterLabel.perc_A_downstream_TTS Percent A downstream of TTS
+filter.dist_to_CAGE_peak -10000:10000
+filterByRange.dist_to_CAGE_peak on
+filterLimits.dist_to_CAGE_peak -10000:10000
+filterLabel.dist_to_CAGE_peak Distance to CAGE peak
+filterValues.within_CAGE_peak False,True
+filterLabel.within_CAGE_peak Within CAGE peak
+filter.dist_to_polyA_site -10000:10000
+filterByRange.dist_to_polyA_site on
+filterLimits.dist_to_polyA_site -10000:10000
+filterLabel.dist_to_polyA_site Distance to polyA site
+filter.polyA_dist -1000:1000
+filterByRange.polyA_dist on
+filterLimits.polyA_dist -1000:1000
+filterLabel.polyA_dist PolyA distance
+filterValues.polyA_motif_found False,True
+filterLabel.polyA_motif_found PolyA motif found
+filter.ratio_TSS 0:10
+filterByRange.ratio_TSS on
+filterLimits.ratio_TSS 0:10
+filterLabel.ratio_TSS TSS ratio
+filter.blockCount 0:200
+filterByRange.blockCount on
+filterLimits.blockCount 0:200
+filterLabel.blockCount Number of exons (from BED)

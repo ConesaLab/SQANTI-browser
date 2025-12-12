@@ -5,28 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>hg38 SQANTI3 genic_intron Transcripts</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; margin: 20px; background-color: #f8f9fa; color: #212529; }
-        h1 { color: #343a40; }
-        #container { max-width: 800px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        p { margin-bottom: 1em; }
-        strong { color: #343a40; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.6; margin: 20px; background-color: #f8f9fa; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        h1 { color: #333; border-bottom: 2px solid #41B6C4; padding-bottom: 10px; }
+        h2 { color: #495057; margin-top: 25px; }
+        h3 { color: #6c757d; margin-top: 20px; }
+        code { background-color: #e9ecef; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+        th, td { border: 1px solid #dee2e6; padding: 10px; text-align: left; }
+        th { background-color: #e9ecef; font-weight: 600; }
+        .filter-values { font-family: monospace; font-size: 0.85em; color: #495057; }
+        .tip { background-color: #d1ecf1; border-left: 4px solid #17a2b8; padding: 10px 15px; margin: 15px 0; border-radius: 0 4px 4px 0; }
+        .category-badge { display: inline-block; background-color: #41B6C4; color: white; padding: 5px 12px; border-radius: 15px; font-weight: bold; }
     </style>
-</head>
+    </head>
 <body>
-<div id="container">
-    <h1>SQANTI3 Transcripts: genic_intron</h1>
-    <p>
-        This track contains <strong>147</strong> transcripts from the <strong>genic_intron</strong> 
-        structural category for the <strong>hg38</strong> genome assembly.
-    </p>
-    <p>
-        To filter these transcripts, right-click on the track in the main Genome Browser window and select "Filter". 
-        You can then filter by various attributes such as exon count, length, coding status, and more, using the controls provided by the browser.
-    </p>
-    <p>
-        Full classification data is available in the main hub description page.
-    </p>
+<div class="container">
+    <h1>SQANTI3 Transcripts: <span class="category-badge">genic_intron</span></h1>
+    <p>This track contains <strong>147</strong> transcripts classified as <strong>genic_intron</strong> for the <strong>hg38</strong> genome assembly.</p>
+    
+    <h2>How to Filter</h2>
+    <div class="tip">
+        <strong>Tip:</strong> Right-click on the track and select "Configure" to access all filters. 
+        Use <code>*</code> as a wildcard in text filters (e.g., <code>mono*</code> matches mono-exon).
+    </div>
+    
+    <h2>Available Filters</h2>
+    <p>All filters available for this category:</p>
+    
+    <table>
+    <tr><th>Filter</th><th>Type</th><th>Values / Range</th></tr>
+    <tr><td><strong>Transcript length (bp)</strong></td><td>📊 Slider</td><td>Data range: 94 to 5169</td></tr>
+    <tr><td><strong>Number of exons</strong></td><td>📊 Slider</td><td>Data range: 1 to 2</td></tr>
+    <tr><td><strong>Structural Category</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>genic_intron</code> (147)</td></tr>
+    <tr><td><strong>Associated Gene</strong></td><td>🔤 Text</td><td>147 unique values. Use wildcards like <code>*</code></td></tr>
+    <tr><td><strong>Associated Transcript</strong></td><td>🔤 Text</td><td>1 unique values. Use wildcards like <code>*</code></td></tr>
+    <tr><td><strong>Reference transcript length</strong></td><td>📊 Slider</td><td>Data range: nan to nan</td></tr>
+    <tr><td><strong>Reference exon count</strong></td><td>📊 Slider</td><td>Data range: nan to nan</td></tr>
+    <tr><td><strong>Distance to reference TSS</strong></td><td>📊 Slider</td><td>Data range: nan to nan</td></tr>
+    <tr><td><strong>Distance to reference TTS</strong></td><td>📊 Slider</td><td>Data range: nan to nan</td></tr>
+    <tr><td><strong>Distance to gene TSS</strong></td><td>📊 Slider</td><td>Data range: nan to nan</td></tr>
+    <tr><td><strong>Distance to gene TTS</strong></td><td>📊 Slider</td><td>Data range: nan to nan</td></tr>
+    <tr><td><strong>Subcategory</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>mono-exon</code> (145)<br><code>multi-exon</code> (2)</td></tr>
+    <tr><td><strong>RTS Stage</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>False</code> (146)<br><code>True</code> (1)</td></tr>
+    <tr><td><strong>All Canonical Splice Sites</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>non_canonical</code> (2)</td></tr>
+    <tr><td><strong>Minimum sample coverage</strong></td><td>📊 Slider</td><td>Data range: 0 to 0</td></tr>
+    <tr><td><strong>Minimum junction coverage</strong></td><td>📊 Slider</td><td>Data range: 0 to 0</td></tr>
+    <tr><td><strong>Minimum Coverage Position</strong></td><td>🔤 Text</td><td>1 unique values. Use wildcards like <code>*</code></td></tr>
+    <tr><td><strong>Coverage standard deviation</strong></td><td>📊 Slider</td><td>Data range: 0 to 0</td></tr>
+    <tr><td><strong>Full-length read count</strong></td><td>📊 Slider</td><td>Data range: 2 to 37</td></tr>
+    <tr><td><strong>Number of indels</strong></td><td>📊 Slider</td><td>Data range: nan to nan</td></tr>
+    <tr><td><strong>Number of indels at junctions</strong></td><td>📊 Slider</td><td>Data range: nan to nan</td></tr>
+    <tr><td><strong>BITE Status</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>False</code> (2)</td></tr>
+    <tr><td><strong>Isoform expression (TPM)</strong></td><td>📊 Slider</td><td>Data range: 0 to 702</td></tr>
+    <tr><td><strong>Gene expression (TPM)</strong></td><td>📊 Slider</td><td>Data range: 0 to 702</td></tr>
+    <tr><td><strong>Expression ratio (isoform/gene)</strong></td><td>📊 Slider</td><td>Data range: 1 to 1</td></tr>
+    <tr><td><strong>FSM Class</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>A</code> (147)</td></tr>
+    <tr><td><strong>Coding Status</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>non_coding</code> (131)<br><code>coding</code> (16)</td></tr>
+    <tr><td><strong>ORF length (aa)</strong></td><td>📊 Slider</td><td>Data range: 90 to 1061</td></tr>
+    <tr><td><strong>CDS length (bp)</strong></td><td>📊 Slider</td><td>Data range: 270 to 3183</td></tr>
+    <tr><td><strong>CDS start position</strong></td><td>📊 Slider</td><td>Data range: 1 to 3096</td></tr>
+    <tr><td><strong>CDS end position</strong></td><td>📊 Slider</td><td>Data range: 289 to 5169</td></tr>
+    <tr><td><strong>Percent A downstream of TTS</strong></td><td>📊 Slider</td><td>Data range: 10 to 100</td></tr>
+    <tr><td><strong>Distance to CAGE peak</strong></td><td>📊 Slider</td><td>Data range: -9576 to 21</td></tr>
+    <tr><td><strong>Within CAGE Peak</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>False</code> (144)<br><code>True</code> (3)</td></tr>
+    <tr><td><strong>Distance to polyA site</strong></td><td>📊 Slider</td><td>Data range: nan to nan</td></tr>
+    <tr><td><strong>PolyA distance</strong></td><td>📊 Slider</td><td>Data range: -39 to -3</td></tr>
+    <tr><td><strong>PolyA Motif Found</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>False</code> (128)<br><code>True</code> (19)</td></tr>
+    <tr><td><strong>TSS ratio</strong></td><td>📊 Slider</td><td>Data range: 1 to 301</td></tr>
+    <tr><td><strong>Number of exons (from BED)</strong></td><td>📊 Slider</td><td>Range: 0 to 200</td></tr>
+    </table>
 </div>
-
 </body>
 </html>

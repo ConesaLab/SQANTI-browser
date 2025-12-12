@@ -32,7 +32,20 @@ except ImportError:
     generate_html_reports = None
 
 class SQANTI3ToBigBed:
-    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, github_repo=None, github_branch="main", star_sj=None, two_bit_file=None, validate_only=False, dry_run=False):
+    # Valid sort-by options for isoform ordering
+    VALID_SORT_OPTIONS = [
+        'iso_exp',      # Default: isoform expression (highest first)
+        'length',       # Transcript length (longest first)
+        'FL',           # Full-length reads (highest first)
+        'diff_to_TSS',  # Distance to reference TSS
+        'diff_to_TTS',  # Distance to reference TTS
+        'diff_to_gene_TSS',   # Distance to gene TSS
+        'diff_to_gene_TTS',   # Distance to gene TTS
+        'dist_to_CAGE_peak',  # Distance to CAGE peak
+        'dist_to_polyA_site'  # Distance to polyA site
+    ]
+    
+    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, github_repo=None, github_branch="main", star_sj=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='iso_exp', no_category_tracks=False):
         self.gtf_file = gtf_file
         self.classification_file = classification_file
         self.output_dir = Path(output_dir)
@@ -43,11 +56,13 @@ class SQANTI3ToBigBed:
         self.temp_dir = None
         self.star_sj = star_sj
         self.star_bigbed = None
+        self.no_category_tracks = no_category_tracks
         self.two_bit_file = two_bit_file
         self.validate_only = validate_only
         self.dry_run = dry_run
         self.keep_temp = False
         self.category_bigbeds = {}
+        self.sort_by = sort_by
         
         # Create output directory (handles both relative and absolute paths)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -177,7 +192,7 @@ class SQANTI3ToBigBed:
         except Exception as e:
             logger.error(f"Error parsing classification file: {e}")
             return False
-
+    
     def convert_gtf_to_genepred(self):
         """Convert GTF to GenePred format"""
         logger.info("Converting GTF to GenePred format...")
@@ -333,10 +348,11 @@ class SQANTI3ToBigBed:
                 if col in merged.columns:
                      merged[col] = merged[col].fillna('NA')
 
-            # Calculate itemRgb
+            # Calculate itemRgb as packed integer (R*65536 + G*256 + B)
+            # This matches the 'uint itemRgb' definition in the .as schema
             def pack_rgb(r, g, b):
-                return (r << 16) + (g << 8) + b
-
+                return r * 65536 + g * 256 + b
+            
             cat_palette = {
                 "full-splice_match": pack_rgb(107, 174, 214),
                 "incomplete-splice_match": pack_rgb(252, 141, 89),
@@ -383,6 +399,113 @@ class SQANTI3ToBigBed:
             logger.error(traceback.format_exc())
             return None
 
+    def _sort_bed_for_visualization(self, df, sort_by=None):
+        """Sort BED DataFrame for optimal visualization in UCSC Genome Browser.
+        
+        Sorting strategy:
+        1. Primary: chromosome and start position (REQUIRED by bedToBigBed format)
+        2. Secondary: associated_transcript (groups isoforms at same position together)
+        3. Tertiary: sort_by metric (default: iso_exp, highest first)
+        
+        Note: bigBed format requires strict (chrom, chromStart) sorting. Isoforms of
+        the same reference transcript but with different start positions will appear
+        at their respective genomic positions. Within the same start position, isoforms
+        are grouped by reference transcript and sorted by the chosen metric.
+        
+        Args:
+            df: pandas DataFrame with BED columns
+            sort_by: Column to sort by within each reference transcript group.
+                     If None, uses self.sort_by. Options: iso_exp, length, FL,
+                     diff_to_TSS, diff_to_TTS, diff_to_gene_TSS, diff_to_gene_TTS,
+                     dist_to_CAGE_peak, dist_to_polyA_site
+        
+        Returns:
+            Sorted DataFrame
+        """
+        if sort_by is None:
+            sort_by = self.sort_by
+        
+        # Check if required columns exist
+        has_associated_transcript = 'associated_transcript' in df.columns
+        
+        if not has_associated_transcript:
+            logger.warning("Column 'associated_transcript' not found. Isoforms will not be grouped by reference transcript.")
+        
+        # Determine the sort metric column
+        original_sort_by = sort_by
+        fallback_used = False
+        
+        # Check if sort column exists and has valid (non-NA) values
+        if sort_by not in df.columns:
+            logger.warning(f"Sort column '{sort_by}' not found in data.")
+            sort_by = None
+        elif df[sort_by].isna().all() or (df[sort_by].astype(str) == 'NA').all():
+            logger.warning(f"Column '{sort_by}' contains only NA values.")
+            sort_by = None
+        else:
+            # Check for partial NA values
+            na_count = df[sort_by].isna().sum() + (df[sort_by].astype(str) == 'NA').sum()
+            if na_count > 0:
+                logger.warning(f"Column '{sort_by}' has {na_count} NA values out of {len(df)} rows. NA values will be sorted last.")
+        
+        # Fallback logic
+        if sort_by is None and original_sort_by != 'iso_exp':
+            # Try falling back to iso_exp
+            if 'iso_exp' in df.columns:
+                iso_exp_valid = df['iso_exp'].notna() & (df['iso_exp'].astype(str) != 'NA')
+                if iso_exp_valid.any():
+                    logger.warning(f"Falling back to 'iso_exp' for sorting.")
+                    sort_by = 'iso_exp'
+                    fallback_used = True
+        
+        if sort_by is None:
+            logger.warning(f"Cannot sort by '{original_sort_by}' or 'iso_exp'. Using arbitrary order within genomic positions.")
+        
+        # Create a numeric version of the sort column for proper sorting
+        if sort_by:
+            sort_col_numeric = f'_sort_key_{sort_by}'
+            df[sort_col_numeric] = pd.to_numeric(df[sort_by], errors='coerce')
+        
+        # Build sort parameters
+        # bigBed REQUIRES sorting by (chrom, chromStart) - this cannot be changed
+        # Within the same position, we can group by transcript and sort by metric
+        sort_cols = ['chrom', 'chromStart']
+        ascending = [True, True]
+        
+        if has_associated_transcript:
+            sort_cols.append('associated_transcript')
+            ascending.append(True)
+        
+        if sort_by:
+            sort_cols.append(sort_col_numeric)
+            # For distance metrics, smaller (closer) might be better, so ascending
+            # For expression/length/FL, higher is typically better, so descending
+            if sort_by in ['diff_to_TSS', 'diff_to_TTS', 'diff_to_gene_TSS', 'diff_to_gene_TTS', 
+                           'dist_to_CAGE_peak', 'dist_to_polyA_site']:
+                # These are distances - sort ascending (closest first)
+                ascending.append(True)
+            else:
+                # iso_exp, length, FL - higher is better, sort descending
+                ascending.append(False)
+        
+        # Perform the sort
+        df_sorted = df.sort_values(
+            by=sort_cols,
+            ascending=ascending,
+            na_position='last',
+            key=lambda col: col if col.name != 'chrom' else col.astype(str)
+        )
+        
+        # Clean up temporary sort column
+        if sort_by:
+            df_sorted = df_sorted.drop(columns=[sort_col_numeric])
+        
+        sort_info = f"by {sort_by}" if sort_by else "by genomic position only"
+        group_info = "grouped by reference transcript, " if has_associated_transcript else ""
+        logger.info(f"Sorted {len(df_sorted)} transcripts: {group_info}{sort_info}")
+        
+        return df_sorted
+
     def _generate_trix_index(self, enhanced_bed_file, genome_dir):
         """Generate Trix (.ix/.ixx) text index with rich descriptions for fast search
         
@@ -394,7 +517,7 @@ class SQANTI3ToBigBed:
         if not ixixx_path:
             logger.warning("ixIxx not found; skipping Trix index generation")
             return False
-            
+
         logger.info("Generating Trix index...")
         try:
             trix_input = os.path.join(self.temp_dir, 'trix_input.txt')
@@ -488,7 +611,7 @@ class SQANTI3ToBigBed:
                         
                         # Write TAB-separated: ID \t description \t synonyms
                         t_out.write(f"{tid}\t{desc}\t{synonyms}\n")
-            
+
             ix_path = os.path.join(genome_dir, 'trix.ix')
             ixx_path = os.path.join(genome_dir, 'trix.ixx')
             # Use -maxWordLength=64 to handle long prefixed terms like
@@ -589,7 +712,146 @@ class SQANTI3ToBigBed:
         
         return ",".join(rgb)
     
-
+    def _get_category_hex_color(self, structural_category):
+        """Get hex color for structural category"""
+        cat_palette = {
+            "full-splice_match": "#6BAED6",
+            "incomplete-splice_match": "#FC8D59",
+            "novel_in_catalog": "#78C679",
+            "novel_not_in_catalog": "#EE6A50",
+            "genic": "#969696",
+            "antisense": "#66C2A4",
+            "fusion": "#DAA520",
+            "intergenic": "#E9967A",
+            "genic_intron": "#41B6C4"
+        }
+        return cat_palette.get(structural_category.lower().replace(' ', '_'), "#6BAED6")
+    
+    def _generate_filter_options_html(self, category_filter=None):
+        """Generate HTML documentation for filter options in classification file column order.
+        
+        Args:
+            category_filter: Optional structural category to filter by (for category-specific tracks)
+        
+        Returns:
+            HTML string with filter options documentation
+        """
+        if not hasattr(self, 'classification_df'):
+            return "<p>No classification data available.</p>"
+        
+        df = self.classification_df
+        if category_filter:
+            df = df[df['structural_category'] == category_filter]
+        
+        # Filters in classification file column order (matching trackDb.txt order)
+        # Each entry: ('text', col, label) or ('range', col, min, max, label)
+        ordered_filters = [
+            ('range', 'length', 0, 100000, 'Transcript length (bp)'),
+            ('range', 'exons', 0, 200, 'Number of exons'),
+            ('text', 'structural_category', 'Structural Category'),
+            ('text', 'associated_gene', 'Associated Gene'),
+            ('text', 'associated_transcript', 'Associated Transcript'),
+            ('range', 'ref_length', 0, 100000, 'Reference transcript length'),
+            ('range', 'ref_exons', 0, 200, 'Reference exon count'),
+            ('range', 'diff_to_TSS', -100000, 100000, 'Distance to reference TSS'),
+            ('range', 'diff_to_TTS', -100000, 100000, 'Distance to reference TTS'),
+            ('range', 'diff_to_gene_TSS', -100000, 100000, 'Distance to gene TSS'),
+            ('range', 'diff_to_gene_TTS', -100000, 100000, 'Distance to gene TTS'),
+            ('text', 'subcategory', 'Subcategory'),
+            ('text', 'RTS_stage', 'RTS Stage'),
+            ('text', 'all_canonical', 'All Canonical Splice Sites'),
+            ('range', 'min_sample_cov', 0, 10000, 'Minimum sample coverage'),
+            ('range', 'min_cov', 0, 10000, 'Minimum junction coverage'),
+            ('text', 'min_cov_pos', 'Minimum Coverage Position'),
+            ('range', 'sd_cov', 0, 1000, 'Coverage standard deviation'),
+            ('range', 'FL', 0, 100000, 'Full-length read count'),
+            ('range', 'n_indels', 0, 100, 'Number of indels'),
+            ('range', 'n_indels_junc', 0, 100, 'Number of indels at junctions'),
+            ('text', 'bite', 'BITE Status'),
+            ('range', 'iso_exp', 0, 100000, 'Isoform expression (TPM)'),
+            ('range', 'gene_exp', 0, 100000, 'Gene expression (TPM)'),
+            ('range', 'ratio_exp', 0, 1, 'Expression ratio (isoform/gene)'),
+            ('text', 'FSM_class', 'FSM Class'),
+            ('text', 'coding', 'Coding Status'),
+            ('range', 'ORF_length', 0, 50000, 'ORF length (aa)'),
+            ('range', 'CDS_length', 0, 50000, 'CDS length (bp)'),
+            ('range', 'CDS_start', 0, 100000, 'CDS start position'),
+            ('range', 'CDS_end', 0, 100000, 'CDS end position'),
+            ('text', 'predicted_NMD', 'Predicted NMD'),
+            ('range', 'perc_A_downstream_TTS', 0, 100, 'Percent A downstream of TTS'),
+            ('range', 'dist_to_CAGE_peak', -10000, 10000, 'Distance to CAGE peak'),
+            ('text', 'within_CAGE_peak', 'Within CAGE Peak'),
+            ('range', 'dist_to_polyA_site', -10000, 10000, 'Distance to polyA site'),
+            ('range', 'polyA_dist', -1000, 1000, 'PolyA distance'),
+            ('text', 'polyA_motif_found', 'PolyA Motif Found'),
+            ('range', 'ratio_TSS', 0, 10, 'TSS ratio'),
+        ]
+        
+        html_parts = []
+        
+        # Columns that use dropdown menus
+        dropdown_cols = {
+            'structural_category', 'subcategory', 'coding', 'FSM_class', 
+            'all_canonical', 'RTS_stage', 'bite', 'predicted_NMD',
+            'within_CAGE_peak', 'polyA_motif_found'
+        }
+        
+        # Build table with all filters in order
+        html_parts.append('<table>')
+        html_parts.append('<tr><th>Filter</th><th>Type</th><th>Values / Range</th></tr>')
+        
+        for filter_def in ordered_filters:
+            if filter_def[0] == 'text':
+                _, col, label = filter_def
+                if col in df.columns:
+                    if col in ['associated_gene', 'associated_transcript', 'min_cov_pos']:
+                        # These have too many unique values - use text filter
+                        unique_count = df[col].nunique()
+                        html_parts.append(f'<tr><td><strong>{label}</strong></td><td>🔤 Text</td><td>{unique_count} unique values. Use wildcards like <code>*</code></td></tr>')
+                    elif col in dropdown_cols:
+                        # Dropdown filter - show values vertically
+                        value_counts = df[col].value_counts(dropna=False)
+                        unique_vals = []
+                        for val, count in value_counts.items():
+                            if pd.notna(val) and str(val) != 'NA' and str(val) != '':
+                                unique_vals.append(f"<code>{val}</code> ({count})")
+                        
+                        if unique_vals:
+                            # Display vertically with line breaks
+                            display_vals = '<br>'.join(unique_vals)
+                            html_parts.append(f'<tr><td><strong>{label}</strong></td><td>📋 Dropdown</td><td class="filter-values">{display_vals}</td></tr>')
+                    else:
+                        # Text filter with values shown
+                        value_counts = df[col].value_counts(dropna=False)
+                        unique_vals = []
+                        for val, count in value_counts.items():
+                            if pd.notna(val) and str(val) != 'NA' and str(val) != '':
+                                unique_vals.append(f"<code>{val}</code> ({count})")
+                        
+                        if unique_vals:
+                            if len(unique_vals) > 8:
+                                display_vals = ', '.join(unique_vals[:8]) + f', ... ({len(unique_vals)} total)'
+                            else:
+                                display_vals = ', '.join(unique_vals)
+                            html_parts.append(f'<tr><td><strong>{label}</strong></td><td>🔤 Text</td><td class="filter-values">{display_vals}</td></tr>')
+            else:
+                # Range filter
+                _, col, min_val, max_val, label = filter_def
+                if col in df.columns:
+                    # Get actual min/max from data
+                    try:
+                        data_min = df[col].dropna().astype(float).min()
+                        data_max = df[col].dropna().astype(float).max()
+                        html_parts.append(f'<tr><td><strong>{label}</strong></td><td>📊 Slider</td><td>Data range: {data_min:.0f} to {data_max:.0f}</td></tr>')
+                    except (ValueError, TypeError):
+                        html_parts.append(f'<tr><td><strong>{label}</strong></td><td>📊 Slider</td><td>Range: {min_val} to {max_val}</td></tr>')
+        
+        # Add blockCount at the end
+        html_parts.append('<tr><td><strong>Number of exons (from BED)</strong></td><td>📊 Slider</td><td>Range: 0 to 200</td></tr>')
+        
+        html_parts.append('</table>')
+        
+        return '\n    '.join(html_parts)
 
     
     def create_bigbed_file(self, bed_file):
@@ -610,12 +872,21 @@ class SQANTI3ToBigBed:
                 if not chrom_sizes_file:
                     raise Exception("Could not determine chromosome sizes")
 
-            # bed_file is now transcripts_full.bed (unsorted)
+            # Read, sort with visualization logic, and write
+            bed_cols = [
+                'chrom', 'chromStart', 'chromEnd', 'name', 'score', 'strand',
+                'thickStart', 'thickEnd', 'itemRgb', 'blockCount', 
+                'blockSizes', 'chromStarts'
+            ] + self.extra_cols
+            
+            df = pd.read_csv(bed_file, sep='\t', names=bed_cols, dtype={'chrom': 'string'})
+            
+            # Apply visualization-optimized sorting
+            df_sorted = self._sort_bed_for_visualization(df, self.sort_by)
+            
+            # Write sorted BED file
             sorted_bed_file = os.path.join(self.temp_dir, "transcripts_full.sorted.bed")
-            env = os.environ.copy()
-            env["LC_COLLATE"] = "C"
-            sort_cmd = ['sort', '-k1,1', '-k2,2n', bed_file, '-o', sorted_bed_file]
-            subprocess.run(sort_cmd, check=True, capture_output=True, text=True, env=env)
+            df_sorted.to_csv(sorted_bed_file, sep='\t', header=False, index=False, quoting=3)
             logger.info(f"Sorted BED written to: {sorted_bed_file}")
 
             bigbed_file = self.output_dir / f"{self.genome}_sqanti3.bb"
@@ -633,7 +904,7 @@ class SQANTI3ToBigBed:
             result = subprocess.run(cmd, check=True, capture_output=True, text=True)
             logger.info(f"BigBed file created: {bigbed_file}")
             return bigbed_file
-
+            
         except Exception as e:
             logger.error(f"Error creating bigBed file: {e}")
             if 'result' in locals() and hasattr(result, 'stderr'):
@@ -673,20 +944,17 @@ class SQANTI3ToBigBed:
                 cat_str = str(cat)
                 safe_cat_file = cat_str.replace(' ', '_').replace('/', '_')
                 
-                sub_bed = os.path.join(self.temp_dir, f"sqanti3_{safe_cat_file}.bed")
                 sub_sorted = os.path.join(self.temp_dir, f"sqanti3_{safe_cat_file}.sorted.bed")
                 sub_bb = self.output_dir / f"{self.genome}_sqanti3_{safe_cat_file}.bb"
                 
-                # Filter
-                cat_df = df[df['structural_category'] == cat]
+                # Filter by category
+                cat_df = df[df['structural_category'] == cat].copy()
                 
-                # Write
-                cat_df.to_csv(sub_bed, sep='	', header=False, index=False, quoting=3)
+                # Apply visualization-optimized sorting
+                cat_df_sorted = self._sort_bed_for_visualization(cat_df, self.sort_by)
                 
-                # Sort
-                env = os.environ.copy()
-                env["LC_COLLATE"] = "C"
-                subprocess.run(['sort', '-k1,1', '-k2,2n', sub_bed, '-o', sub_sorted], check=True, env=env)
+                # Write sorted BED
+                cat_df_sorted.to_csv(sub_sorted, sep='\t', header=False, index=False, quoting=3)
                 
                 # bedToBigBed - use -tab because fields may contain spaces
                 cmd = ['bedToBigBed', '-tab', f'-as={as_path}', f'-type=bed12+{num_extra}', '-extraIndex=name', sub_sorted, chrom_sizes_file, str(sub_bb)]
@@ -753,6 +1021,9 @@ class SQANTI3ToBigBed:
             gf.write("priority 2\n")
             gf.write("defaultIsClosed 0\n")
 
+        # Build filter options documentation from classification data
+        filter_options_html = self._generate_filter_options_html()
+
         # Create per-track HTML files
         transcripts_html_name = f"{self.genome}_sqanti3_track.html"
         transcripts_html = self.output_dir / transcripts_html_name
@@ -764,32 +1035,51 @@ class SQANTI3ToBigBed:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{self.genome} SQANTI3 Transcripts</title>
     <style>
-        body {{ font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }}
-        h1 {{ color: #333; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.6; margin: 20px; background-color: #f8f9fa; }}
+        .container {{ max-width: 900px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }}
+        h1 {{ color: #333; border-bottom: 2px solid #6BAED6; padding-bottom: 10px; }}
+        h2 {{ color: #495057; margin-top: 25px; }}
+        h3 {{ color: #6c757d; margin-top: 20px; }}
         ul {{ list-style-type: disc; margin-left: 20px; }}
-        code {{ background-color: #f4f4f4; padding: 2px 4px; border-radius: 4px; }}
+        code {{ background-color: #e9ecef; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }}
+        .color-box {{ display: inline-block; width: 16px; height: 16px; margin-right: 8px; vertical-align: middle; border-radius: 3px; }}
+        table {{ border-collapse: collapse; width: 100%; margin: 15px 0; }}
+        th, td {{ border: 1px solid #dee2e6; padding: 10px; text-align: left; }}
+        th {{ background-color: #e9ecef; font-weight: 600; }}
+        .filter-values {{ font-family: monospace; font-size: 0.85em; color: #495057; }}
+        .tip {{ background-color: #d1ecf1; border-left: 4px solid #17a2b8; padding: 10px 15px; margin: 15px 0; border-radius: 0 4px 4px 0; }}
     </style>
 </head>
 <body>
+<div class="container">
     <h1>SQANTI3 Transcripts ({self.genome})</h1>
-    <p>This track displays SQANTI3 transcript models. Colors indicate structural category.</p>
-    <h3>Filtering</h3>
-    <ul>
-        <li>Search by name-encoded tokens (e.g., <code>intergenic</code>, <code>mono-exon</code>, <code>FSM1</code>).</li>
-        <li>Use per-field filters and ranges (length, exons, coverage, expression) available in the track settings.</li>
-    </ul>
-    <h3>Color Legend</h3>
-    <ul>
-        <li>Full-splice match: #6BAED6</li>
-        <li>Incomplete-splice match: #FC8D59</li>
-        <li>Novel in catalog: #78C679</li>
-        <li>Novel not in catalog: #EE6A50</li>
-        <li>Genic: #969696</li>
-        <li>Antisense: #66C2A4</li>
-        <li>Fusion: #DAA520</li>
-        <li>Intergenic: #E9967A</li>
-        <li>Genic intron: #41B6C4</li>
-    </ul>
+    <p>This track displays <strong>{len(self.classification_df)}</strong> SQANTI3 transcript models. Colors indicate structural category.</p>
+    
+    <h2>How to Filter</h2>
+    <div class="tip">
+        <strong>Tip:</strong> Right-click on the track and select "Configure" to access all filters. 
+        Use <code>*</code> as a wildcard in text filters (e.g., <code>FSM*</code> matches FSMA, FSMB, FSMC, FSMD).
+    </div>
+    
+    <h2>Available Filters</h2>
+    <p>All filters available for this track:</p>
+    
+{filter_options_html}
+    
+    <h2>Color Legend</h2>
+    <table>
+        <tr><th>Category</th><th>Color</th></tr>
+        <tr><td><span class="color-box" style="background-color: #6BAED6;"></span>Full-splice match (FSM)</td><td>#6BAED6</td></tr>
+        <tr><td><span class="color-box" style="background-color: #FC8D59;"></span>Incomplete-splice match (ISM)</td><td>#FC8D59</td></tr>
+        <tr><td><span class="color-box" style="background-color: #78C679;"></span>Novel in catalog (NIC)</td><td>#78C679</td></tr>
+        <tr><td><span class="color-box" style="background-color: #EE6A50;"></span>Novel not in catalog (NNC)</td><td>#EE6A50</td></tr>
+        <tr><td><span class="color-box" style="background-color: #969696;"></span>Genic</td><td>#969696</td></tr>
+        <tr><td><span class="color-box" style="background-color: #66C2A4;"></span>Antisense</td><td>#66C2A4</td></tr>
+        <tr><td><span class="color-box" style="background-color: #DAA520;"></span>Fusion</td><td>#DAA520</td></tr>
+        <tr><td><span class="color-box" style="background-color: #E9967A;"></span>Intergenic</td><td>#E9967A</td></tr>
+        <tr><td><span class="color-box" style="background-color: #41B6C4;"></span>Genic intron</td><td>#41B6C4</td></tr>
+    </table>
+</div>
 </body>
 </html>""")
 
@@ -819,7 +1109,7 @@ class SQANTI3ToBigBed:
         
         # Determine number of extra fields
         num_extra = len(self.extra_cols) if hasattr(self, 'extra_cols') else 0
-
+        
         trackdb_file = genome_dir / "trackDb.txt"
         with open(trackdb_file, 'w', newline='\n') as f:
             f.write(f"track {self.genome}_sqanti3\n")
@@ -828,41 +1118,132 @@ class SQANTI3ToBigBed:
             f.write(f"longLabel SQANTI3 Transcriptome Analysis Results\n")
             f.write(f"type bigBed 12 + {num_extra}\n")
             
-            # Add standard filters if columns exist
+            # Add comprehensive filters based on LRGASP hub example
+            # Filters are ordered to match the classification file column order
             def sanitize(col):
                 return col.replace('.', '_').replace(' ', '_').replace('-', '_').replace('/', '_')
             
             existing_fields = set([sanitize(c) for c in self.extra_cols])
             
-            if 'structural_category' in existing_fields: f.write("filter.structural_category on\n")
-            if 'subcategory' in existing_fields: f.write("filter.subcategory on\n")
-            if 'coding' in existing_fields: f.write("filter.coding on\n")
-            if 'FSM_class' in existing_fields: f.write("filter.FSM_class on\n")
+            # Combined filters in classification file column order
+            # Each entry is either:
+            #   ('text', col, label) for categorical/text filters
+            #   ('range', col, min, max, label) for numeric range filters
+            ordered_filters = [
+                # First columns from classification file
+                ('text', 'strand', 'Strand (+ or -)'),
+                ('range', 'length', 0, 100000, 'Transcript length (bp)'),
+                ('range', 'exons', 0, 200, 'Number of exons'),
+                ('text', 'structural_category', 'Structural category (FSM, ISM, NIC, NNC, etc.)'),
+                ('text', 'associated_gene', 'Associated gene'),
+                ('text', 'associated_transcript', 'Associated transcript'),
+                ('range', 'ref_length', 0, 100000, 'Reference transcript length'),
+                ('range', 'ref_exons', 0, 200, 'Reference exon count'),
+                ('range', 'diff_to_TSS', -100000, 100000, 'Distance to reference TSS'),
+                ('range', 'diff_to_TTS', -100000, 100000, 'Distance to reference TTS'),
+                ('range', 'diff_to_gene_TSS', -100000, 100000, 'Distance to gene TSS'),
+                ('range', 'diff_to_gene_TTS', -100000, 100000, 'Distance to gene TTS'),
+                ('text', 'subcategory', 'Subcategory (mono-exon, multi-exon, etc.)'),
+                ('text', 'RTS_stage', 'RTS stage'),
+                ('text', 'all_canonical', 'All canonical splice sites'),
+                ('range', 'min_sample_cov', 0, 10000, 'Minimum sample coverage'),
+                ('range', 'min_cov', 0, 10000, 'Minimum junction coverage'),
+                ('text', 'min_cov_pos', 'Minimum coverage position'),
+                ('range', 'sd_cov', 0, 1000, 'Coverage standard deviation'),
+                ('range', 'FL', 0, 100000, 'Full-length read count'),
+                ('range', 'n_indels', 0, 100, 'Number of indels'),
+                ('range', 'n_indels_junc', 0, 100, 'Number of indels at junctions'),
+                ('text', 'bite', 'BITE status'),
+                ('range', 'iso_exp', 0, 100000, 'Isoform expression (TPM)'),
+                ('range', 'gene_exp', 0, 100000, 'Gene expression (TPM)'),
+                ('range', 'ratio_exp', 0, 1, 'Expression ratio (isoform/gene)'),
+                ('text', 'FSM_class', 'FSM class (A, B, C, D)'),
+                ('text', 'coding', 'Coding status (coding, non_coding)'),
+                ('range', 'ORF_length', 0, 50000, 'ORF length (aa)'),
+                ('range', 'CDS_length', 0, 50000, 'CDS length (bp)'),
+                ('range', 'CDS_start', 0, 100000, 'CDS start position'),
+                ('range', 'CDS_end', 0, 100000, 'CDS end position'),
+                ('text', 'predicted_NMD', 'Predicted NMD'),
+                ('range', 'perc_A_downstream_TTS', 0, 100, 'Percent A downstream of TTS'),
+                ('range', 'dist_to_CAGE_peak', -10000, 10000, 'Distance to CAGE peak'),
+                ('text', 'within_CAGE_peak', 'Within CAGE peak'),
+                ('range', 'dist_to_polyA_site', -10000, 10000, 'Distance to polyA site'),
+                ('range', 'polyA_dist', -1000, 1000, 'PolyA distance'),
+                ('text', 'polyA_motif_found', 'PolyA motif found'),
+                ('range', 'ratio_TSS', 0, 10, 'TSS ratio'),
+            ]
             
-            # Range filters
-            if 'length' in existing_fields: f.write("filterByRange.length 0:50000\n")
-            if 'exons' in existing_fields: f.write("filterByRange.exons 0:100\n")
-            if 'min_cov' in existing_fields: f.write("filterByRange.min_cov 0:1000\n")
-            if 'iso_exp' in existing_fields: f.write("filterByRange.iso_exp 0:1000\n")
+            # Columns that should use dropdown (filterValues) - those with few unique values
+            # Columns with many unique values (gene, transcript) will use text search
+            dropdown_cols = {
+                'structural_category', 'subcategory', 'coding', 'FSM_class', 
+                'all_canonical', 'RTS_stage', 'bite', 'predicted_NMD',
+                'within_CAGE_peak', 'polyA_motif_found'
+            }
+            
+            # Get unique values for dropdown columns from classification data
+            def get_unique_values(col):
+                if col in self.classification_df.columns:
+                    vals = self.classification_df[col].dropna().astype(str).unique()
+                    # Filter out NA/empty and sort
+                    vals = sorted([v for v in vals if v and v != 'NA' and v != 'nan'])
+                    return vals
+                return []
+            
+            # Write filters in order
+            for filter_def in ordered_filters:
+                if filter_def[0] == 'text':
+                    _, col, label = filter_def
+                    if col in existing_fields:
+                        if col in dropdown_cols:
+                            # Use filterValues for dropdown
+                            unique_vals = get_unique_values(col)
+                            if unique_vals:
+                                vals_str = ','.join(unique_vals)
+                                f.write(f"filterValues.{col} {vals_str}\n")
+                                f.write(f"filterLabel.{col} {label}\n")
+                            else:
+                                # Fallback to text filter if no values found
+                                f.write(f"filterText.{col} *\n")
+                                f.write(f"filterType.{col} wildcard\n")
+                                f.write(f"filterLabel.{col} {label}\n")
+                        else:
+                            # Use text filter for columns with many values
+                            f.write(f"filterText.{col} *\n")
+                            f.write(f"filterType.{col} wildcard\n")
+                            f.write(f"filterLabel.{col} {label}\n")
+                else:  # range
+                    _, col, min_val, max_val, label = filter_def
+                    if col in existing_fields:
+                        f.write(f"filter.{col} {min_val}:{max_val}\n")
+                        f.write(f"filterByRange.{col} on\n")
+                        f.write(f"filterLimits.{col} {min_val}:{max_val}\n")
+                        f.write(f"filterLabel.{col} {label}\n")
+            
+            # Block count (exons from BED12) - always available at end
+            f.write(f"filter.blockCount 0:200\n")
+            f.write(f"filterByRange.blockCount on\n")
+            f.write(f"filterLimits.blockCount 0:200\n")
+            f.write(f"filterLabel.blockCount Number of exons (from BED)\n")
+            
+            # Keep references to filter definitions for category tracks
+            categorical_filters = {f[1]: f[2] for f in ordered_filters if f[0] == 'text'}
+            numeric_filters = {f[1]: (f[2], f[3], f[4]) for f in ordered_filters if f[0] == 'range'}
             
             f.write(f"visibility full\n")
             f.write(f"group transcripts\n")
             f.write(f"itemRgb on\n")
-            f.write(f"color 107,174,214\n")
             f.write(f"priority 1\n")
             f.write(f"html {self._get_github_raw_url(transcripts_html_name)}\n")
             
-            # Search Configuration - matching the working October 30 version
-            # searchIndex MUST come before searchTrix and use relative path
+            # Search Configuration
             f.write(f"searchIndex name\n")
-            f.write(f"filterByRange.blockCount 0:100\n")
-            f.write(f"filterLabel.blockCount Number of exons\n")
             
             # Add Trix search index if present (relative path, not URL)
             trix_ix = genome_dir / 'trix.ix'
             if os.path.exists(trix_ix):
                 f.write(f"searchTrix trix.ix\n")
-            
+
             # STAR
             if self.star_bigbed and os.path.exists(self.star_bigbed):
                 f.write("\n")
@@ -883,32 +1264,61 @@ class SQANTI3ToBigBed:
                     safe_cat = cat.replace(' ', '_').replace('/', '_')
                     cat_html_name = f"{self.genome}_sqanti3_{safe_cat}.html"
                     
-                    # Create HTML
-                    script_dir = Path(__file__).parent
-                    template_path = script_dir / 'track_template.html'
-                    if not template_path.exists():
-                        template_path = Path('track_template.html')
+                    # Get count and filter options for this category
+                    if hasattr(self, 'classification_df'):
+                        count = len(self.classification_df[self.classification_df['structural_category'] == cat])
+                        cat_filter_options = self._generate_filter_options_html(category_filter=cat)
+                    else:
+                        count = 0
+                        cat_filter_options = "<p>No classification data available.</p>"
                     
-                    if template_path.exists():
-                        try:
-                            with open(template_path, 'r') as f_template:
-                                html_content = f_template.read()
-
-                            if hasattr(self, 'classification_df'):
-                                count = len(self.classification_df[self.classification_df['structural_category'] == cat])
-                            else:
-                                count = 0
-
-                            html_content = html_content.replace('%%TITLE%%', f"{self.genome} SQANTI3 {cat} Transcripts")
-                            html_content = html_content.replace('%%CATEGORY_NAME%%', cat)
-                            html_content = html_content.replace('%%TRANSCRIPT_COUNT%%', str(count))
-                            html_content = html_content.replace('%%GENOME%%', self.genome)
-
-                            with open(self.output_dir / cat_html_name, 'w') as ch:
-                                ch.write(html_content)
-                        except Exception as e:
-                            logger.error(f"Error creating HTML for category {cat}: {e}")
+                    # Create comprehensive HTML for category track
+                    cat_html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{self.genome} SQANTI3 {cat} Transcripts</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.6; margin: 20px; background-color: #f8f9fa; }}
+        .container {{ max-width: 900px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }}
+        h1 {{ color: #333; border-bottom: 2px solid {self._get_category_hex_color(cat)}; padding-bottom: 10px; }}
+        h2 {{ color: #495057; margin-top: 25px; }}
+        h3 {{ color: #6c757d; margin-top: 20px; }}
+        code {{ background-color: #e9ecef; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }}
+        table {{ border-collapse: collapse; width: 100%; margin: 15px 0; }}
+        th, td {{ border: 1px solid #dee2e6; padding: 10px; text-align: left; }}
+        th {{ background-color: #e9ecef; font-weight: 600; }}
+        .filter-values {{ font-family: monospace; font-size: 0.85em; color: #495057; }}
+        .tip {{ background-color: #d1ecf1; border-left: 4px solid #17a2b8; padding: 10px 15px; margin: 15px 0; border-radius: 0 4px 4px 0; }}
+        .category-badge {{ display: inline-block; background-color: {self._get_category_hex_color(cat)}; color: white; padding: 5px 12px; border-radius: 15px; font-weight: bold; }}
+    </style>
+    </head>
+<body>
+<div class="container">
+    <h1>SQANTI3 Transcripts: <span class="category-badge">{cat}</span></h1>
+    <p>This track contains <strong>{count}</strong> transcripts classified as <strong>{cat}</strong> for the <strong>{self.genome}</strong> genome assembly.</p>
+    
+    <h2>How to Filter</h2>
+    <div class="tip">
+        <strong>Tip:</strong> Right-click on the track and select "Configure" to access all filters. 
+        Use <code>*</code> as a wildcard in text filters (e.g., <code>mono*</code> matches mono-exon).
+    </div>
+    
+    <h2>Available Filters</h2>
+    <p>All filters available for this category:</p>
+    
+    {cat_filter_options}
+</div>
+</body>
+</html>"""
                     
+                    try:
+                        with open(self.output_dir / cat_html_name, 'w') as ch:
+                            ch.write(cat_html_content)
+                    except Exception as e:
+                        logger.error(f"Error creating HTML for category {cat}: {e}")
+
                     f.write("\n")
                     track_name = f"{self.genome}_sqanti3_{safe_cat}"
                     short = f"SQANTI3 {cat}"
@@ -923,17 +1333,48 @@ class SQANTI3ToBigBed:
                     f.write(f"priority 3\n")
                     f.write(f"html {self._get_github_raw_url(cat_html_name)}\n")
                     
-                    # Add same filters
-                    if 'subcategory' in existing_fields: f.write("filter.subcategory on\n")
-                    if 'coding' in existing_fields: f.write("filter.coding on\n")
-                    if 'FSM_class' in existing_fields: f.write("filter.FSM_class on\n")
-                    if 'length' in existing_fields: f.write("filterByRange.length 0:50000\n")
-                    if 'exons' in existing_fields: f.write("filterByRange.exons 0:100\n")
-                    if 'min_cov' in existing_fields: f.write("filterByRange.min_cov 0:1000\n")
-                    if 'iso_exp' in existing_fields: f.write("filterByRange.iso_exp 0:1000\n")
-                    f.write(f"filterByRange.blockCount 0:100\n")
-                    f.write(f"filterLabel.blockCount Number of exons\n")
-
+                    # Add comprehensive filters (same order as main track)
+                    # Get unique values for this category's data
+                    cat_df = self.classification_df[self.classification_df['structural_category'] == cat]
+                    
+                    def get_cat_unique_values(col):
+                        if col in cat_df.columns:
+                            vals = cat_df[col].dropna().astype(str).unique()
+                            vals = sorted([v for v in vals if v and v != 'NA' and v != 'nan'])
+                            return vals
+                        return []
+                    
+                    for filter_def in ordered_filters:
+                        if filter_def[0] == 'text':
+                            _, col, label = filter_def
+                            if col in existing_fields:
+                                if col in dropdown_cols:
+                                    unique_vals = get_cat_unique_values(col)
+                                    if unique_vals:
+                                        vals_str = ','.join(unique_vals)
+                                        f.write(f"filterValues.{col} {vals_str}\n")
+                                        f.write(f"filterLabel.{col} {label}\n")
+                                    else:
+                                        f.write(f"filterText.{col} *\n")
+                                        f.write(f"filterType.{col} wildcard\n")
+                                        f.write(f"filterLabel.{col} {label}\n")
+                                else:
+                                    f.write(f"filterText.{col} *\n")
+                                    f.write(f"filterType.{col} wildcard\n")
+                                    f.write(f"filterLabel.{col} {label}\n")
+                        else:  # range
+                            _, col, min_val, max_val, label = filter_def
+                            if col in existing_fields:
+                                f.write(f"filter.{col} {min_val}:{max_val}\n")
+                                f.write(f"filterByRange.{col} on\n")
+                                f.write(f"filterLimits.{col} {min_val}:{max_val}\n")
+                                f.write(f"filterLabel.{col} {label}\n")
+                    
+                    f.write(f"filter.blockCount 0:200\n")
+                    f.write(f"filterByRange.blockCount on\n")
+                    f.write(f"filterLimits.blockCount 0:200\n")
+                    f.write(f"filterLabel.blockCount Number of exons (from BED)\n")
+        
         # README creation (same as before)
         readme_file = self.output_dir / "README.md"
         with open(readme_file, 'w') as f_md:
@@ -984,7 +1425,7 @@ You can filter transcripts by:
 - **Intergenic:** #E9967A (Salmon)
 - **Genic Intron:** #41B6C4 (Cyan)
 """)
-        
+
         logger.info("Hub files created successfully")
         return True
     def run(self):
@@ -1019,17 +1460,20 @@ You can filter transcripts by:
                 return True
 
             # Generate Trix index (after name encoding) if ixIxx is available
-            genome_dir = self.output_dir / self.genome
-            genome_dir.mkdir(exist_ok=True)
-            self._generate_trix_index(bed_file, genome_dir)
+                genome_dir = self.output_dir / self.genome
+                genome_dir.mkdir(exist_ok=True)
+                self._generate_trix_index(bed_file, genome_dir)
 
             # Create bigBed file
             bigbed_file = self.create_bigbed_file(bed_file)
             if not bigbed_file:
                 return False
             
-            # Create category-specific tracks
-            self.create_category_bigbeds(bed_file)
+            # Create category-specific tracks (unless disabled)
+            if not self.no_category_tracks:
+                self.create_category_bigbeds(bed_file)
+            else:
+                logger.info("Skipping category-specific tracks (--no-category-tracks flag set)")
             
             # Optionally create STAR junctions track
             if self.star_sj:
@@ -1074,6 +1518,18 @@ def main():
     parser.add_argument('--dry-run', action='store_true', help='Prepare intermediates (BED with classification) and exit before bigBed/hub generation')
     parser.add_argument('--keep-temp', action='store_true', help='Keep temporary files for debugging')
     parser.add_argument('--tables', action='store_true', help='Generate interactive HTML table reports for each category')
+    parser.add_argument('--sort-by', 
+                        choices=['iso_exp', 'length', 'FL', 'diff_to_TSS', 'diff_to_TTS', 
+                                 'diff_to_gene_TSS', 'diff_to_gene_TTS', 'dist_to_CAGE_peak', 
+                                 'dist_to_polyA_site'],
+                        default='iso_exp',
+                        help='Sort isoforms within each reference transcript by this metric. '
+                             'Default: iso_exp (highest expression first). Options: length (longest first), '
+                             'FL (most full-length reads first), diff_to_TSS, diff_to_TTS, '
+                             'diff_to_gene_TSS, diff_to_gene_TTS, dist_to_CAGE_peak, dist_to_polyA_site '
+                             '(smallest distance first for distance metrics)')
+    parser.add_argument('--no-category-tracks', action='store_true',
+                        help='Only generate the main SQANTI3 track without separate tracks for each structural category')
     
     args = parser.parse_args()
     
@@ -1098,7 +1554,9 @@ def main():
         star_sj=args.star_sj,
         two_bit_file=args.twobit,
         validate_only=args.validate_only,
-        dry_run=args.dry_run
+        dry_run=args.dry_run,
+        sort_by=args.sort_by,
+        no_category_tracks=args.no_category_tracks
     )
     converter.keep_temp = args.keep_temp
     success = converter.run()
