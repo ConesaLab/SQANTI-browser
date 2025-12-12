@@ -940,6 +940,22 @@ class SQANTI3ToBigBed:
             f_md.write(f"""# {hub_name}
 
 This hub displays SQANTI3 transcriptome analysis results for the {self.genome} genome assembly.
+This hub visualizes data from the SQANTI3 classification analysis for the {hub_name} sample.
+
+## 🚀 Usage Instructions
+
+To use this hub in the UCSC Genome Browser:
+
+1. Upload all files in this directory to a web-accessible location (e.g., GitHub).
+2. In the UCSC Genome Browser, go to **My Data → Track Hubs**.
+3. Enter the URL to your `hub.txt` file.
+4. Select the appropriate genome assembly ({self.genome}).
+5. The SQANTI3 tracks will appear in your track list.
+
+**Important:** The `hub.txt` file includes a placeholder or GitHub-specific email address. If you need to use a different email:
+- Edit the `hub.txt` file.
+- Change the `email` line to your preferred email address.
+- Re-upload the updated file.
 
 ## 🔍 Advanced Filtering
 
@@ -967,27 +983,6 @@ You can filter transcripts by:
 - **Fusion:** #DAA520 (Gold)
 - **Intergenic:** #E9967A (Salmon)
 - **Genic Intron:** #41B6C4 (Cyan)
-
-## 📊 Classification Data
-
-This hub visualizes data from the SQANTI3 classification analysis.
-
-## 🚀 Usage Instructions
-
-To use this hub in the UCSC Genome Browser:
-
-1. Upload all files in this directory to a web-accessible location (e.g., GitHub).
-2. In the UCSC Genome Browser, go to **My Data → Track Hubs**.
-3. Enter the URL to your `hub.txt` file.
-4. Select the appropriate genome assembly ({self.genome}).
-5. The SQANTI3 tracks will appear in your track list.
-
-## 📧 Contact Information
-
-**Note:** The `hub.txt` file includes a placeholder or GitHub-specific email address. If you need to use a different email:
-- Edit the `hub.txt` file.
-- Change the `email` line to your preferred email address.
-- Re-upload the updated file.
 """)
         
         logger.info("Hub files created successfully")
