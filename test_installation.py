@@ -14,7 +14,7 @@ def test_ucsc_tools():
     """Test if UCSC tools are available"""
     print("Testing UCSC tools...")
     
-    required_tools = ['gtfToGenePred', 'genePredToBed', 'bedToBigBed']
+    required_tools = ['gtfToGenePred', 'genePredToBed', 'bedToBigBed', 'ixIxx']
     missing_tools = []
     
     for tool in required_tools:
@@ -116,6 +116,15 @@ def test_ucsc_tool_functionality():
             print("  ✗ bedToBigBed help command failed")
             return False
         
+        # Test ixIxx help
+        result = subprocess.run(['ixIxx'], 
+                              capture_output=True, text=True, timeout=10)
+        if "usage:" in result.stdout.lower() or "usage:" in result.stderr.lower() or "ixixx" in result.stderr.lower():
+            print("  ✓ ixIxx responds to help command")
+        else:
+            print("  ✗ ixIxx help command failed")
+            return False
+        
         return True
         
     except subprocess.TimeoutExpired:
@@ -151,9 +160,7 @@ def main():
         print("🎉 All tests passed! Your system is ready for SQANTI3 to UCSC integration.")
         print("\nYou can now run:")
         print("  python sqanti3_to_UCSC.py --help")
-        # Optional tools
-        if shutil.which('ixIxx') is None:
-            print("\nNote: Optional Trix index tool 'ixIxx' not found. If you plan to use --enable-trix,\nplease install UCSC 'ixIxx' or ensure it's in your PATH.")
+        print("\nAll required tools including 'ixIxx' for Trix search are available.")
     else:
         print("❌ Some tests failed. Please fix the issues above before proceeding.")
         print("\nCommon solutions:")
