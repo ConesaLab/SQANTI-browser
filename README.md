@@ -1,14 +1,27 @@
 # SQANTI-browser
 
-Convert SQANTI3 transcriptome analysis outputs into UCSC Genome Browser track hubs for interactive visualization.
+SQANTI-browser is a tool that converts SQANTI3 transcriptome analysis outputs into UCSC Genome Browser track hubs for interactive visualization.
 
 ## Features
 
 - 🎨 **Color-coded transcripts** by structural category
 - 🔍 **Advanced filtering** with dropdowns and range sliders
 - 📊 **Per-category tracks** for easy exploration
-- 🔎 **Trix search** for finding isoforms by any attribute
+- 🔎 **Trix search** for finding isoforms using keywords for any attribute
 - 📋 **Interactive HTML tables** with export capabilities
+
+## Documentation
+
+📖 **[See the Wiki](../../wiki)** for detailed documentation:
+
+- [Installation Guide](../../wiki/Installation)
+- [Usage Examples](../../wiki/Usage-Examples)
+- [Filtering in UCSC](../../wiki/Filtering-in-UCSC)
+- [Trix Search Syntax](../../wiki/Trix-Search)
+- [Isoform Ordering](../../wiki/Isoform-Ordering)
+- [Command Line Reference](../../wiki/Command-Line-Reference)
+- [Output File Formats](../../wiki/Output-Files)
+- [Troubleshooting](../../wiki/Troubleshooting)
 
 ## Quick Start
 
@@ -63,19 +76,6 @@ python sqanti3_to_UCSC.py \
 | Intergenic | Salmon | <span style="color:#E9967A">#E9967A</span> |
 | Genic intron | Cyan | <span style="color:#41B6C4">#41B6C4</span> |
 
-## Documentation
-
-📖 **[See the Wiki](../../wiki)** for detailed documentation:
-
-- [Installation Guide](../../wiki/Installation)
-- [Usage Examples](../../wiki/Usage-Examples)
-- [Filtering in UCSC](../../wiki/Filtering-in-UCSC)
-- [Trix Search Syntax](../../wiki/Trix-Search)
-- [Isoform Ordering](../../wiki/Isoform-Ordering)
-- [Command Line Reference](../../wiki/Command-Line-Reference)
-- [Output File Formats](../../wiki/Output-Files)
-- [Troubleshooting](../../wiki/Troubleshooting)
-
 ## License
 
 GNU General Public License v3.0 - see [LICENSE](LICENSE)
@@ -83,5 +83,6 @@ GNU General Public License v3.0 - see [LICENSE](LICENSE)
 ## Citation
 
 If you use this tool, please cite:
-- [SQANTI3](https://github.com/ConesaLab/SQANTI3)
-- [UCSC Genome Browser](https://genome.ucsc.edu/)
+- https://github.com/conesalab/SQANTI-browser
+- Pardo-Palacios, F.J., Arzalluz-Luque, A. et al. **SQANTI3: curation of long-read transcriptomes for accurate identification of known and novel isoforms**. *Nat Methods* (2024). https://doi.org/10.1038/s41592-024-02229-2
+- Perez, G. et al. **The UCSC Genome Browser database: 2025 update**. *Nucleic Acids Res* (2025). https://doi.org/10.1093/nar/gkae974
