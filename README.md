@@ -50,8 +50,8 @@ python sqanti3_to_UCSC.py \
 ### 3. Upload to UCSC
 
 1. Upload the output directory to a web server (e.g., GitHub)
-2. Go to [UCSC Genome Browser](https://genome.ucsc.edu/) → **My Data** → **Track Hubs**
-3. Enter the URL to your `hub.txt` file
+2. Go to [UCSC Genome Browser](https://genome.ucsc.edu/) → **My Data** → **Track Hubs** → **Connected Hubs**
+3. Enter the URL to your publicly available `hub.txt` file into the URL window
 4. Click **Add Hub**
 
 ## Common Options
