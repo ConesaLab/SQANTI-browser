@@ -439,31 +439,24 @@ class SQANTI3ToBigBed:
         fallback_used = False
         
         # Check if sort column exists and has valid (non-NA) values
-        if sort_by not in df.columns:
-            logger.warning(f"Sort column '{sort_by}' not found in data.")
-            sort_by = None
-        elif df[sort_by].isna().all() or (df[sort_by].astype(str) == 'NA').all():
-            logger.warning(f"Column '{sort_by}' contains only NA values.")
-            sort_by = None
-        else:
-            # Check for partial NA values
-            na_count = df[sort_by].isna().sum() + (df[sort_by].astype(str) == 'NA').sum()
-            if na_count > 0:
-                logger.warning(f"Column '{sort_by}' has {na_count} NA values out of {len(df)} rows. NA values will be sorted last.")
+        if sort_by is not None:
+            if sort_by not in df.columns:
+                logger.warning(f"Sort column '{sort_by}' not found in data.")
+                sort_by = None
+            elif df[sort_by].isna().all() or (df[sort_by].astype(str) == 'NA').all():
+                logger.warning(f"Column '{sort_by}' contains only NA values.")
+                sort_by = None
+            else:
+                # Check for partial NA values
+                na_count = df[sort_by].isna().sum() + (df[sort_by].astype(str) == 'NA').sum()
+                if na_count > 0:
+                    logger.warning(f"Column '{sort_by}' has {na_count} NA values out of {len(df)} rows. NA values will be sorted last.")
         
-        # Fallback logic
-        if sort_by is None and original_sort_by != 'iso_exp':
-            # Try falling back to iso_exp
-            if 'iso_exp' in df.columns:
-                iso_exp_valid = df['iso_exp'].notna() & (df['iso_exp'].astype(str) != 'NA')
-                if iso_exp_valid.any():
-                    logger.warning(f"Falling back to 'iso_exp' for sorting.")
-                    sort_by = 'iso_exp'
-                    fallback_used = True
-        
-        if sort_by is None:
-            logger.warning(f"Cannot sort by '{original_sort_by}' or 'iso_exp'. Using arbitrary order within genomic positions.")
-        
+        # Fallback logic - only if user requested a specific sort that failed
+        if sort_by is None and original_sort_by is not None and original_sort_by != 'none':
+            # We don't try to fallback to iso_exp anymore, we just fallback to no sorting
+            logger.warning(f"Could not sort by '{original_sort_by}'. Falling back to genomic position order.")
+
         # Create a numeric version of the sort column for proper sorting
         if sort_by:
             sort_col_numeric = f'_sort_key_{sort_by}'
