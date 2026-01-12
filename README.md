@@ -60,7 +60,7 @@ python sqanti3_to_UCSC.py \
 |--------|-------------|
 | `--tables` | Generate interactive HTML tables for each category |
 | `--github-repo user/repo` | Auto-generate GitHub raw URLs |
-| `--sort-by iso_exp` | Sort isoforms by expression (or `length`, `FL`, etc.) |
+| `--sort-by none` | Sort isoforms by expression (default: `none`). Options: `length`, `FL`, `iso_exp` etc. |
 | `--no-category-tracks` | Only generate the main track |
 | `--star-sj SJ.out.tab` | Include STAR splice junctions track |
 

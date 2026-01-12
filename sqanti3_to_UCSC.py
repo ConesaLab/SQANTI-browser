@@ -425,6 +425,9 @@ class SQANTI3ToBigBed:
         if sort_by is None:
             sort_by = self.sort_by
         
+        if sort_by == 'none':
+            sort_by = None
+        
         # Check if required columns exist
         has_associated_transcript = 'associated_transcript' in df.columns
         
@@ -1521,11 +1524,11 @@ def main():
     parser.add_argument('--sort-by', 
                         choices=['iso_exp', 'length', 'FL', 'diff_to_TSS', 'diff_to_TTS', 
                                  'diff_to_gene_TSS', 'diff_to_gene_TTS', 'dist_to_CAGE_peak', 
-                                 'dist_to_polyA_site'],
-                        default='iso_exp',
+                                 'dist_to_polyA_site', 'none'],
+                        default='none',
                         help='Sort isoforms within each reference transcript by this metric. '
-                             'Default: iso_exp (highest expression first). Options: length (longest first), '
-                             'FL (most full-length reads first), diff_to_TSS, diff_to_TTS, '
+                             'Default: none (sort by genomic position only). Options: iso_exp (highest expression first), '
+                             'length (longest first), FL (most full-length reads first), diff_to_TSS, diff_to_TTS, '
                              'diff_to_gene_TSS, diff_to_gene_TTS, dist_to_CAGE_peak, dist_to_polyA_site '
                              '(smallest distance first for distance metrics)')
     parser.add_argument('--no-category-tracks', action='store_true',
