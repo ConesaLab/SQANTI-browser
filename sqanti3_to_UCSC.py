@@ -1460,9 +1460,9 @@ You can filter transcripts using dropdown menus and range sliders:
                 return True
 
             # Generate Trix index (after name encoding) if ixIxx is available
-                genome_dir = self.output_dir / self.genome
-                genome_dir.mkdir(exist_ok=True)
-                self._generate_trix_index(bed_file, genome_dir)
+            genome_dir = self.output_dir / self.genome
+            genome_dir.mkdir(exist_ok=True)
+            self._generate_trix_index(bed_file, genome_dir)
 
             # Create bigBed file
             bigbed_file = self.create_bigbed_file(bed_file)
