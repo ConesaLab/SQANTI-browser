@@ -6,7 +6,7 @@ This script converts SQANTI3 output files (*_corrected.gtf and *_classification.
 to bigBed format for visualization in the UCSC Genome Browser with hub functionality.
 
 Usage:
-    python sqanti3_to_UCSC.py --gtf <gtf_file> --classification <classification_file> --output <output_dir> --genome <genome> [--github-repo username/repository]
+    python sqanti3_to_UCSC.py --gtf <gtf_file> --classification <classification_file> --output <output_dir> --genome <genome>
 
 Author: Carolina Monzo
 """
@@ -45,14 +45,12 @@ class SQANTI3ToBigBed:
         'dist_to_polyA_site'  # Distance to polyA site
     ]
     
-    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, github_repo=None, github_branch="main", star_sj=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='iso_exp', no_category_tracks=False):
+    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='iso_exp', no_category_tracks=False):
         self.gtf_file = gtf_file
         self.classification_file = classification_file
         self.output_dir = Path(output_dir)
         self.genome = genome
         self.chrom_sizes_file = chrom_sizes_file
-        self.github_repo = github_repo
-        self.github_branch = github_branch
         self.temp_dir = None
         self.star_sj = star_sj
         self.star_bigbed = None
@@ -659,7 +657,7 @@ class SQANTI3ToBigBed:
             env["LC_COLLATE"] = "C"
             subprocess.run(['sort', '-k1,1', '-k2,2n', bed_file, '-o', sorted_bed], check=True, env=env)
             
-            bb_file = self.output_dir / f"{self.genome}_star_sj.bb"
+            bb_file = self.output_dir / self.genome / f"{self.genome}_star_sj.bb"
             subprocess.run(['bedToBigBed', sorted_bed, chrom_sizes, str(bb_file)], check=True)
             logger.info(f"STAR bigBed created: {bb_file}")
             return bb_file
@@ -667,20 +665,12 @@ class SQANTI3ToBigBed:
             logger.error(f"Error converting STAR SJ: {e}")
             return None
 
-    def _get_github_raw_url(self, filename, subdir=None):
-        """Generate a raw GitHub URL for a file."""
-        if self.github_repo:
-            base_url = f"https://raw.githubusercontent.com/{self.github_repo}/{self.github_branch}"
-            if subdir:
-                return f"{base_url}/{subdir}/{filename}"
-            else:
-                return f"{base_url}/{filename}"
+    def _get_relative_path(self, filename, subdir=None):
+        """Generate a relative path for a file in the hub structure."""
+        if subdir:
+            return f"{subdir}/{filename}"
         else:
-            # Fallback to relative paths if no GitHub repo is provided
-            if subdir:
-                return f"{subdir}/{filename}"
-            else:
-                return filename
+            return filename
     
     def _get_rgb_color(self, structural_category):
         """Get RGB color for structural category - using original hex colors from color_bed.py"""
@@ -885,7 +875,7 @@ class SQANTI3ToBigBed:
             df_sorted.to_csv(sorted_bed_file, sep='\t', header=False, index=False, quoting=3)
             logger.info(f"Sorted BED written to: {sorted_bed_file}")
 
-            bigbed_file = self.output_dir / f"{self.genome}_sqanti3.bb"
+            bigbed_file = self.output_dir / self.genome / f"{self.genome}_sqanti3.bb"
             
             # Write dynamic autoSql schema file
             as_path = os.path.join(self.temp_dir, 'sqanti3_schema.as')
@@ -941,7 +931,7 @@ class SQANTI3ToBigBed:
                 safe_cat_file = cat_str.replace(' ', '_').replace('/', '_')
                 
                 sub_sorted = os.path.join(self.temp_dir, f"sqanti3_{safe_cat_file}.sorted.bed")
-                sub_bb = self.output_dir / f"{self.genome}_sqanti3_{safe_cat_file}.bb"
+                sub_bb = self.output_dir / self.genome / f"{self.genome}_sqanti3_{safe_cat_file}.bb"
                 
                 # Filter by category
                 cat_df = df[df['structural_category'] == cat].copy()
@@ -987,19 +977,16 @@ class SQANTI3ToBigBed:
             f.write(f"hub {hub_name}\n")
             f.write(f"shortLabel {hub_name}\n")
             f.write(f"longLabel SQANTI3 Transcriptome Analysis for {self.genome}\n")
-            f.write(f"genomesFile {self._get_github_raw_url('genomes.txt')}\n")
-            if self.github_repo:
-                f.write(f"email {self.github_repo.split('/')[0]}@users.noreply.github.com\n")
-            else:
-                f.write(f"email sqanti3_user@users.noreply.github.com\n")
-            f.write(f"descriptionUrl {self._get_github_raw_url('README.md')}\n")
+            f.write(f"genomesFile {self._get_relative_path('genomes.txt')}\n")
+            f.write(f"email sqanti3_user@users.noreply.github.com\n")
+            f.write(f"descriptionUrl {self._get_relative_path('README.md')}\n")
         
         # Create genomes.txt
         genomes_file = self.output_dir / "genomes.txt"
         with open(genomes_file, 'w', newline='\n') as f:
             f.write(f"genome {self.genome}\n")
-            f.write(f"trackDb {self._get_github_raw_url('trackDb.txt', subdir=self.genome)}\n")
-            f.write(f"groups {self._get_github_raw_url('groups.txt', subdir=self.genome)}\n")
+            f.write(f"trackDb {self._get_relative_path('trackDb.txt', subdir=self.genome)}\n")
+            f.write(f"groups {self._get_relative_path('groups.txt', subdir=self.genome)}\n")
         
         # Create genome-specific directory and trackDb.txt
         genome_dir = self.output_dir / self.genome
@@ -1022,7 +1009,7 @@ class SQANTI3ToBigBed:
 
         # Create per-track HTML files
         transcripts_html_name = f"{self.genome}_sqanti3_track.html"
-        transcripts_html = self.output_dir / transcripts_html_name
+        transcripts_html = self.output_dir / self.genome / transcripts_html_name
         with open(transcripts_html, 'w') as tf:
             tf.write(f"""<!DOCTYPE html>
 <html lang="en">
@@ -1082,7 +1069,7 @@ class SQANTI3ToBigBed:
         star_html_name = None
         if self.star_bigbed and os.path.exists(self.star_bigbed):
             star_html_name = f"{self.genome}_star_sj_track.html"
-            star_html = self.output_dir / star_html_name
+            star_html = self.output_dir / self.genome / star_html_name
             with open(star_html, 'w') as sh:
                 sh.write(f"""<!DOCTYPE html>
 <html lang="en">
@@ -1109,7 +1096,8 @@ class SQANTI3ToBigBed:
         trackdb_file = genome_dir / "trackDb.txt"
         with open(trackdb_file, 'w', newline='\n') as f:
             f.write(f"track {self.genome}_sqanti3\n")
-            f.write(f"bigDataUrl {self._get_github_raw_url(f'{self.genome}_sqanti3.bb')}\n")
+            # Files are in the same directory as trackDb.txt
+            f.write(f"bigDataUrl {self._get_relative_path(f'{self.genome}_sqanti3.bb')}\n")
             f.write(f"shortLabel SQANTI3 Transcripts\n")
             f.write(f"longLabel SQANTI3 Transcriptome Analysis Results\n")
             f.write(f"type bigBed 12 + {num_extra}\n")
@@ -1230,7 +1218,7 @@ class SQANTI3ToBigBed:
             f.write(f"group transcripts\n")
             f.write(f"itemRgb on\n")
             f.write(f"priority 1\n")
-            f.write(f"html {self._get_github_raw_url(transcripts_html_name)}\n")
+            f.write(f"html {self._get_relative_path(transcripts_html_name)}\n")
             
             # Search Configuration
             f.write(f"searchIndex name\n")
@@ -1244,7 +1232,9 @@ class SQANTI3ToBigBed:
             if self.star_bigbed and os.path.exists(self.star_bigbed):
                 f.write("\n")
                 f.write(f"track {self.genome}_star_sj\n")
-                f.write(f"bigDataUrl {self._get_github_raw_url(self.star_bigbed.name)}\n")
+                # self.star_bigbed is an absolute Path object, we need just the filename
+                star_bb_name = os.path.basename(self.star_bigbed)
+                f.write(f"bigDataUrl {self._get_relative_path(star_bb_name)}\n")
                 f.write(f"shortLabel STAR Junctions\n")
                 f.write(f"longLabel STAR splice junctions (SJ.out.tab)\n")
                 f.write(f"type bigBed 6\n")
@@ -1252,7 +1242,7 @@ class SQANTI3ToBigBed:
                 f.write(f"group junctions\n")
                 f.write(f"priority 2\n")
                 if star_html_name:
-                    f.write(f"html {self._get_github_raw_url(star_html_name)}\n")
+                    f.write(f"html {self._get_relative_path(star_html_name)}\n")
 
             # Category tracks
             if hasattr(self, 'category_bigbeds') and self.category_bigbeds:
@@ -1310,7 +1300,7 @@ class SQANTI3ToBigBed:
 </html>"""
                     
                     try:
-                        with open(self.output_dir / cat_html_name, 'w') as ch:
+                        with open(self.output_dir / self.genome / cat_html_name, 'w') as ch:
                             ch.write(cat_html_content)
                     except Exception as e:
                         logger.error(f"Error creating HTML for category {cat}: {e}")
@@ -1319,7 +1309,9 @@ class SQANTI3ToBigBed:
                     track_name = f"{self.genome}_sqanti3_{safe_cat}"
                     short = f"SQANTI3 {cat}"
                     f.write(f"track {track_name}\n")
-                    f.write(f"bigDataUrl {self._get_github_raw_url(bb_filename)}\n")
+                    # bb_filename is an absolute Path object or string, we need just the filename
+                    bb_name = os.path.basename(bb_filename)
+                    f.write(f"bigDataUrl {self._get_relative_path(bb_name)}\n")
                     f.write(f"shortLabel {short}\n")
                     f.write(f"longLabel SQANTI3 {cat} transcripts\n")
                     f.write(f"type bigBed 12 + {num_extra}\n")
@@ -1327,7 +1319,7 @@ class SQANTI3ToBigBed:
                     f.write(f"group transcripts\n")
                     f.write(f"itemRgb on\n")
                     f.write(f"priority 3\n")
-                    f.write(f"html {self._get_github_raw_url(cat_html_name)}\n")
+                    f.write(f"html {self._get_relative_path(cat_html_name)}\n")
                     
                     # Add comprehensive filters (same order as main track)
                     # Get unique values for this category's data
@@ -1507,8 +1499,6 @@ def main():
     parser.add_argument('--genome', required=True, help='Genome assembly name (e.g., hg38, mm10)')
     parser.add_argument('--chrom-sizes', help='Optional: Path to chromosome sizes file')
     parser.add_argument('--twobit', help='Optional: Genome .2bit file to compute chrom.sizes via twoBitInfo')
-    parser.add_argument('--github-repo', help='GitHub repository (format: username/repository) for raw URLs')
-    parser.add_argument('--github-branch', default='main', help='GitHub branch (default: main)')
     parser.add_argument('--star-sj', help='Optional: STAR SJ.out.tab to convert into a splice junction track')
     parser.add_argument('--validate-only', action='store_true', help='Validate tools and inputs only, then exit')
     parser.add_argument('--dry-run', action='store_true', help='Prepare intermediates (BED with classification) and exit before bigBed/hub generation')
@@ -1545,8 +1535,6 @@ def main():
         args.output,
         args.genome,
         args.chrom_sizes,
-        args.github_repo,
-        args.github_branch,
         star_sj=args.star_sj,
         two_bit_file=args.twobit,
         validate_only=args.validate_only,
