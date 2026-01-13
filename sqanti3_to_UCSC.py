@@ -987,6 +987,67 @@ class SQANTI3ToBigBed:
             f.write(f"genome {self.genome}\n")
             f.write(f"trackDb {self._get_relative_path('trackDb.txt', subdir=self.genome)}\n")
             f.write(f"groups {self._get_relative_path('groups.txt', subdir=self.genome)}\n")
+            
+            # If using 2bit file, add required fields for user-defined genome
+            if self.two_bit_file:
+                # Copy 2bit file to genome directory
+                genome_2bit_name = f"{self.genome}.2bit"
+                shutil.copy(self.two_bit_file, self.output_dir / self.genome / genome_2bit_name)
+                
+                f.write(f"twoBitPath {self._get_relative_path(genome_2bit_name, subdir=self.genome)}\n")
+                f.write(f"organism user-defined\n")
+                f.write(f"description user-defined\n")
+                f.write(f"scientificName user-defined\n")
+                f.write(f"orderKey 4800\n")
+                
+                # Create HTML description for 2bit genome
+                genome_html_name = f"{self.genome}_description.html"
+                with open(self.output_dir / self.genome / genome_html_name, 'w') as gf:
+                    gf.write(f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{self.genome} Description</title>
+    <style>
+        body {{ font-family: sans-serif; margin: 20px; }}
+        h1 {{ color: #006699; }}
+        .info-box {{ background: #f0f0f0; padding: 15px; border-radius: 5px; }}
+    </style>
+</head>
+<body>
+    <h1>User-Defined Genome: {self.genome}</h1>
+    <div class="info-box">
+        <p><strong>Organism:</strong> User-defined</p>
+        <p><strong>Description:</strong> Custom reference genome provided via 2bit file.</p>
+        <p><strong>Source File:</strong> {os.path.basename(self.two_bit_file)}</p>
+    </div>
+    <h2>Chromosomes</h2>
+    <ul>""")
+                    # Add chromosome list from chrom.sizes
+                    try:
+                        with open(os.path.join(self.temp_dir, 'chrom.sizes'), 'r') as cf:
+                            for line in cf:
+                                parts = line.strip().split('\t')
+                                if len(parts) >= 2:
+                                    gf.write(f"<li><strong>{parts[0]}:</strong> {parts[1]} bp</li>\n")
+                    except Exception:
+                        gf.write("<li>Could not read chromosome sizes.</li>")
+                    
+                    gf.write("""    </ul>
+</body>
+</html>""")
+                
+                f.write(f"htmlPath {self._get_relative_path(genome_html_name, subdir=self.genome)}\n")
+                
+                # Get default position from chrom.sizes (first chromosome)
+                try:
+                    with open(os.path.join(self.temp_dir, 'chrom.sizes'), 'r') as cf:
+                        first_line = cf.readline().strip()
+                        if first_line:
+                            chrom = first_line.split('\t')[0]
+                            f.write(f"defaultPos {chrom}:1-5000\n")
+                except Exception as e:
+                    logger.warning(f"Could not determine default position for genomes.txt: {e}")
         
         # Create genome-specific directory and trackDb.txt
         genome_dir = self.output_dir / self.genome

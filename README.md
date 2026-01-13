@@ -18,6 +18,7 @@ SQANTI-browser is a tool that converts SQANTI3 transcriptome analysis outputs in
 
 - [Installation Guide](../../wiki/Installation)
 - [Usage Examples](../../wiki/Usage-Examples)
+- [Working with Custom Genomes](../../wiki/custom_genomes.md) (2bit files)
 - [Filtering in UCSC](../../wiki/Filtering-in-UCSC)
 - [Trix Search Syntax](../../wiki/Trix-Search)
 - [Isoform Ordering](../../wiki/Isoform-Ordering)

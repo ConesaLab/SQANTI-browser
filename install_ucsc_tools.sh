@@ -38,7 +38,7 @@ else
 fi
 
 # Required tools
-TOOLS=("gtfToGenePred" "genePredToBed" "bedToBigBed" "hubCheck" "bigBedInfo" "ixIxx")
+TOOLS=("gtfToGenePred" "genePredToBed" "bedToBigBed" "hubCheck" "bigBedInfo" "ixIxx" "twoBitInfo")
 
 # Create installation directory
 INSTALL_DIR="/usr/local/bin"
