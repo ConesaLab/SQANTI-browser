@@ -27,7 +27,12 @@ jobs:
           sudo rm -rf /opt/hostedtoolcache/CodeQL
           sudo docker image prune --all --force
 
-      - name: Test installation
+      - name: Test python
         shell: bash -l {0}
         run: |
-          python3 test_installation.py
+          pip install -r requirements.txt
+
+      - name: Test UCSC
+        shell: bash -l {0}
+        run: |
+          bash install_ucsc_tools.sh
