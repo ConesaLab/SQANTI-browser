@@ -45,7 +45,7 @@ class SQANTI3ToBigBed:
         'dist_to_polyA_site'  # Distance to polyA site
     ]
     
-    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='iso_exp', no_category_tracks=False):
+    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='iso_exp', no_category_tracks=False):
         self.gtf_file = gtf_file
         self.classification_file = classification_file
         self.output_dir = Path(output_dir)
@@ -53,7 +53,11 @@ class SQANTI3ToBigBed:
         self.chrom_sizes_file = chrom_sizes_file
         self.temp_dir = None
         self.star_sj = star_sj
+        self.cage_peaks = cage_peaks
+        self.polya_peaks = polya_peaks
         self.star_bigbed = None
+        self.cage_bigbed = None
+        self.polya_bigbed = None
         self.no_category_tracks = no_category_tracks
         self.two_bit_file = two_bit_file
         self.validate_only = validate_only
@@ -665,6 +669,234 @@ class SQANTI3ToBigBed:
             logger.error(f"Error converting STAR SJ: {e}")
             return None
 
+    def _create_cage_bigbed(self, cage_file):
+        """Convert CAGE peaks BED to bigBed"""
+        logger.info("Converting CAGE peaks to bigBed...")
+        try:
+            if self.chrom_sizes_file:
+                chrom_sizes = self.chrom_sizes_file
+            elif self.two_bit_file:
+                chrom_sizes = self.extract_chrom_sizes_from_twobit()
+            else:
+                chrom_sizes = self.extract_chrom_sizes()
+
+            if not chrom_sizes:
+                 return None
+
+            # Input BED format: chr, start, end, name, score, strand, ...
+            # We want to create a standard BED6 or BED9+ file
+            # The example file has 9 columns: chr, start, end, name, score, strand, thickStart, thickEnd, itemRgb
+            
+            # Create a sorted BED file
+            bed_file = os.path.join(self.temp_dir, "cage_peaks.bed")
+            
+            # Read valid chromosomes and their sizes from chrom.sizes
+            valid_chroms = {}
+            with open(chrom_sizes, 'r') as f:
+                for line in f:
+                    parts = line.strip().split('\t')
+                    if len(parts) >= 2:
+                        valid_chroms[parts[0]] = int(parts[1])
+            
+            # Filter and sort the input file
+            # We assume the input is already in a valid BED format (BED3+)
+            # We sort by chrom, start
+            env = os.environ.copy()
+            env["LC_COLLATE"] = "C"
+            
+            # Filter cage_file to only include chromosomes in valid_chroms AND within bounds
+            filtered_bed = os.path.join(self.temp_dir, "cage_peaks_filtered.bed")
+            filtered_count = 0
+            total_count = 0
+            skipped_bounds = 0
+            
+            with open(cage_file, 'r') as infile, open(filtered_bed, 'w') as outfile:
+                for line in infile:
+                    total_count += 1
+                    parts = line.split('\t')
+                    if parts and len(parts) >= 3 and parts[0] in valid_chroms:
+                        try:
+                            # Check bounds: end position must be <= chrom size
+                            # BED end is 0-based exclusive, chrom size is 1-based length
+                            # So end coordinate can be at most chrom_size
+                            chrom = parts[0]
+                            end_pos = int(parts[2])
+                            
+                            if end_pos <= valid_chroms[chrom]:
+                                outfile.write(line)
+                                filtered_count += 1
+                            else:
+                                skipped_bounds += 1
+                        except ValueError:
+                            # Skip lines with non-integer coordinates
+                            continue
+            
+            if filtered_count == 0:
+                logger.warning(f"No CAGE peaks kept after filtering. Total: {total_count}. Skipped out of bounds: {skipped_bounds}")
+                return None
+            
+            if filtered_count < total_count:
+                logger.warning(f"Filtered CAGE peaks to match genome: {filtered_count}/{total_count} peaks kept. ({skipped_bounds} out of bounds, {total_count - filtered_count - skipped_bounds} on unknown chromosomes)")
+
+            # Read first line to determine number of columns to set bigBed type
+            num_cols = 0
+            with open(filtered_bed, 'r') as f:
+                line = f.readline()
+                if line:
+                    num_cols = len(line.strip().split('\t'))
+            
+            if num_cols < 3:
+                logger.error("CAGE file must have at least 3 columns")
+                return None
+                
+            sorted_bed = os.path.join(self.temp_dir, "cage_peaks.sorted.bed")
+            subprocess.run(['sort', '-k1,1', '-k2,2n', filtered_bed, '-o', sorted_bed], check=True, env=env)
+            
+            bb_file = self.output_dir / self.genome / f"{self.genome}_cage_peaks.bb"
+            
+            # Determine type argument (e.g., bed9)
+            # Default to bed6 if uncertain, but example suggests bed9
+            # bedToBigBed will fail if type doesn't match column count
+            type_arg = f"bed{min(num_cols, 12)}"
+            
+            # Special handling for bed9: columns 7-9 are thickStart, thickEnd, itemRgb
+            # If the file has 9 columns, bedToBigBed expects them to be thickStart, thickEnd, itemRgb
+            if num_cols == 9:
+                type_arg = "bed9"
+            elif num_cols > 9:
+                # If > 9 cols, we specify bed9+N
+                type_arg = f"bed9+{num_cols-9}"
+            
+            # If using AutoSQL, we could be more specific, but for now we rely on standard BED types
+            
+            # For the specific example file: human.refTSS_v3.1.hg38.bed
+            # It has 9 columns. UCSC bedToBigBed needs correct type.
+            # If it has 9 cols, we use bed9
+            
+            subprocess.run(['bedToBigBed', f'-type={type_arg}', '-tab', sorted_bed, chrom_sizes, str(bb_file)], check=True)
+            logger.info(f"CAGE bigBed created: {bb_file}")
+            return bb_file
+        except Exception as e:
+            logger.error(f"Error converting CAGE peaks: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    def _create_polya_bigbed(self, polya_file):
+        """Convert PolyA peaks BED to bigBed"""
+        logger.info("Converting PolyA peaks to bigBed...")
+        try:
+            if self.chrom_sizes_file:
+                chrom_sizes = self.chrom_sizes_file
+            elif self.two_bit_file:
+                chrom_sizes = self.extract_chrom_sizes_from_twobit()
+            else:
+                chrom_sizes = self.extract_chrom_sizes()
+
+            if not chrom_sizes:
+                 return None
+            
+            # Create a sorted BED file
+            # Read valid chromosomes and their sizes from chrom.sizes
+            valid_chroms = {}
+            with open(chrom_sizes, 'r') as f:
+                for line in f:
+                    parts = line.strip().split('\t')
+                    if len(parts) >= 2:
+                        valid_chroms[parts[0]] = int(parts[1])
+            
+            # Filter and sort the input file
+            # We assume the input is already in a valid BED format (BED3+)
+            # We sort by chrom, start
+            env = os.environ.copy()
+            env["LC_COLLATE"] = "C"
+            
+            # Filter polya_file to only include chromosomes in valid_chroms AND within bounds
+            filtered_bed = os.path.join(self.temp_dir, "polya_peaks_filtered.bed")
+            filtered_count = 0
+            total_count = 0
+            skipped_bounds = 0
+            
+            with open(polya_file, 'r') as infile, open(filtered_bed, 'w') as outfile:
+                for line in infile:
+                    total_count += 1
+                    parts = line.split('\t')
+                    if parts and len(parts) >= 3 and parts[0] in valid_chroms:
+                        try:
+                            # Check bounds: end position must be <= chrom size
+                            # BED end is 0-based exclusive, chrom size is 1-based length
+                            # So end coordinate can be at most chrom_size
+                            chrom = parts[0]
+                            end_pos = int(parts[2])
+                            
+                            if end_pos <= valid_chroms[chrom]:
+                                outfile.write(line)
+                                filtered_count += 1
+                            else:
+                                skipped_bounds += 1
+                        except ValueError:
+                            # Skip lines with non-integer coordinates
+                            continue
+            
+            if filtered_count == 0:
+                logger.warning(f"No PolyA peaks kept after filtering. Total: {total_count}. Skipped out of bounds: {skipped_bounds}")
+                return None
+            
+            if filtered_count < total_count:
+                logger.warning(f"Filtered PolyA peaks to match genome: {filtered_count}/{total_count} peaks kept. ({skipped_bounds} out of bounds, {total_count - filtered_count - skipped_bounds} on unknown chromosomes)")
+
+            # PolyA peaks often have float scores in column 5, but BED format requires integers (0-1000)
+            # Convert the score column to integers
+            corrected_bed = os.path.join(self.temp_dir, "polya_peaks_corrected.bed")
+            with open(filtered_bed, 'r') as infile, open(corrected_bed, 'w') as outfile:
+                for line in infile:
+                    parts = line.rstrip('\n').split('\t')
+                    if len(parts) >= 5:
+                        try:
+                            # Convert float score to integer (0-1000 range)
+                            # Option 1: multiply by 1000 and cap at 1000
+                            score_float = float(parts[4])
+                            score_int = min(int(score_float * 1000), 1000)
+                            parts[4] = str(score_int)
+                        except ValueError:
+                            # If conversion fails, set to 0
+                            parts[4] = '0'
+                    outfile.write('\t'.join(parts) + '\n')
+
+            # Read first line to determine number of columns to set bigBed type
+            num_cols = 0
+            with open(corrected_bed, 'r') as f:
+                line = f.readline()
+                if line:
+                    num_cols = len(line.strip().split('\t'))
+            
+            if num_cols < 3:
+                logger.error("PolyA file must have at least 3 columns")
+                return None
+                
+            sorted_bed = os.path.join(self.temp_dir, "polya_peaks.sorted.bed")
+            subprocess.run(['sort', '-k1,1', '-k2,2n', corrected_bed, '-o', sorted_bed], check=True, env=env)
+            
+            bb_file = self.output_dir / self.genome / f"{self.genome}_polya_peaks.bb"
+            
+            # PolyA peaks file format is actually BED6+ with extra fields, not true BED9
+            # Columns: chrom, start, end, name, score, strand, [extra fields...]
+            # Use bed6+N instead of bed9+N
+            if num_cols <= 6:
+                type_arg = f"bed{num_cols}"
+            else:
+                # BED6 + extra fields
+                type_arg = f"bed6+{num_cols-6}"
+            
+            subprocess.run(['bedToBigBed', f'-type={type_arg}', '-tab', sorted_bed, chrom_sizes, str(bb_file)], check=True)
+            logger.info(f"PolyA bigBed created: {bb_file}")
+            return bb_file
+        except Exception as e:
+            logger.error(f"Error converting PolyA peaks: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
     def _get_relative_path(self, filename, subdir=None):
         """Generate a relative path for a file in the hub structure."""
         if subdir:
@@ -1060,8 +1292,8 @@ class SQANTI3ToBigBed:
             gf.write("label Transcripts\n")
             gf.write("priority 1\n")
             gf.write("defaultIsClosed 0\n\n")
-            gf.write("name junctions\n")
-            gf.write("label Splice Junctions\n")
+            gf.write("name validation\n")
+            gf.write("label Validation Data\n")
             gf.write("priority 2\n")
             gf.write("defaultIsClosed 0\n")
 
@@ -1148,6 +1380,52 @@ class SQANTI3ToBigBed:
     <p>Junctions converted from STAR <code>SJ.out.tab</code> (bed6/bigBed).</p>
     <p>Strand and score reflect STAR output; junction name is sequential.</p>
     <p>Sort and range navigation recommended for large regions.</p>
+</body>
+</html>""")
+
+        cage_html_name = None
+        if self.cage_bigbed and os.path.exists(self.cage_bigbed):
+            cage_html_name = f"{self.genome}_cage_peaks_track.html"
+            cage_html = self.output_dir / self.genome / cage_html_name
+            with open(cage_html, 'w') as ch:
+                ch.write(f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{self.genome} CAGE Peaks</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }}
+        h1 {{ color: #333; }}
+    </style>
+</head>
+<body>
+    <h1>CAGE Peaks ({self.genome})</h1>
+    <p>Cap Analysis of Gene Expression (CAGE) peaks, representing transcription start sites (TSS).</p>
+    <p>These peaks are used to validate the 5' ends of transcripts.</p>
+</body>
+</html>""")
+
+        polya_html_name = None
+        if self.polya_bigbed and os.path.exists(self.polya_bigbed):
+            polya_html_name = f"{self.genome}_polya_peaks_track.html"
+            polya_html = self.output_dir / self.genome / polya_html_name
+            with open(polya_html, 'w') as ph:
+                ph.write(f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{self.genome} PolyA Peaks</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }}
+        h1 {{ color: #333; }}
+    </style>
+</head>
+<body>
+    <h1>PolyA Peaks ({self.genome})</h1>
+    <p>PolyA site peaks, representing transcription termination sites (TTS).</p>
+    <p>These peaks are used to validate the 3' ends of transcripts.</p>
 </body>
 </html>""")
         
@@ -1300,10 +1578,45 @@ class SQANTI3ToBigBed:
                 f.write(f"longLabel STAR splice junctions (SJ.out.tab)\n")
                 f.write(f"type bigBed 6\n")
                 f.write(f"visibility full\n")
-                f.write(f"group junctions\n")
+                f.write(f"group validation\n")
                 f.write(f"priority 2\n")
                 if star_html_name:
                     f.write(f"html {self._get_relative_path(star_html_name)}\n")
+
+            # CAGE
+            if self.cage_bigbed and os.path.exists(self.cage_bigbed):
+                f.write("\n")
+                f.write(f"track {self.genome}_cage_peaks\n")
+                cage_bb_name = os.path.basename(self.cage_bigbed)
+                f.write(f"bigDataUrl {self._get_relative_path(cage_bb_name)}\n")
+                f.write(f"shortLabel CAGE Peaks\n")
+                f.write(f"longLabel CAGE Peaks (TSS Validation)\n")
+                # Use bed9 if colors are present, otherwise bed6 or whatever was detected
+                # The file type isn't strictly checked by hubCheck here but bedToBigBed cares
+                # Ideally we pass the type determined during creation, but for now we'll assume standard
+                f.write(f"type bigBed\n") 
+                f.write(f"visibility dense\n")
+                f.write(f"group validation\n")
+                f.write(f"priority 3\n")
+                f.write(f"color 0,128,0\n") # Green color for CAGE peaks
+                if cage_html_name:
+                    f.write(f"html {self._get_relative_path(cage_html_name)}\n")
+
+            # PolyA
+            if self.polya_bigbed and os.path.exists(self.polya_bigbed):
+                f.write("\n")
+                f.write(f"track {self.genome}_polya_peaks\n")
+                polya_bb_name = os.path.basename(self.polya_bigbed)
+                f.write(f"bigDataUrl {self._get_relative_path(polya_bb_name)}\n")
+                f.write(f"shortLabel PolyA Peaks\n")
+                f.write(f"longLabel PolyA Site Peaks (TTS Validation)\n")
+                f.write(f"type bigBed\n") 
+                f.write(f"visibility dense\n")
+                f.write(f"group validation\n")
+                f.write(f"priority 4\n")
+                f.write(f"color 200,0,0\n") # Dark red for PolyA peaks
+                if polya_html_name:
+                    f.write(f"html {self._get_relative_path(polya_html_name)}\n")
 
             # Category tracks
             if hasattr(self, 'category_bigbeds') and self.category_bigbeds:
@@ -1528,6 +1841,14 @@ You can filter transcripts using dropdown menus and range sliders:
             if self.star_sj:
                 self.star_bigbed = self._create_star_sj_bigbed(self.star_sj)
             
+            # Optionally create CAGE peaks track
+            if self.cage_peaks:
+                self.cage_bigbed = self._create_cage_bigbed(self.cage_peaks)
+            
+            # Optionally create PolyA peaks track
+            if self.polya_peaks:
+                self.polya_bigbed = self._create_polya_bigbed(self.polya_peaks)
+            
             if not self.create_hub_files(bigbed_file):
                 return False
             
@@ -1561,6 +1882,8 @@ def main():
     parser.add_argument('--chrom-sizes', help='Optional: Path to chromosome sizes file')
     parser.add_argument('--twobit', help='Optional: Genome .2bit file to compute chrom.sizes via twoBitInfo')
     parser.add_argument('--star-sj', help='Optional: STAR SJ.out.tab to convert into a splice junction track')
+    parser.add_argument('--CAGE_peak', dest='cage_peak', help='Optional: CAGE peaks BED file for TSS validation track')
+    parser.add_argument('--polyA_peak', dest='polya_peak', help='Optional: PolyA peaks BED file for TTS validation track')
     parser.add_argument('--validate-only', action='store_true', help='Validate tools and inputs only, then exit')
     parser.add_argument('--dry-run', action='store_true', help='Prepare intermediates (BED with classification) and exit before bigBed/hub generation')
     parser.add_argument('--keep-temp', action='store_true', help='Keep temporary files for debugging')
@@ -1597,6 +1920,8 @@ def main():
         args.genome,
         args.chrom_sizes,
         star_sj=args.star_sj,
+        cage_peaks=args.cage_peak,
+        polya_peaks=args.polya_peak,
         two_bit_file=args.twobit,
         validate_only=args.validate_only,
         dry_run=args.dry_run,
