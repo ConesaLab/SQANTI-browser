@@ -17,16 +17,37 @@ SQANTI-browser is a tool that converts SQANTI3 transcriptome analysis outputs in
 
 📖 **[See the Wiki](../../wiki)** for detailed documentation:
 
+**Quick Start:**
+- 🚀 **[Quick Reference](../../wiki/Quick-Reference)** - One-page cheat sheet
+- ❓ **[FAQ](../../wiki/FAQ)** - Common questions answered
 - [Installation Guide](../../wiki/Installation)
 - [Usage Examples](../../wiki/Usage-Examples)
+- [GitHub Hosting Guide](../../wiki/GitHub-Hosting) - Upload your hub
+
+**Advanced Features:**
 - [Working with Custom Genomes](../../wiki/Custom-Genomes) (2bit files)
 - [SQANTI-reads Integration](../../wiki/SQANTI-reads-Integration) - Multi-sample experiments
 - [Filtering in UCSC](../../wiki/Filtering-in-UCSC)
 - [Trix Search Syntax](../../wiki/Trix-Search)
 - [Isoform Ordering](../../wiki/Isoform-Ordering)
+
+**Reference:**
 - [Command Line Reference](../../wiki/Command-Line-Reference)
 - [Output File Formats](../../wiki/Output-Files)
+- [Glossary](../../wiki/Glossary)
 - [Troubleshooting](../../wiki/Troubleshooting)
+
+## 📺 Video Tutorial
+
+Coming soon!
+
+## 🔄 Workflow
+
+```
+SQANTI3 Output → SQANTI-browser → Track Hub → GitHub → UCSC Browser
+     ↓                 ↓              ↓          ↓          ↓
+  GTF+Class       Processing      Hub files   Upload    Visualize
+```
 
 ## Quick Start
 
@@ -89,9 +110,18 @@ python sqanti3_to_UCSC.py \
 
 GNU General Public License v3.0 - see [LICENSE](LICENSE)
 
+## Performance
+
+| Dataset Size | Time | Memory |
+|--------------|------|--------|
+| ~1K transcripts | 1-2 min | 500MB |
+| ~10K transcripts | 5-10 min | 1GB |
+| ~100K transcripts | 30-60 min | 4GB |
+
 ## Citation
 
 If you use this tool, please cite:
 - https://github.com/conesalab/SQANTI-browser
 - Pardo-Palacios, F.J., Arzalluz-Luque, A. et al. **SQANTI3: curation of long-read transcriptomes for accurate identification of known and novel isoforms**. *Nat Methods* (2024). https://doi.org/10.1038/s41592-024-02229-2
+- Keil N, Monzó C, McIntyre L, Conesa A (2025). **Quality assessment of long read data in multisample lrRNA-seq experiments with SQANTI-reads**. *Genome Res*, 35(4), 987. https://doi.org/10.1101/gr.280021.124
 - Perez, G. et al. **The UCSC Genome Browser database: 2025 update**. *Nucleic Acids Res* (2025). https://doi.org/10.1093/nar/gkae974
