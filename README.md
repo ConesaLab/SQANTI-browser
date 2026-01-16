@@ -2,8 +2,6 @@
 
 SQANTI-browser is a tool that converts SQANTI3 transcriptome analysis outputs into UCSC Genome Browser track hubs for interactive visualization.
 
-**⚠️WARNING:** SQANTI-browser is currently under beta testing.
-
 ## Features
 
 - 🎨 **Color-coded transcripts** by structural category
@@ -36,17 +34,12 @@ SQANTI-browser is a tool that converts SQANTI3 transcriptome analysis outputs in
 - [Output File Formats](../../wiki/Output-Files)
 - [Glossary](../../wiki/Glossary)
 - [Troubleshooting](../../wiki/Troubleshooting)
-
-## 📺 Video Tutorial
-
-Coming soon!
+- 
 
 ## 🔄 Workflow
 
 ```
-SQANTI3 Output → SQANTI-browser → Track Hub → GitHub → UCSC Browser
-     ↓                 ↓              ↓          ↓          ↓
-  GTF+Class       Processing      Hub files   Upload    Visualize
+SQANTI3 Output → SQANTI-browser → web-access → UCSC Browser
 ```
 
 ## Quick Start
@@ -122,6 +115,9 @@ GNU General Public License v3.0 - see [LICENSE](LICENSE)
 
 If you use this tool, please cite:
 - https://github.com/conesalab/SQANTI-browser
-- Pardo-Palacios, F.J., Arzalluz-Luque, A. et al. **SQANTI3: curation of long-read transcriptomes for accurate identification of known and novel isoforms**. *Nat Methods* (2024). https://doi.org/10.1038/s41592-024-02229-2
-- Keil N, Monzó C, McIntyre L, Conesa A (2025). **Quality assessment of long read data in multisample lrRNA-seq experiments with SQANTI-reads**. *Genome Res*, 35(4), 987. https://doi.org/10.1101/gr.280021.124
 - Perez, G. et al. **The UCSC Genome Browser database: 2025 update**. *Nucleic Acids Res* (2025). https://doi.org/10.1093/nar/gkae974
+- Pardo-Palacios, F.J., Arzalluz-Luque, A. et al. **SQANTI3: curation of long-read transcriptomes for accurate identification of known and novel isoforms**. *Nat Methods* (2024). https://doi.org/10.1038/s41592-024-02229-2
+
+If you used SQANTI-reads for multi-sample visualization, please cite:
+- Keil N, Monzó C, McIntyre L, Conesa A (2025). **Quality assessment of long read data in multisample lrRNA-seq experiments with SQANTI-reads**. *Genome Res*, 35(4), 987. https://doi.org/10.1101/gr.280021.124
+
