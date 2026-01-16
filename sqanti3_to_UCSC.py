@@ -1323,7 +1323,7 @@ class SQANTI3ToBigBed:
                 f.write(f"orderKey 4800\n")
                 
                 # Create HTML description for 2bit genome
-                genome_html_name = f"{self.genome}_description.html"
+                genome_html_name = f"{self.genome}_genome.html"
                 with open(self.output_dir / self.genome / genome_html_name, 'w') as gf:
                     gf.write(f"""<!DOCTYPE html>
 <html lang="en">
