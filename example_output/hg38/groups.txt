@@ -3,7 +3,7 @@ label Transcripts
 priority 1
 defaultIsClosed 0
 
-name junctions
-label Splice Junctions
+name validation
+label Validation Data
 priority 2
 defaultIsClosed 0

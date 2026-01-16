@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 wiki/
+decorators_research/
+example/SQANTI3_QC_output/chr22.human.refTSS_v3.1.hg38.bed
+example/SQANTI3_QC_output/gencode.v38.basic_chr22.gtf
+example/SQANTI3_QC_output/human.refTSS_v3.1.hg38.bed
+example/SQANTI3_QC_output/polyApeaks.atlas.GRCh38.bed
 
 # C extensions
 *.so
