@@ -65,6 +65,7 @@ python sqanti3_to_UCSC.py \
 | `--star-sj SJ.out.tab` | Include STAR splice junctions track |
 | `--CAGE_peak` | Include CAGE peaks for TSS validation (requires BED file) |
 | `--polyA_peak` | Include polyA peaks for TTS validation (requires BED file) |
+| `--refGTF` | Include reference annotation for direct comparison (requires GTF file) |
 
 > 💡 **Tip:** For information on where to obtain and how to format CAGE and polyA peak files, see the [SQANTI3 wiki](https://github.com/ConesaLab/SQANTI3/wiki/Running-SQANTI3-Quality-Control#incorporating-cage-peak-data---cage_peak). See also our [Command Line Reference](../../wiki/Command-Line-Reference#validation-tracks) for details.
 

@@ -45,7 +45,7 @@ class SQANTI3ToBigBed:
         'dist_to_polyA_site'  # Distance to polyA site
     ]
     
-    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='iso_exp', no_category_tracks=False):
+    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, ref_gtf=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='iso_exp', no_category_tracks=False):
         self.gtf_file = gtf_file
         self.classification_file = classification_file
         self.output_dir = Path(output_dir)
@@ -55,9 +55,11 @@ class SQANTI3ToBigBed:
         self.star_sj = star_sj
         self.cage_peaks = cage_peaks
         self.polya_peaks = polya_peaks
+        self.ref_gtf = ref_gtf
         self.star_bigbed = None
         self.cage_bigbed = None
         self.polya_bigbed = None
+        self.ref_bigbed = None
         self.no_category_tracks = no_category_tracks
         self.two_bit_file = two_bit_file
         self.validate_only = validate_only
@@ -897,6 +899,94 @@ class SQANTI3ToBigBed:
             logger.error(traceback.format_exc())
             return None
 
+    def _create_reference_bigbed(self, ref_gtf_file):
+        """Convert reference GTF to bigBed for direct comparison"""
+        logger.info("Converting reference GTF to bigBed...")
+        try:
+            # Get chromosome sizes
+            if self.chrom_sizes_file:
+                chrom_sizes = self.chrom_sizes_file
+            elif self.two_bit_file:
+                chrom_sizes = self.extract_chrom_sizes_from_twobit()
+            else:
+                chrom_sizes = self.extract_chrom_sizes()
+
+            if not chrom_sizes:
+                return None
+
+            # Convert GTF to GenePred
+            ref_genepred = os.path.join(self.temp_dir, "reference.genepred")
+            logger.info("Converting reference GTF to GenePred...")
+            subprocess.run(['gtfToGenePred', ref_gtf_file, ref_genepred], check=True)
+            
+            # Convert GenePred to BED12
+            ref_bed = os.path.join(self.temp_dir, "reference.bed")
+            logger.info("Converting reference GenePred to BED...")
+            subprocess.run(['genePredToBed', ref_genepred, ref_bed], check=True)
+            
+            # Read valid chromosomes and their sizes from chrom.sizes
+            valid_chroms = {}
+            with open(chrom_sizes, 'r') as f:
+                for line in f:
+                    parts = line.strip().split('\t')
+                    if len(parts) >= 2:
+                        valid_chroms[parts[0]] = int(parts[1])
+            
+            # Filter BED to only include transcripts within valid chromosome bounds
+            filtered_bed = os.path.join(self.temp_dir, "reference_filtered.bed")
+            filtered_count = 0
+            total_count = 0
+            skipped_bounds = 0
+            skipped_chroms = 0
+            
+            with open(ref_bed, 'r') as infile, open(filtered_bed, 'w') as outfile:
+                for line in infile:
+                    total_count += 1
+                    parts = line.split('\t')
+                    if parts and len(parts) >= 3:
+                        try:
+                            chrom = parts[0]
+                            start_pos = int(parts[1])
+                            end_pos = int(parts[2])
+                            
+                            if chrom not in valid_chroms:
+                                skipped_chroms += 1
+                                continue
+                            
+                            # Check if both start and end are within bounds
+                            if end_pos <= valid_chroms[chrom] and start_pos >= 0:
+                                outfile.write(line)
+                                filtered_count += 1
+                            else:
+                                skipped_bounds += 1
+                        except (ValueError, IndexError):
+                            continue
+            
+            if filtered_count == 0:
+                logger.warning(f"No reference transcripts kept after filtering. Total: {total_count}. Skipped: {skipped_bounds} out of bounds, {skipped_chroms} on unknown chromosomes")
+                return None
+            
+            if filtered_count < total_count:
+                logger.warning(f"Filtered reference transcripts to match genome: {filtered_count}/{total_count} transcripts kept. ({skipped_bounds} out of bounds, {skipped_chroms} on unknown chromosomes)")
+            
+            # Sort the BED file
+            env = os.environ.copy()
+            env["LC_COLLATE"] = "C"
+            ref_sorted_bed = os.path.join(self.temp_dir, "reference.sorted.bed")
+            subprocess.run(['sort', '-k1,1', '-k2,2n', filtered_bed, '-o', ref_sorted_bed], check=True, env=env)
+            
+            # Convert to bigBed
+            bb_file = self.output_dir / self.genome / f"{self.genome}_reference.bb"
+            subprocess.run(['bedToBigBed', '-type=bed12', '-tab', ref_sorted_bed, chrom_sizes, str(bb_file)], check=True)
+            
+            logger.info(f"Reference bigBed created: {bb_file}")
+            return bb_file
+        except Exception as e:
+            logger.error(f"Error converting reference GTF: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
     def _get_relative_path(self, filename, subdir=None):
         """Generate a relative path for a file in the hub structure."""
         if subdir:
@@ -1428,6 +1518,30 @@ class SQANTI3ToBigBed:
     <p>These peaks are used to validate the 3' ends of transcripts.</p>
 </body>
 </html>""")
+
+        ref_html_name = None
+        if self.ref_bigbed and os.path.exists(self.ref_bigbed):
+            ref_html_name = f"{self.genome}_reference_track.html"
+            ref_html = self.output_dir / self.genome / ref_html_name
+            with open(ref_html, 'w') as rh:
+                rh.write(f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{self.genome} Reference Annotation</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }}
+        h1 {{ color: #333; }}
+    </style>
+</head>
+<body>
+    <h1>Reference Annotation ({self.genome})</h1>
+    <p>Reference genome annotation used for SQANTI3 analysis.</p>
+    <p>This track displays the reference transcripts for direct comparison with SQANTI3-annotated isoforms.</p>
+    <p><strong>Source:</strong> {os.path.basename(self.ref_gtf)}</p>
+</body>
+</html>""")
         
         # Determine number of extra fields
         num_extra = len(self.extra_cols) if hasattr(self, 'extra_cols') else 0
@@ -1617,6 +1731,22 @@ class SQANTI3ToBigBed:
                 f.write(f"color 200,0,0\n") # Dark red for PolyA peaks
                 if polya_html_name:
                     f.write(f"html {self._get_relative_path(polya_html_name)}\n")
+
+            # Reference GTF
+            if self.ref_bigbed and os.path.exists(self.ref_bigbed):
+                f.write("\n")
+                f.write(f"track {self.genome}_reference\n")
+                ref_bb_name = os.path.basename(self.ref_bigbed)
+                f.write(f"bigDataUrl {self._get_relative_path(ref_bb_name)}\n")
+                f.write(f"shortLabel Reference\n")
+                f.write(f"longLabel Reference Genome Annotation\n")
+                f.write(f"type bigBed 12\n") 
+                f.write(f"visibility pack\n")
+                f.write(f"group validation\n")
+                f.write(f"priority 5\n")
+                f.write(f"color 70,70,70\n") # Gray for reference
+                if ref_html_name:
+                    f.write(f"html {self._get_relative_path(ref_html_name)}\n")
 
             # Category tracks
             if hasattr(self, 'category_bigbeds') and self.category_bigbeds:
@@ -1849,6 +1979,10 @@ You can filter transcripts using dropdown menus and range sliders:
             if self.polya_peaks:
                 self.polya_bigbed = self._create_polya_bigbed(self.polya_peaks)
             
+            # Optionally create reference GTF track
+            if self.ref_gtf:
+                self.ref_bigbed = self._create_reference_bigbed(self.ref_gtf)
+            
             if not self.create_hub_files(bigbed_file):
                 return False
             
@@ -1884,6 +2018,7 @@ def main():
     parser.add_argument('--star-sj', help='Optional: STAR SJ.out.tab to convert into a splice junction track')
     parser.add_argument('--CAGE_peak', dest='cage_peak', help='Optional: CAGE peaks BED file for TSS validation track')
     parser.add_argument('--polyA_peak', dest='polya_peak', help='Optional: PolyA peaks BED file for TTS validation track')
+    parser.add_argument('--refGTF', dest='ref_gtf', help='Optional: Reference GTF file for direct comparison with SQANTI3 transcripts')
     parser.add_argument('--validate-only', action='store_true', help='Validate tools and inputs only, then exit')
     parser.add_argument('--dry-run', action='store_true', help='Prepare intermediates (BED with classification) and exit before bigBed/hub generation')
     parser.add_argument('--keep-temp', action='store_true', help='Keep temporary files for debugging')
@@ -1922,6 +2057,7 @@ def main():
         star_sj=args.star_sj,
         cage_peaks=args.cage_peak,
         polya_peaks=args.polya_peak,
+        ref_gtf=args.ref_gtf,
         two_bit_file=args.twobit,
         validate_only=args.validate_only,
         dry_run=args.dry_run,
