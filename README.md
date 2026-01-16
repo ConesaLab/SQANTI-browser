@@ -23,6 +23,7 @@ SQANTI-browser is a tool that converts SQANTI3 transcriptome analysis outputs in
 - [GitHub Hosting Guide](../../wiki/GitHub-Hosting) - Upload your hub
 
 **Advanced Features:**
+- [Interactive HTML Tables](../../wiki/HTML-Tables) - Offline data exploration
 - [Working with Custom Genomes](../../wiki/Custom-Genomes) (2bit files)
 - [SQANTI-reads Integration](../../wiki/SQANTI-reads-Integration) - Multi-sample experiments
 - [Filtering in UCSC](../../wiki/Filtering-in-UCSC)
