@@ -13,28 +13,28 @@ SQANTI-browser is a tool that converts SQANTI3 transcriptome analysis outputs in
 
 ## Documentation
 
-📖 **[See the Wiki](wiki)** for detailed documentation:
+📖 **[See the Wiki](../../wiki/home)** for detailed documentation:
 
 **Quick Start:**
-- 🚀 **[Quick Reference](wiki/quick_reference)** - One-page cheat sheet
-- ❓ **[FAQ](wiki/faq)** - Common questions answered
-- [Installation Guide](wiki/installation)
-- [Usage Examples](wiki/usage_examples)
-- [Hosting Guide](wiki/hosting) - Upload your hub
+- 🚀 **[Quick Reference](../../wiki/quick_reference)** - One-page cheat sheet
+- ❓ **[FAQ](../../wiki/faq)** - Common questions answered
+- [Installation Guide](../../wiki/installation)
+- [Usage Examples](../../wiki/usage_examples)
+- [Hosting Guide](../../wiki/hosting) - Upload your hub
 
 **Advanced Features:**
-- [Interactive HTML Tables](wiki/html_tables) - Offline data exploration
-- [Working with Custom Genomes](wiki/custom_genomes) (2bit files)
-- [SQANTI-reads Integration](wiki/sqanti_reads_integration) - Multi-sample experiments
-- [Filtering in UCSC](wiki/filtering_in_UCSC)
-- [Trix Search Syntax](wiki/trix_search)
-- [Isoform Ordering](wiki/isoform_ordering)
+- [Interactive HTML Tables](../../wiki/html_tables) - Offline data exploration
+- [Working with Custom Genomes](../../wiki/custom_genomes) (2bit files)
+- [SQANTI-reads Integration](../../wiki/sqanti_reads_integration) - Multi-sample experiments
+- [Filtering in UCSC](../../wiki/filtering_in_UCSC)
+- [Trix Search Syntax](../../wiki/trix_search)
+- [Isoform Ordering](../../wiki/isoform_ordering)
 
 **Reference:**
-- [Command Line Reference](wiki/command_line_reference)
-- [Output File Formats](wiki/output_files)
-- [Glossary](wiki/glossary)
-- [Troubleshooting](wiki/troubleshooting)
+- [Command Line Reference](../../wiki/command_line_reference)
+- [Output File Formats](../../wiki/output_files)
+- [Glossary](../../wiki/glossary)
+- [Troubleshooting](../../wiki/troubleshooting)
 
 ## 🔄 Workflow
 
