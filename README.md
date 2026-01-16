@@ -13,29 +13,28 @@ SQANTI-browser is a tool that converts SQANTI3 transcriptome analysis outputs in
 
 ## Documentation
 
-📖 **[See the Wiki](../../wiki)** for detailed documentation:
+📖 **[See the Wiki](wiki)** for detailed documentation:
 
 **Quick Start:**
-- 🚀 **[Quick Reference](../../wiki/Quick-Reference)** - One-page cheat sheet
-- ❓ **[FAQ](../../wiki/FAQ)** - Common questions answered
-- [Installation Guide](../../wiki/Installation)
-- [Usage Examples](../../wiki/Usage-Examples)
-- [GitHub Hosting Guide](../../wiki/GitHub-Hosting) - Upload your hub
+- 🚀 **[Quick Reference](wiki/quick_reference)** - One-page cheat sheet
+- ❓ **[FAQ](wiki/faq)** - Common questions answered
+- [Installation Guide](wiki/installation)
+- [Usage Examples](wiki/usage_examples)
+- [Hosting Guide](wiki/hosting) - Upload your hub
 
 **Advanced Features:**
-- [Interactive HTML Tables](../../wiki/HTML-Tables) - Offline data exploration
-- [Working with Custom Genomes](../../wiki/Custom-Genomes) (2bit files)
-- [SQANTI-reads Integration](../../wiki/SQANTI-reads-Integration) - Multi-sample experiments
-- [Filtering in UCSC](../../wiki/Filtering-in-UCSC)
-- [Trix Search Syntax](../../wiki/Trix-Search)
-- [Isoform Ordering](../../wiki/Isoform-Ordering)
+- [Interactive HTML Tables](wiki/html_tables) - Offline data exploration
+- [Working with Custom Genomes](wiki/custom_genomes) (2bit files)
+- [SQANTI-reads Integration](wiki/sqanti_reads_integration) - Multi-sample experiments
+- [Filtering in UCSC](wiki/filtering_in_UCSC)
+- [Trix Search Syntax](wiki/trix_search)
+- [Isoform Ordering](wiki/isoform_ordering)
 
 **Reference:**
-- [Command Line Reference](../../wiki/Command-Line-Reference)
-- [Output File Formats](../../wiki/Output-Files)
-- [Glossary](../../wiki/Glossary)
-- [Troubleshooting](../../wiki/Troubleshooting)
-- 
+- [Command Line Reference](wiki/command_line_reference)
+- [Output File Formats](wiki/output_files)
+- [Glossary](wiki/glossary)
+- [Troubleshooting](wiki/troubleshooting)
 
 ## 🔄 Workflow
 
@@ -84,7 +83,7 @@ python sqanti3_to_UCSC.py \
 | `--polyA_peak` | Include polyA peaks for TTS validation (requires BED file) |
 | `--refGTF` | Include reference annotation for direct comparison (requires GTF file) |
 
-> 💡 **Tip:** For information on where to obtain and how to format CAGE and polyA peak files, see the [SQANTI3 wiki](https://github.com/ConesaLab/SQANTI3/wiki/Running-SQANTI3-Quality-Control#incorporating-cage-peak-data---cage_peak). See also our [Command Line Reference](../../wiki/Command-Line-Reference#validation-tracks) for details.
+> 💡 **Tip:** For information on where to obtain and how to format CAGE and polyA peak files, see the [SQANTI3 wiki](https://github.com/ConesaLab/SQANTI3/wiki/Running-SQANTI3-Quality-Control#incorporating-cage-peak-data---cage_peak). See also our [Command Line Reference](wiki/command_line_reference.md#validation-tracks) for details.
 
 ## Color Legend
 
