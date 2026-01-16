@@ -63,6 +63,10 @@ python sqanti3_to_UCSC.py \
 | `--sort-by none` | Sort isoforms by expression (default: `none`). Options: `length`, `FL`, `iso_exp` etc. |
 | `--no-category-tracks` | Only generate the main track |
 | `--star-sj SJ.out.tab` | Include STAR splice junctions track |
+| `--CAGE_peak` | Include CAGE peaks for TSS validation (requires BED file) |
+| `--polyA_peak` | Include polyA peaks for TTS validation (requires BED file) |
+
+> 💡 **Tip:** For information on where to obtain and how to format CAGE and polyA peak files, see the [SQANTI3 wiki](https://github.com/ConesaLab/SQANTI3/wiki/Running-SQANTI3-Quality-Control#incorporating-cage-peak-data---cage_peak). See also our [Command Line Reference](../../wiki/Command-Line-Reference#validation-tracks) for details.
 
 ## Color Legend
 
