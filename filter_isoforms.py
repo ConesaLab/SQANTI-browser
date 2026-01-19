@@ -13,7 +13,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SQANTI3 {category} Isoforms</title>
+    <title>{report_title}</title>
     
     <!-- DataTables CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
@@ -84,13 +84,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </head>
 <body>
     <div class="container">
-        <h2>SQANTI3 Analysis: {category} Isoforms</h2>
+        <h2>{report_title}</h2>
         
         <div class="info-box">
             <div style="text-align: center; margin-bottom: 15px; min-height: 80px;">
                 {category_svg}
             </div>
-            <p><strong>Category Definition:</strong> {category_description}</p>
+            <p><strong>{category_intro_label}</strong> {category_description}</p>
             <p>
                 For more details on categories, visit here: <a href="https://github.com/ConesaLab/SQANTI3/wiki/SQANTI3-isoform-classification:-categories-and-subcategories" target="_blank">SQANTI3 Wiki: Categories</a>.
                 <br>
@@ -134,6 +134,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         var numericColumns = {numeric_columns_json};
         var categoricalColumns = {categorical_columns_json};
         var currentCategory = "{category_safe}";
+        var includeCategoryFilter = {include_category_filter};
 
         // Custom filtering function for range search and special exact match cases
         $.fn.dataTable.ext.search.push(
@@ -277,8 +278,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                                 var rowData = selectedData[0];
                                 var queryParts = [];
                                 
-                                // Always include the structural category first (from the current page)
-                                queryParts.push('structural_category_' + currentCategory);
+                                // Include structural category context if available
+                                if (includeCategoryFilter) {{
+                                    queryParts.push('structural_category_' + currentCategory);
+                                }} else if (rowData['structural_category']) {{
+                                    queryParts.push('structural_category_' + rowData['structural_category']);
+                                }}
                                 
                                 // Columns to include in the Trix string (categorical/useful for searching)
                                 // Note: structural_category is already added above
@@ -310,13 +315,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                                 var api = dt;
                                 var settings = api.settings()[0];
                                 
-                                // Always include the structural category first (from the current page)
-                                queryParts.push('structural_category_' + currentCategory);
+                                // Include structural category context if available
+                                if (includeCategoryFilter) {{
+                                    queryParts.push('structural_category_' + currentCategory);
+                                }}
                                 
                                 api.columns().every(function(i) {{
                                     var colName = settings.aoColumns[i].data;
                                     // Skip structural_category since we already added it
-                                    if (colName === 'structural_category') return;
+                                    if (includeCategoryFilter && colName === 'structural_category') return;
                                     
                                     var input = $('.dataTables_scrollHead .filters [data-index="'+i+'"]');
                                     if (input.length === 0) {{
@@ -344,11 +351,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     }},
                     {{
                         extend: 'excelHtml5',
-                        title: 'SQANTI3_{category}_Isoforms'
+                        title: '{export_title}'
                     }},
                     {{
                         extend: 'csvHtml5',
-                        title: 'SQANTI3_{category}_Isoforms'
+                        title: '{export_title}'
                     }},
                     'copy'
                 ],
@@ -413,6 +420,20 @@ CATEGORY_DEFINITIONS = {
     "NA": "No structural category assigned."
 }
 
+# Preferred display order for structural categories
+CATEGORY_ORDER = [
+    "full-splice_match",
+    "incomplete-splice_match",
+    "novel_in_catalog",
+    "novel_not_in_catalog",
+    "genic",
+    "antisense",
+    "fusion",
+    "intergenic",
+    "genic_intron",
+    "NA"
+]
+
 # SVG Diagrams for structural categories - Text labels moved to the right side
 CATEGORY_SVGS = {
     "full-splice_match": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="190" y2="52" stroke="#6BAED6" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="#6BAED6" rx="2"/><rect x="80" y="48" width="40" height="8" fill="#6BAED6" rx="2"/><rect x="150" y="48" width="40" height="8" fill="#6BAED6" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#6BAED6" font-weight="bold">Isoform (FSM)</text></svg>''',
@@ -433,6 +454,59 @@ CATEGORY_SVGS = {
     
     "fusion": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><text x="55" y="15" font-size="10">Gene A</text><rect x="140" y="8" width="40" height="8" fill="black" rx="2"/><text x="185" y="15" font-size="10">Gene B</text><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="180" y2="52" stroke="#DAA520" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="#DAA520" rx="2"/><rect x="140" y="48" width="40" height="8" fill="#DAA520" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#DAA520" font-weight="bold">Isoform (Fusion)</text></svg>'''
 }
+
+REFERENCE_SVG = '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="black" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="black" rx="2"/><rect x="80" y="26" width="40" height="8" fill="black" rx="2"/><rect x="150" y="26" width="40" height="8" fill="black" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text></svg>'''
+
+# Isoform-only SVGs for complete transcriptome overview (no repeated reference)
+CATEGORY_SVGS_OVERVIEW = {
+    "full-splice_match": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="#6BAED6" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#6BAED6" rx="2"/><rect x="80" y="26" width="40" height="8" fill="#6BAED6" rx="2"/><rect x="150" y="26" width="40" height="8" fill="#6BAED6" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#6BAED6" font-weight="bold">Isoform (FSM)</text></svg>''',
+    "incomplete-splice_match": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="80" y1="30" x2="190" y2="30" stroke="#FC8D59" stroke-width="2" /><rect x="80" y="26" width="40" height="8" fill="#FC8D59" rx="2"/><rect x="150" y="26" width="40" height="8" fill="#FC8D59" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#FC8D59" font-weight="bold">Isoform (ISM)</text></svg>''',
+    "novel_in_catalog": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="#78C679" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#78C679" rx="2"/><rect x="150" y="26" width="40" height="8" fill="#78C679" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#78C679" font-weight="bold">Isoform (NIC)</text></svg>''',
+    "novel_not_in_catalog": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="#EE6A50" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#EE6A50" rx="2"/><rect x="80" y="26" width="60" height="8" fill="#EE6A50" rx="2"/><rect x="150" y="26" width="40" height="8" fill="#EE6A50" rx="2"/><text x="130" y="18" font-size="10" fill="#EE6A50" text-anchor="middle">New Site</text><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#EE6A50" font-weight="bold">Isoform (NNC)</text></svg>''',
+    "genic_intron": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><rect x="80" y="26" width="40" height="8" fill="#41B6C4" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#41B6C4" font-weight="bold">Isoform (Intron)</text></svg>''',
+    "genic": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><rect x="40" y="26" width="60" height="8" fill="#969696" rx="2"/><text x="70" y="48" font-size="10" fill="#969696" text-anchor="middle">Overlap</text><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#969696" font-weight="bold">Isoform (Genic)</text></svg>''',
+    "antisense": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="120" y2="30" stroke="#66C2A4" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#66C2A4" rx="2"/><rect x="80" y="26" width="40" height="8" fill="#66C2A4" rx="2"/><text x="130" y="33" font-size="12" fill="#66C2A4">←</text><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#66C2A4" font-weight="bold">Isoform (-)</text></svg>''',
+    "intergenic": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><rect x="140" y="26" width="40" height="8" fill="#E9967A" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#E9967A" font-weight="bold">Isoform (Inter)</text></svg>''',
+    "fusion": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="180" y2="30" stroke="#DAA520" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#DAA520" rx="2"/><rect x="140" y="26" width="40" height="8" fill="#DAA520" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#DAA520" font-weight="bold">Isoform (Fusion)</text></svg>'''
+}
+
+def build_category_overview_html(categories_present=None):
+    """
+    Build an HTML block with SVGs and definitions for structural categories.
+    """
+    if categories_present is None:
+        categories_present = set(CATEGORY_ORDER)
+    else:
+        categories_present = set(categories_present)
+    
+    blocks = [
+        f"""
+        <div style="display: flex; align-items: center; gap: 8px; margin: 2px 0; padding: 0;">
+            <div style="flex: 0 0 260px; text-align: center; line-height: 0;">{REFERENCE_SVG}</div>
+            <div style="flex: 1;"><strong>Reference:</strong> Shared reference drawing used for all categories.</div>
+        </div>
+        """.strip()
+    ]
+    for cat in CATEGORY_ORDER:
+        if cat not in categories_present:
+            continue
+        definition = CATEGORY_DEFINITIONS.get(cat)
+        if not definition:
+            continue
+        svg = CATEGORY_SVGS_OVERVIEW.get(cat, CATEGORY_SVGS.get(cat, ""))
+        blocks.append(
+            f"""
+            <div style="display: flex; align-items: center; gap: 8px; margin: 2px 0; padding: 0;">
+                <div style="flex: 0 0 260px; text-align: center; line-height: 0;">{svg}</div>
+                <div style="flex: 1;">{definition}</div>
+            </div>
+            """.strip()
+        )
+    
+    if not blocks:
+        return "<p>No structural category definitions available.</p>"
+    
+    return "\n".join(blocks)
 
 def generate_html_reports(classification_file, output_dir, include_sequences=False):
     """
@@ -476,6 +550,45 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
         'predicted_NMD', 'within_CAGE_peak', 'polyA_motif_found'
     ]
 
+    # Full transcriptome report (all categories)
+    full_df = df.copy()
+    numeric_cols_all = full_df.select_dtypes(include=['number']).columns.tolist()
+    full_df = full_df.fillna('')
+    
+    columns_json = []
+    headers_html = ""
+    for col in full_df.columns:
+        columns_json.append({"data": col, "title": col})
+        headers_html += f"<th>{col}</th>"
+    
+    data_json = full_df.to_json(orient='records')
+    category_overview = build_category_overview_html(categories_present=categories)
+    full_report_title = "SQANTI3 Analysis: complete transcriptome"
+    full_export_title = "SQANTI3_complete_transcriptome_Isoforms"
+    
+    full_filename = "complete_transcriptome_isoforms.html"
+    full_path = output_path / full_filename
+    full_html = HTML_TEMPLATE.format(
+        category="complete transcriptome",
+        category_safe="complete_transcriptome",
+        report_title=full_report_title,
+        export_title=full_export_title,
+        category_intro_label="Structural Categories:",
+        category_description="All structural categories and definitions are shown below.",
+        category_svg=category_overview,
+        count=len(full_df),
+        headers=headers_html,
+        data_json=data_json,
+        columns_json=json.dumps(columns_json),
+        numeric_columns_json=json.dumps(numeric_cols_all),
+        categorical_columns_json=json.dumps(categorical_cols),
+        include_category_filter="false"
+    )
+    
+    with open(full_path, 'w') as f:
+        f.write(full_html)
+    print(f"Generated full transcriptome report: {full_path}")
+
     for category in categories:
         if pd.isna(category) or category == 'NA':
             continue
@@ -516,9 +629,14 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
         file_path = output_path / filename
 
         # Fill template
+        report_title = f"SQANTI3 Analysis: {cat_str} Isoforms"
+        export_title = f"SQANTI3_{safe_cat}_Isoforms"
         html_content = HTML_TEMPLATE.format(
             category=cat_str,
             category_safe=cat_str,  # Used for Trix string generation (matches Trix index format)
+            report_title=report_title,
+            export_title=export_title,
+            category_intro_label="Category Definition:",
             category_description=cat_def,
             category_svg=cat_svg,
             count=len(cat_df),
@@ -526,7 +644,8 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
             data_json=data_json,
             columns_json=json.dumps(columns_json),
             numeric_columns_json=json.dumps(numeric_cols),
-            categorical_columns_json=json.dumps(categorical_cols)
+            categorical_columns_json=json.dumps(categorical_cols),
+            include_category_filter="true"
         )
 
         with open(file_path, 'w') as f:
