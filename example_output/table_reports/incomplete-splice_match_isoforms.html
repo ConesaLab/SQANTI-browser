@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SQANTI3 incomplete-splice_match Isoforms</title>
+    <title>SQANTI3 Analysis: incomplete-splice_match Isoforms</title>
     
     <!-- DataTables CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
@@ -124,6 +124,7 @@
         var numericColumns = ["length", "exons", "ref_length", "ref_exons", "diff_to_TSS", "diff_to_TTS", "diff_to_gene_TSS", "diff_to_gene_TTS", "min_sample_cov", "min_cov", "sd_cov", "FL", "n_indels", "n_indels_junc", "iso_exp", "gene_exp", "ratio_exp", "ORF_length", "CDS_length", "CDS_start", "CDS_end", "CDS_genomic_start", "CDS_genomic_end", "perc_A_downstream_TTS", "dist_to_CAGE_peak", "dist_to_polyA_site", "within_polyA_site", "polyA_dist", "ratio_TSS"];
         var categoricalColumns = ["strand", "structural_category", "subcategory", "RTS_stage", "all_canonical", "min_cov_pos", "bite", "FSM_class", "coding", "predicted_NMD", "within_CAGE_peak", "polyA_motif_found"];
         var currentCategory = "incomplete-splice_match";
+        var includeCategoryFilter = true;
 
         // Custom filtering function for range search and special exact match cases
         $.fn.dataTable.ext.search.push(
@@ -267,8 +268,12 @@
                                 var rowData = selectedData[0];
                                 var queryParts = [];
                                 
-                                // Always include the structural category first (from the current page)
-                                queryParts.push('structural_category_' + currentCategory);
+                                // Include structural category context if available
+                                if (includeCategoryFilter) {
+                                    queryParts.push('structural_category_' + currentCategory);
+                                } else if (rowData['structural_category']) {
+                                    queryParts.push('structural_category_' + rowData['structural_category']);
+                                }
                                 
                                 // Columns to include in the Trix string (categorical/useful for searching)
                                 // Note: structural_category is already added above
@@ -300,13 +305,15 @@
                                 var api = dt;
                                 var settings = api.settings()[0];
                                 
-                                // Always include the structural category first (from the current page)
-                                queryParts.push('structural_category_' + currentCategory);
+                                // Include structural category context if available
+                                if (includeCategoryFilter) {
+                                    queryParts.push('structural_category_' + currentCategory);
+                                }
                                 
                                 api.columns().every(function(i) {
                                     var colName = settings.aoColumns[i].data;
                                     // Skip structural_category since we already added it
-                                    if (colName === 'structural_category') return;
+                                    if (includeCategoryFilter && colName === 'structural_category') return;
                                     
                                     var input = $('.dataTables_scrollHead .filters [data-index="'+i+'"]');
                                     if (input.length === 0) {

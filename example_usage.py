@@ -82,6 +82,7 @@ def run_example():
     print("- Use a genome .2bit to compute chrom.sizes: --twobit <genome.2bit>")
     print("- Sort isoforms by metric (iso_exp, length, FL, etc.): --sort-by <metric>")
     print("- Skip category-specific tracks: --no-category-tracks")
+    print("- Disable highlighted top FL isoforms: --no_highlight")
     print("- Validate tools/inputs only (no outputs): --validate-only")
     print("- Dry run (build enhanced BED, skip bigBed/hub): --dry-run")
     print()

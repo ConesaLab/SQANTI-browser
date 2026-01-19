@@ -34,7 +34,7 @@ except ImportError:
 class SQANTI3ToBigBed:
     # Valid sort-by options for isoform ordering
     VALID_SORT_OPTIONS = [
-        'iso_exp',      # Default: isoform expression (highest first)
+        'iso_exp',      # Short read expression for this isoform (highest first)
         'length',       # Transcript length (longest first)
         'FL',           # Full-length reads (highest first)
         'diff_to_TSS',  # Distance to reference TSS
@@ -45,7 +45,7 @@ class SQANTI3ToBigBed:
         'dist_to_polyA_site'  # Distance to polyA site
     ]
     
-    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, ref_gtf=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='iso_exp', no_category_tracks=False):
+    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, ref_gtf=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='none', no_category_tracks=False, no_highlight=False):
         self.gtf_file = gtf_file
         self.classification_file = classification_file
         self.output_dir = Path(output_dir)
@@ -61,6 +61,7 @@ class SQANTI3ToBigBed:
         self.polya_bigbed = None
         self.ref_bigbed = None
         self.no_category_tracks = no_category_tracks
+        self.no_highlight = no_highlight
         self.two_bit_file = two_bit_file
         self.validate_only = validate_only
         self.dry_run = dry_run
@@ -369,6 +370,18 @@ class SQANTI3ToBigBed:
                 "genic_intron": pack_rgb(65, 182, 196),
                 "NA": pack_rgb(200, 200, 200)
             }
+
+            highlight_palette = {
+                "full-splice_match": pack_rgb(69, 111, 137),
+                "incomplete-splice_match": pack_rgb(202, 113, 71),
+                "novel_in_catalog": pack_rgb(77, 126, 78),
+                "novel_not_in_catalog": pack_rgb(152, 7, 31),
+                "genic": pack_rgb(96, 96, 96),
+                "antisense": pack_rgb(66, 124, 105),
+                "fusion": pack_rgb(139, 106, 21),
+                "intergenic": pack_rgb(149, 96, 78),
+                "genic_intron": pack_rgb(42, 117, 126),
+            }
             
             default_color = pack_rgb(200, 200, 200)
             
@@ -376,6 +389,37 @@ class SQANTI3ToBigBed:
                 merged['itemRgb'] = merged['structural_category'].map(cat_palette).fillna(default_color).astype(int)
             else:
                 merged['itemRgb'] = default_color
+
+            # Highlight top FL isoform per group + structural_category
+            # Use associated_gene for selected categories, otherwise associated_transcript
+            if (not self.no_highlight) and all(col in merged.columns for col in ['associated_transcript', 'structural_category', 'FL']):
+                fl_numeric = pd.to_numeric(merged['FL'], errors='coerce')
+                gene_based_categories = {
+                    "novel_in_catalog",
+                    "novel_not_in_catalog",
+                    "genic",
+                    "antisense",
+                    "fusion",
+                    "intergenic",
+                    "genic_intron",
+                }
+                
+                group_key = merged['associated_transcript']
+                if 'associated_gene' in merged.columns:
+                    use_gene = merged['structural_category'].isin(gene_based_categories)
+                    group_key = group_key.where(~use_gene, merged['associated_gene'])
+                
+                valid_groups = group_key.notna() & merged['structural_category'].notna()
+                if valid_groups.any():
+                    max_fl = fl_numeric.groupby([group_key, merged['structural_category']]).transform('max')
+                    top_mask = valid_groups & fl_numeric.notna() & max_fl.notna() & (fl_numeric == max_fl)
+                    if top_mask.any():
+                        merged.loc[top_mask, 'itemRgb'] = (
+                            merged.loc[top_mask, 'structural_category']
+                            .map(highlight_palette)
+                            .fillna(merged.loc[top_mask, 'itemRgb'])
+                            .astype(int)
+                        )
             
             # Format FSM class
             if 'FSM_class' in merged.columns:
@@ -409,7 +453,7 @@ class SQANTI3ToBigBed:
         Sorting strategy:
         1. Primary: chromosome and start position (REQUIRED by bedToBigBed format)
         2. Secondary: associated_transcript (groups isoforms at same position together)
-        3. Tertiary: sort_by metric (default: iso_exp, highest first)
+        3. Tertiary: sort_by metric (default: none)
         
         Note: bigBed format requires strict (chrom, chromStart) sorting. Isoforms of
         the same reference transcript but with different start positions will appear
@@ -458,7 +502,7 @@ class SQANTI3ToBigBed:
         
         # Fallback logic - only if user requested a specific sort that failed
         if sort_by is None and original_sort_by is not None and original_sort_by != 'none':
-            # We don't try to fallback to iso_exp anymore, we just fallback to no sorting
+            # We don't try to fallback to another metric; we just fallback to no sorting
             logger.warning(f"Could not sort by '{original_sort_by}'. Falling back to genomic position order.")
 
         # Create a numeric version of the sort column for proper sorting
@@ -2029,12 +2073,15 @@ def main():
                                  'dist_to_polyA_site', 'none'],
                         default='none',
                         help='Sort isoforms within each reference transcript by this metric. '
-                             'Default: none (sort by genomic position only). Options: iso_exp (highest expression first), '
-                             'length (longest first), FL (most full-length reads first), diff_to_TSS, diff_to_TTS, '
+                             'Default: none (sort by genomic position only). Options: '
+                             'iso_exp (short read expression for this isoform), length (longest first), '
+                             'FL (most full-length reads first), diff_to_TSS, diff_to_TTS, '
                              'diff_to_gene_TSS, diff_to_gene_TTS, dist_to_CAGE_peak, dist_to_polyA_site '
                              '(smallest distance first for distance metrics)')
     parser.add_argument('--no-category-tracks', action='store_true',
                         help='Only generate the main SQANTI3 track without separate tracks for each structural category')
+    parser.add_argument('--no_highlight', action='store_true',
+                        help='Disable highlight coloring for top FL isoforms')
     
     args = parser.parse_args()
     
@@ -2062,7 +2109,8 @@ def main():
         validate_only=args.validate_only,
         dry_run=args.dry_run,
         sort_by=args.sort_by,
-        no_category_tracks=args.no_category_tracks
+        no_category_tracks=args.no_category_tracks,
+        no_highlight=args.no_highlight
     )
     converter.keep_temp = args.keep_temp
     success = converter.run()

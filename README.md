@@ -76,8 +76,9 @@ python sqanti3_to_UCSC.py \
 | Option | Description |
 |--------|-------------|
 | `--tables` | Generate interactive HTML tables for each category |
-| `--sort-by none` | Sort isoforms by expression (default: `none`). Options: `length`, `FL`, `iso_exp` etc. |
+| `--sort-by none` | Sort isoforms by (default: `none`). Options: `iso_exp`, `length`, `FL` etc. |
 | `--no-category-tracks` | Only generate the main track |
+| `--no_highlight` | Disable highlight coloring for top FL isoforms |
 | `--star-sj SJ.out.tab` | Include STAR splice junctions track |
 | `--CAGE_peak` | Include CAGE peaks for TSS validation (requires BED file) |
 | `--polyA_peak` | Include polyA peaks for TTS validation (requires BED file) |
