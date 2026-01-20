@@ -1,6 +1,7 @@
-# SQANTI-browser
-
-SQANTI-browser is a tool that converts SQANTI3 transcriptome analysis outputs into UCSC Genome Browser track hubs for interactive visualization.
+<img width="952" height="309" alt="image" src="https://github.com/user-attachments/assets/df680d97-ed84-4657-972e-25fb61471c57" />
+  
+  
+**SQANTI-browser** is a tool that converts SQANTI3 transcriptome analysis outputs into UCSC Genome Browser track hubs for interactive visualization.
 
 ## Features
 
