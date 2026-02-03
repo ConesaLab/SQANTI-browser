@@ -20,6 +20,7 @@ import shutil
 import json
 from pathlib import Path
 import pandas as pd
+import numpy as np
 import logging
 import re
 from collections import defaultdict
@@ -670,6 +671,9 @@ class SQANTI3ToBigBed:
         Returns:
             Sorted DataFrame
         """
+        df = df.copy()
+        df['_original_order'] = np.arange(len(df))
+
         if sort_by is None:
             sort_by = self.sort_by
         
@@ -716,7 +720,9 @@ class SQANTI3ToBigBed:
         sort_cols = ['chrom', 'chromStart']
         ascending = [True, True]
         
-        if has_associated_transcript:
+        use_transcript_grouping = has_associated_transcript and sort_by is not None
+
+        if use_transcript_grouping:
             sort_cols.append('associated_transcript')
             ascending.append(True)
         
@@ -731,6 +737,10 @@ class SQANTI3ToBigBed:
             else:
                 # iso_exp, length, FL - higher is better, sort descending
                 ascending.append(False)
+        else:
+            # Preserve original order when no explicit sorting is requested
+            sort_cols.append('_original_order')
+            ascending.append(True)
         
         # Perform the sort
         df_sorted = df.sort_values(
@@ -744,8 +754,10 @@ class SQANTI3ToBigBed:
         if sort_by:
             df_sorted = df_sorted.drop(columns=[sort_col_numeric])
         
+        df_sorted = df_sorted.drop(columns=['_original_order'])
+        
         sort_info = f"by {sort_by}" if sort_by else "by genomic position only"
-        group_info = "grouped by reference transcript, " if has_associated_transcript else ""
+        group_info = "grouped by reference transcript, " if use_transcript_grouping else ""
         logger.info(f"Sorted {len(df_sorted)} transcripts: {group_info}{sort_info}")
         
         return df_sorted
