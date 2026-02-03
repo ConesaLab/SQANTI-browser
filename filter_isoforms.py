@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import sys
 import logging
+import re
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -25,6 +26,24 @@ DEFAULT_STANDARD_PALETTE = {
 def rgb_to_hex(rgb):
     """Convert RGB tuple to hex string."""
     return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
+
+
+def normalize_trix_token(value):
+    """Normalize strings for Trix search tokens (lowercase, underscores)."""
+    if value is None:
+        return ""
+    token = str(value).strip().lower()
+    if not token:
+        return ""
+    if token == '+':
+        return 'plus'
+    if token == '-':
+        return 'minus'
+    token = re.sub(r'[^\w]+', '_', token)
+    token = re.sub(r'_+', '_', token)
+    token = token.strip('_')
+    return token
+
 
 def get_category_color(category, palette=None):
     """Get hex color for a category, using custom palette if provided."""
@@ -171,7 +190,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             <ul style="margin-bottom: 5px; padding-left: 20px;">
                 <li>Use dropdown filters and click "Generate Trix String" to get a search based on your filter criteria.</li>
                 <li><em>Note:</em> Range filters (e.g., <code>100:1000</code>) are not supported by Trix and will be ignored, only exact numeric matches are supported.</li>
-                <li>Search terms use underscore format: <code>structural_category_intergenic</code>, <code>strand_plus</code>, <code>coding_coding</code></li>
+                <li>Search terms automatically use underscores (e.g., <code>structural_category_full_splice_match</code>, <code>strand_plus</code>, <code>coding_coding</code>).</li>
                 <li>Click on a row to select it (highlighted in blue), then click "Generate Trix String" to get search terms for that specific isoform.</li>
             </ul>
         </div>
@@ -198,6 +217,23 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         var categoricalColumns = {categorical_columns_json};
         var currentCategory = "{category_safe}";
         var includeCategoryFilter = {include_category_filter};
+
+        function normalizeForTrix(value) {{
+            if (value === undefined || value === null) {{
+                return '';
+            }}
+            var normalized = String(value).trim().toLowerCase();
+            if (normalized === '+') {{
+                return 'plus';
+            }}
+            if (normalized === '-') {{
+                return 'minus';
+            }}
+            normalized = normalized.replace(/[^\w]+/g, '_');
+            normalized = normalized.replace(/_+/g, '_');
+            normalized = normalized.replace(/^_+|_+$/g, '');
+            return normalized;
+        }}
 
         // Custom filtering function for range search and special exact match cases
         $.fn.dataTable.ext.search.push(
@@ -343,9 +379,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                                 
                                 // Include structural category context if available
                                 if (includeCategoryFilter) {{
-                                    queryParts.push('structural_category_' + currentCategory);
+                                    var normalizedCategory = normalizeForTrix(currentCategory);
+                                    if (normalizedCategory) {{
+                                        queryParts.push('structural_category_' + normalizedCategory);
+                                    }}
                                 }} else if (rowData['structural_category']) {{
-                                    queryParts.push('structural_category_' + rowData['structural_category']);
+                                    var normalizedCategory = normalizeForTrix(rowData['structural_category']);
+                                    if (normalizedCategory) {{
+                                        queryParts.push('structural_category_' + normalizedCategory);
+                                    }}
                                 }}
                                 
                                 // Columns to include in the Trix string (categorical/useful for searching)
@@ -355,12 +397,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                                                 'bite', 'predicted_NMD', 'within_CAGE_peak', 'polyA_motif_found'];
                                 
                                 trixCols.forEach(function(col) {{
-                                    if (rowData[col] !== undefined && rowData[col] !== '' && rowData[col] !== null) {{
-                                        var val = String(rowData[col]);
-                                        // Convert strand symbols to words (ixIxx strips + and -)
-                                        if (val === '+') val = 'plus';
-                                        else if (val === '-') val = 'minus';
-                                        queryParts.push(col + '_' + val);
+                                    var value = rowData[col];
+                                    if (value !== undefined && value !== '' && value !== null) {{
+                                        var normalizedCol = normalizeForTrix(col);
+                                        var normalizedVal = normalizeForTrix(value);
+                                        if (normalizedCol && normalizedVal) {{
+                                            queryParts.push(normalizedCol + '_' + normalizedVal);
+                                        }}
                                     }}
                                 }});
                                 
@@ -370,7 +413,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                                     queryParts.unshift(rowData[isoformCol]);
                                 }}
                                 
-                                var searchString = queryParts.join(" ");
+                                var uniqueParts = [];
+                                var seenParts = new Set();
+                                queryParts.forEach(function(part) {{
+                                    if (part && !seenParts.has(part)) {{
+                                        seenParts.add(part);
+                                        uniqueParts.push(part);
+                                    }}
+                                }});
+
+                                var searchString = uniqueParts.join(" ");
                                 prompt("Trix search string for selected isoform:\\n(You can use just the isoform ID, or any combination of the terms below)", searchString);
                             }} else {{
                                 // Generate from active filters (non-range values only)
@@ -380,7 +432,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                                 
                                 // Include structural category context if available
                                 if (includeCategoryFilter) {{
-                                    queryParts.push('structural_category_' + currentCategory);
+                                    var normalizedCategory = normalizeForTrix(currentCategory);
+                                    if (normalizedCategory) {{
+                                        queryParts.push('structural_category_' + normalizedCategory);
+                                    }}
                                 }}
                                 
                                 api.columns().every(function(i) {{
@@ -399,16 +454,25 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                                         if (val.indexOf(':') !== -1) {{
                                             return; // Skip this column
                                         }}
-                                        // Convert strand symbols
-                                        if (val === '+') val = 'plus';
-                                        else if (val === '-') val = 'minus';
-                                        // Use underscore format for Trix
-                                        queryParts.push(colName + '_' + val);
+                                        var normalizedCol = normalizeForTrix(colName);
+                                        var normalizedVal = normalizeForTrix(val);
+                                        if (normalizedCol && normalizedVal) {{
+                                            queryParts.push(normalizedCol + '_' + normalizedVal);
+                                        }}
                                     }}
                                 }});
                                 
+                                var uniqueParts = [];
+                                var seenParts = new Set();
+                                queryParts.forEach(function(part) {{
+                                    if (part && !seenParts.has(part)) {{
+                                        seenParts.add(part);
+                                        uniqueParts.push(part);
+                                    }}
+                                }});
+
                                 // queryParts always has at least structural_category now
-                                prompt("Trix search string from filters:\\n(Note: Range filters are ignored - Trix doesn't support ranges)", queryParts.join(" "));
+                                prompt("Trix search string from filters:\\n(Note: Range filters are ignored - Trix doesn't support ranges)", uniqueParts.join(" "));
                             }}
                         }}
                     }},
@@ -641,10 +705,11 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
     full_export_title = "SQANTI3_complete_transcriptome_Isoforms"
     
     full_filename = "complete_transcriptome_isoforms.html"
+    full_category_safe = normalize_trix_token("complete transcriptome") or "complete_transcriptome"
     full_path = output_path / full_filename
     full_html = HTML_TEMPLATE.format(
         category="complete transcriptome",
-        category_safe="complete_transcriptome",
+        category_safe=full_category_safe,
         report_title=full_report_title,
         export_title=full_export_title,
         category_intro_label="Structural Categories:",
@@ -669,6 +734,7 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
 
         cat_str = str(category)
         logger.info(f"Processing category: {cat_str}")
+        cat_safe = normalize_trix_token(cat_str) or cat_str.replace(' ', '_')
         
         # Get category definition
         cat_def = CATEGORY_DEFINITIONS.get(cat_str, CATEGORY_DEFINITIONS.get(cat_str.replace(' ', '_'), "No definition available."))
@@ -709,7 +775,7 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
         export_title = f"SQANTI3_{safe_cat}_Isoforms"
         html_content = HTML_TEMPLATE.format(
             category=cat_str,
-            category_safe=cat_str,  # Used for Trix string generation (matches Trix index format)
+            category_safe=cat_safe,  # Used for Trix string generation (matches Trix index format)
             report_title=report_title,
             export_title=export_title,
             category_intro_label="Category Definition:",

@@ -21,6 +21,7 @@ import json
 from pathlib import Path
 import pandas as pd
 import logging
+import re
 from collections import defaultdict
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -138,6 +139,23 @@ def load_custom_palette(palette_file):
                 raise ValueError(f"Invalid color for highlight/{category}: {e}")
     
     return standard_colors, highlight_colors
+
+
+def normalize_trix_token(value):
+    """Normalize strings for Trix search tokens (lowercase, underscores)."""
+    if value is None:
+        return ""
+    token = str(value).strip().lower()
+    if not token:
+        return ""
+    if token == '+':
+        return 'plus'
+    if token == '-':
+        return 'minus'
+    token = re.sub(r'[^\w]+', '_', token)
+    token = re.sub(r'_+', '_', token)
+    token = token.strip('_')
+    return token
 
 
 class SQANTI3ToBigBed:
@@ -784,21 +802,28 @@ class SQANTI3ToBigBed:
                         # Build synonyms: values + prefixed versions for all columns
                         # This allows searching like "strand_plus" or "structural_category_intergenic"
                         synonym_parts = []
+                        synonym_seen = set()
+
+                        def add_synonym(token):
+                            if token and token not in synonym_seen:
+                                synonym_parts.append(token)
+                                synonym_seen.add(token)
+
                         for k, v in fields.items():
                             if v not in (None, '', 'NA', 'nan'):
                                 v_str = str(v)
-                                synonym_parts.append(v_str)
-                                # For prefixed version, convert standalone + and - (strand values)
-                                # ixIxx strips these characters when they're standalone
-                                if v_str == '+':
-                                    v_safe = 'plus'
-                                elif v_str == '-':
-                                    v_safe = 'minus'
-                                else:
-                                    v_safe = v_str
-                                # Add prefixed version (e.g., strand_plus, structural_category_incomplete-splice_match)
-                                # Note: colon (:) doesn't work in UCSC search, use underscore
-                                synonym_parts.append(f"{k}_{v_safe}")
+                                add_synonym(v_str)
+                                add_synonym(f"{k}_{v_str}")
+
+                                normalized_key = normalize_trix_token(k)
+                                normalized_value = normalize_trix_token(v)
+
+                                if normalized_value:
+                                    add_synonym(normalized_value)
+
+                                if normalized_key and normalized_value:
+                                    add_synonym(f"{normalized_key}_{normalized_value}")
+
                         synonyms = ' '.join(synonym_parts)
                         
                         # Write TAB-separated: ID \t description \t synonyms
