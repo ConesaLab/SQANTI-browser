@@ -99,7 +99,12 @@
                 <li>Use dropdown filters and click "Generate Trix String" to get a search based on your filter criteria.</li>
                 <li><em>Note:</em> Range filters (e.g., <code>100:1000</code>) are not supported by Trix and will be ignored, only exact numeric matches are supported.</li>
                 <li>Search terms automatically use underscores (e.g., <code>structural_category_full_splice_match</code>, <code>strand_plus</code>, <code>coding_coding</code>).</li>
-                <li>Click on a row to select it (highlighted in blue), then click "Generate Trix String" to get search terms for that specific isoform.</li>
+                <li>Click rows to select (click again to deselect). Multiple rows can be selected. Then click "Generate Trix String" to get search terms.</li>
+            </ul>
+            <p><strong>Generate Filter String (for Table Browser):</strong></p>
+            <ul style="margin-bottom: 5px; padding-left: 20px;">
+                <li>Select one or more rows (or apply filters to narrow the table), then click "Generate Filter String" to get a newline-separated list of isoform IDs.</li>
+                <li>Copy the list and paste (one ID per line) into UCSC Table Browser when filtering the track by the <code>name</code> field to create a custom track with only those isoforms.</li>
             </ul>
         </div>
 
@@ -281,57 +286,37 @@
                             var selectedData = dt.rows('.selected').data();
                             
                             if (selectedData.length > 0) {
-                                // Generate Trix string from selected row
-                                var rowData = selectedData[0];
-                                var queryParts = [];
-                                
-                                // Include structural category context if available
-                                if (includeCategoryFilter) {
-                                    var normalizedCategory = normalizeForTrix(currentCategory);
-                                    if (normalizedCategory) {
-                                        queryParts.push('structural_category_' + normalizedCategory);
+                                var trixStrings = [];
+                                for (var r = 0; r < selectedData.length; r++) {
+                                    var rowData = selectedData[r];
+                                    var queryParts = [];
+                                    if (includeCategoryFilter) {
+                                        var normalizedCategory = normalizeForTrix(currentCategory);
+                                        if (normalizedCategory) queryParts.push('structural_category_' + normalizedCategory);
+                                    } else if (rowData['structural_category']) {
+                                        var normalizedCategory = normalizeForTrix(rowData['structural_category']);
+                                        if (normalizedCategory) queryParts.push('structural_category_' + normalizedCategory);
                                     }
-                                } else if (rowData['structural_category']) {
-                                    var normalizedCategory = normalizeForTrix(rowData['structural_category']);
-                                    if (normalizedCategory) {
-                                        queryParts.push('structural_category_' + normalizedCategory);
-                                    }
-                                }
-                                
-                                // Columns to include in the Trix string (categorical/useful for searching)
-                                // Note: structural_category is already added above
-                                var trixCols = ['subcategory', 'strand', 'coding', 
-                                                'associated_gene', 'FSM_class', 'RTS_stage', 'all_canonical',
-                                                'bite', 'predicted_NMD', 'within_CAGE_peak', 'polyA_motif_found'];
-                                
-                                trixCols.forEach(function(col) {
-                                    var value = rowData[col];
-                                    if (value !== undefined && value !== '' && value !== null) {
-                                        var normalizedCol = normalizeForTrix(col);
-                                        var normalizedVal = normalizeForTrix(value);
-                                        if (normalizedCol && normalizedVal) {
-                                            queryParts.push(normalizedCol + '_' + normalizedVal);
+                                    var trixCols = ['subcategory', 'strand', 'coding', 'associated_gene', 'FSM_class', 'RTS_stage', 'all_canonical', 'bite', 'predicted_NMD', 'within_CAGE_peak', 'polyA_motif_found'];
+                                    trixCols.forEach(function(col) {
+                                        var value = rowData[col];
+                                        if (value !== undefined && value !== '' && value !== null) {
+                                            var normalizedCol = normalizeForTrix(col);
+                                            var normalizedVal = normalizeForTrix(value);
+                                            if (normalizedCol && normalizedVal) queryParts.push(normalizedCol + '_' + normalizedVal);
                                         }
-                                    }
-                                });
-                                
-                                // Also add the isoform name for direct search
-                                var isoformCol = 'isoform';
-                                if (rowData[isoformCol]) {
-                                    queryParts.unshift(rowData[isoformCol]);
+                                    });
+                                    var isoformCol = 'isoform';
+                                    if (rowData[isoformCol]) queryParts.unshift(rowData[isoformCol]);
+                                    var seenParts = new Set();
+                                    var uniqueParts = [];
+                                    queryParts.forEach(function(part) {
+                                        if (part && !seenParts.has(part)) { seenParts.add(part); uniqueParts.push(part); }
+                                    });
+                                    trixStrings.push(uniqueParts.join(" "));
                                 }
-                                
-                                var uniqueParts = [];
-                                var seenParts = new Set();
-                                queryParts.forEach(function(part) {
-                                    if (part && !seenParts.has(part)) {
-                                        seenParts.add(part);
-                                        uniqueParts.push(part);
-                                    }
-                                });
-
-                                var searchString = uniqueParts.join(" ");
-                                prompt("Trix search string for selected isoform:\n(You can use just the isoform ID, or any combination of the terms below)", searchString);
+                                var searchString = trixStrings.join("\n\n");
+                                prompt("Trix search string(s) for selected isoform(s):\n(One per line when multiple selected)", searchString);
                             } else {
                                 // Generate from active filters (non-range values only)
                                 var queryParts = [];
@@ -385,6 +370,25 @@
                         }
                     },
                     {
+                        text: 'Generate Filter String',
+                        action: function ( e, dt, node, config ) {
+                            var rows = dt.rows('.selected').length > 0 ? dt.rows('.selected') : dt.rows({search:'applied'});
+                            var rowData = rows.data();
+                            var isoformCol = 'isoform';
+                            var names = [];
+                            for (var i = 0; i < rowData.length; i++) {
+                                var name = rowData[i][isoformCol];
+                                if (name) names.push(String(name));
+                            }
+                            var filterString = names.join('\n');
+                            if (filterString) {
+                                prompt("Isoform names (one per line, ready to paste into Table Browser):", filterString);
+                            } else {
+                                alert("No isoform names to copy. Select rows or apply filters first.");
+                            }
+                        }
+                    },
+                    {
                         extend: 'excelHtml5',
                         title: 'SQANTI3_genic_Isoforms'
                     },
@@ -399,14 +403,9 @@
                 }
             });
             
-            // Row click handler for selection (toggle)
-            $('#isoformTable tbody').on('click', 'tr', function () {
-                if ($(this).hasClass('selected')) {
-                    $(this).removeClass('selected');
-                } else {
-                    table.$('tr.selected').removeClass('selected');
-                    $(this).addClass('selected');
-                }
+            // Row click handler for selection (toggle, multi-select)
+            $('#isoformTable tbody').on('click', 'tr', function (e) {
+                $(this).toggleClass('selected');
             });
             
             // Delegated event listener for inputs AND selects

@@ -118,6 +118,10 @@ python sqanti3_to_UCSC.py \
 | Intergenic | sienna | <span style="color:#95604E">#95604E</span> |
 | Genic intron | darkcyan | <span style="color:#2A757E">#2A757E</span> |
 
+## Viewing Specific Isoforms
+
+To view only a subset of isoforms (e.g., a few of interest): use the **Interactive HTML tables** (`--tables`), select the rows you want (click to select multiple), click **Generate Filter String**, then in UCSC go to **Tools → Table Browser**, choose your hub’s SQANTI3 track, use **Identifiers → paste list** for the newline-separated IDs, set the output format to **custom track**, and load it in the Genome Browser. See the [Filtering in UCSC](wiki/filtering_in_UCSC.md) wiki page for details.
+
 ## Trix Search
 
 The hub includes a Trix search index for finding isoforms by attribute. **All search terms use underscores** (e.g., `structural_category_full_splice_match`, `strand_plus`, `coding_coding`). Hyphens and spaces in category names are automatically normalized, so you can search with `full_splice_match` instead of remembering `full-splice_match`. Use the "Generate Trix String" button in the interactive HTML tables to get ready-to-paste search terms.

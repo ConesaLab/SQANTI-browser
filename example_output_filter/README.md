@@ -1,7 +1,7 @@
-# example_output_hg38_SQANTI3_Hub
+# example_output_filter_hg38_SQANTI3_Hub
 
 This hub displays SQANTI3 transcriptome analysis results for the hg38 genome assembly.
-This hub visualizes data from the SQANTI3 classification analysis for the example_output_hg38_SQANTI3_Hub sample.
+This hub visualizes data from the SQANTI3 classification analysis for the example_output_filter_hg38_SQANTI3_Hub sample.
 
 ## 🚀 Usage Instructions
 
@@ -39,7 +39,7 @@ Use the search box to find isoforms by attribute. **Search terms use underscores
 
 ## 👁 Viewing Only Specific Isoforms
 
-Use **Tools → Table Browser**: select this hub (listed as `hub_<name>`) and the SQANTI3 track, keep the region set to *Genome*, choose **Identifiers → paste list**, paste the newline-separated isoform IDs (from **Generate Filter String**), set **Output format** to **custom track**, and load it in the Genome Browser to view only those isoforms.
+Use **Tools → Table Browser**: select this hub (listed as `hub_<name>`) and the SQANTI3 track, keep the region at *Genome*, click **Identifiers → paste list**, and paste the newline-separated isoform IDs generated via **Generate Filter String** in the HTML tables. Output as a custom track to see only those isoforms.
 
 ## 🎨 Color Legend
 
