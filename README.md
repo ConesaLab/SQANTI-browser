@@ -79,11 +79,11 @@ python sqanti3_to_UCSC.py \
 | `--tables` | Generate interactive HTML tables for each category |
 | `--sort-by none` | Sort isoforms by (default: `none`). Options: `iso_exp`, `length`, `FL` etc. |
 | `--no-category-tracks` | Only generate the main track |
-| `--no_highlight` | Disable highlight coloring for top FL isoforms |
-| `--mypalette FILE` | Custom color palette JSON file (see `./example/example_palette.json`) |
+| `--no-highlight` | Disable highlight coloring for top FL isoforms |
+| `--my-palette FILE` | Custom color palette JSON file (see `example_palette.json`) |
 | `--star-sj SJ.out.tab` | Include STAR splice junctions track |
-| `--CAGE_peak` | Include CAGE peaks for TSS validation (requires BED file) |
-| `--polyA_peak` | Include polyA peaks for TTS validation (requires BED file) |
+| `--CAGE-peak` | Include CAGE peaks for TSS validation (requires BED file) |
+| `--polyA-peak` | Include polyA peaks for TTS validation (requires BED file) |
 | `--refGTF` | Include reference annotation for direct comparison (requires GTF file) |
 
 > 💡 **Tip:** For information on where to obtain and how to format CAGE and polyA peak files, see the [SQANTI3 wiki](https://github.com/ConesaLab/SQANTI3/wiki/Running-SQANTI3-Quality-Control#incorporating-cage-peak-data---cage_peak). See also our [Command Line Reference](wiki/command_line_reference.md#validation-tracks) for details.
@@ -120,7 +120,7 @@ python sqanti3_to_UCSC.py \
 
 ## Custom Color Palettes
 
-You can customize track colors using the `--mypalette` flag with a JSON file. See [`example_palette.json`](./example/example_palette.json) for the format.
+You can customize track colors using the `--my-palette` flag with a JSON file. See [`example_palette.json`](./example/example_palette.json) for the format.
 
 **Features:**
 - Supports both RGB arrays `[R, G, B]` and hex strings `"#RRGGBB"`
@@ -130,7 +130,7 @@ You can customize track colors using the `--mypalette` flag with a JSON file. Se
 **Example usage:**
 ```bash
 python sqanti3_to_UCSC.py --gtf corrected.gtf --classification classification.txt \
-    --output my_hub --genome hg38 --mypalette my_colors.json
+    --output my_hub --genome hg38 --my-palette my_colors.json
 ```
 
 **Minimal custom palette (only changes FSM and ISM):**

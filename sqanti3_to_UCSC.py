@@ -2005,7 +2005,8 @@ class SQANTI3ToBigBed:
             categorical_filters = {f[1]: f[2] for f in ordered_filters if f[0] == 'text'}
             numeric_filters = {f[1]: (f[2], f[3], f[4]) for f in ordered_filters if f[0] == 'range'}
             
-            f.write(f"visibility full\n")
+            # Main track: pack mode by default (typical user workflow)
+            f.write(f"visibility pack\n")
             f.write(f"group transcripts\n")
             f.write(f"itemRgb on\n")
             f.write(f"priority 1\n")
@@ -2157,7 +2158,8 @@ class SQANTI3ToBigBed:
                     f.write(f"shortLabel {short}\n")
                     f.write(f"longLabel SQANTI3 {cat} transcripts\n")
                     f.write(f"type bigBed 12 + {num_extra}\n")
-                    f.write(f"visibility full\n")
+                    # Category tracks: hidden by default (users typically use main track)
+                    f.write(f"visibility hide\n")
                     f.write(f"group transcripts\n")
                     f.write(f"itemRgb on\n")
                     f.write(f"priority 3\n")
@@ -2345,8 +2347,8 @@ def main():
     parser.add_argument('--chrom-sizes', help='Optional: Path to chromosome sizes file')
     parser.add_argument('--twobit', help='Optional: Genome .2bit file to compute chrom.sizes via twoBitInfo')
     parser.add_argument('--star-sj', help='Optional: STAR SJ.out.tab to convert into a splice junction track')
-    parser.add_argument('--CAGE_peak', dest='cage_peak', help='Optional: CAGE peaks BED file for TSS validation track')
-    parser.add_argument('--polyA_peak', dest='polya_peak', help='Optional: PolyA peaks BED file for TTS validation track')
+    parser.add_argument('--CAGE-peak', dest='cage_peak', help='Optional: CAGE peaks BED file for TSS validation track')
+    parser.add_argument('--polyA-peak', dest='polya_peak', help='Optional: PolyA peaks BED file for TTS validation track')
     parser.add_argument('--refGTF', dest='ref_gtf', help='Optional: Reference GTF file for direct comparison with SQANTI3 transcripts')
     parser.add_argument('--validate-only', action='store_true', help='Validate tools and inputs only, then exit')
     parser.add_argument('--dry-run', action='store_true', help='Prepare intermediates (BED with classification) and exit before bigBed/hub generation')
@@ -2365,9 +2367,9 @@ def main():
                              '(smallest distance first for distance metrics)')
     parser.add_argument('--no-category-tracks', action='store_true',
                         help='Only generate the main SQANTI3 track without separate tracks for each structural category')
-    parser.add_argument('--no_highlight', action='store_true',
+    parser.add_argument('--no-highlight', action='store_true',
                         help='Disable highlight coloring for top FL isoforms')
-    parser.add_argument('--mypalette', type=str, metavar='JSON_FILE',
+    parser.add_argument('--my-palette', type=str, metavar='JSON_FILE',
                         help='Custom color palette JSON file. Supports RGB arrays [R,G,B] or hex strings "#RRGGBB". '
                              'See ./example/example_palette.json for format. Partial specification allowed (missing categories use defaults).')
     
@@ -2383,8 +2385,8 @@ def main():
         sys.exit(1)
     
     # Check if custom palette file exists
-    if args.mypalette and not os.path.exists(args.mypalette):
-        logger.error(f"Custom palette file not found: {args.mypalette}")
+    if args.my_palette and not os.path.exists(args.my_palette):
+        logger.error(f"Custom palette file not found: {args.my_palette}")
         sys.exit(1)
     
     # Run conversion
@@ -2404,7 +2406,7 @@ def main():
         sort_by=args.sort_by,
         no_category_tracks=args.no_category_tracks,
         no_highlight=args.no_highlight,
-        custom_palette=args.mypalette
+        custom_palette=args.my_palette
     )
     converter.keep_temp = args.keep_temp
     success = converter.run()
