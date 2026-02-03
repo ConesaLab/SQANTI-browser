@@ -20,5 +20,11 @@
         "fusion": [139, 106, 21],
         "intergenic": [149, 96, 78],
         "genic_intron": [42, 117, 126]
+    },
+    "validation_tracks": {
+        "CAGE_peaks": [0, 128, 0],
+        "polyA_peaks": [200, 0, 0],
+        "star_sj": [21, 101, 192],
+        "reference": [70, 70, 70]
     }
 }

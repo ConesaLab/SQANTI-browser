@@ -138,7 +138,20 @@ def load_custom_palette(palette_file):
             except ValueError as e:
                 raise ValueError(f"Invalid color for highlight/{category}: {e}")
     
-    return standard_colors, highlight_colors
+    # Parse validation track colors (optional)
+    valid_validation = {"CAGE_peaks", "polyA_peaks", "star_sj", "reference"}
+    validation_colors = {}
+    if "validation_tracks" in palette_data:
+        for track, color_val in palette_data["validation_tracks"].items():
+            if track not in valid_validation:
+                logger.warning(f"Unknown validation track '{track}' in palette, skipping")
+                continue
+            try:
+                validation_colors[track] = parse_color_value(color_val)
+            except ValueError as e:
+                raise ValueError(f"Invalid color for validation_tracks/{track}: {e}")
+    
+    return standard_colors, highlight_colors, validation_colors
 
 
 def normalize_trix_token(value):
@@ -199,14 +212,20 @@ class SQANTI3ToBigBed:
         # Initialize custom palette (will be merged with defaults)
         self.custom_standard_colors = {}
         self.custom_highlight_colors = {}
+        self.custom_validation_colors = {}
         if custom_palette:
             try:
-                self.custom_standard_colors, self.custom_highlight_colors = load_custom_palette(custom_palette)
+                result = load_custom_palette(custom_palette)
+                self.custom_standard_colors, self.custom_highlight_colors = result[0], result[1]
+                if len(result) > 2:
+                    self.custom_validation_colors = result[2]
                 logger.info(f"Loaded custom palette from {custom_palette}")
                 if self.custom_standard_colors:
                     logger.info(f"  Custom standard colors: {list(self.custom_standard_colors.keys())}")
                 if self.custom_highlight_colors:
                     logger.info(f"  Custom highlight colors: {list(self.custom_highlight_colors.keys())}")
+                if self.custom_validation_colors:
+                    logger.info(f"  Custom validation track colors: {list(self.custom_validation_colors.keys())}")
             except (ValueError, FileNotFoundError) as e:
                 logger.error(f"Failed to load custom palette: {e}")
                 sys.exit(1)
@@ -236,6 +255,21 @@ class SQANTI3ToBigBed:
             logger.error("Or install them manually from: http://hgdownload.soe.ucsc.edu/admin/exe/")
             logger.error("Or use conda: conda install -c bioconda ucsc-gtftogenepred ucsc-genepredtobed ucsc-bedtobigbed")
             sys.exit(1)
+    
+    def _get_validation_track_color(self, track_name):
+        """Get RGB tuple for a validation track (CAGE_peaks, polyA_peaks, star_sj, reference)."""
+        defaults = {
+            "CAGE_peaks": (0, 128, 0),      # Green - TSS
+            "polyA_peaks": (200, 0, 0),     # Dark red - TTS
+            "star_sj": (21, 101, 192),      # Blue - splice junctions
+            "reference": (70, 70, 70),      # Gray
+        }
+        custom = getattr(self, 'custom_validation_colors', {}) or {}
+        return custom.get(track_name, defaults.get(track_name, (128, 128, 128)))
+    
+    def _pack_rgb(self, r, g, b):
+        """Pack RGB to BED itemRgb integer."""
+        return r * 65536 + g * 256 + b
     
     def _create_temp_dir(self):
         """Create temporary directory for intermediate files"""
@@ -858,6 +892,9 @@ class SQANTI3ToBigBed:
             if not chrom_sizes:
                  return None
 
+            r, g, b = self._get_validation_track_color("star_sj")
+            item_rgb = self._pack_rgb(r, g, b)
+            
             bed_file = os.path.join(self.temp_dir, "star_junctions.bed")
             with open(star_sj_file, 'r') as infile, open(bed_file, 'w') as outfile:
                 for i, line in enumerate(infile):
@@ -873,7 +910,8 @@ class SQANTI3ToBigBed:
                     multi = int(parts[7])
                     score = min(unique + multi, 1000)
                     name = f"JUNC{i+1}"
-                    outfile.write(f"{chrom}\t{start}\t{end}\t{name}\t{score}\t{strand}\n")
+                    # BED9: chrom, start, end, name, score, strand, thickStart, thickEnd, itemRgb
+                    outfile.write(f"{chrom}\t{start}\t{end}\t{name}\t{score}\t{strand}\t{start}\t{end}\t{item_rgb}\n")
             
             sorted_bed = os.path.join(self.temp_dir, "star_junctions.sorted.bed")
             env = os.environ.copy()
@@ -881,7 +919,7 @@ class SQANTI3ToBigBed:
             subprocess.run(['sort', '-k1,1', '-k2,2n', bed_file, '-o', sorted_bed], check=True, env=env)
             
             bb_file = self.output_dir / self.genome / f"{self.genome}_star_sj.bb"
-            subprocess.run(['bedToBigBed', sorted_bed, chrom_sizes, str(bb_file)], check=True)
+            subprocess.run(['bedToBigBed', '-type=bed9', sorted_bed, chrom_sizes, str(bb_file)], check=True)
             logger.info(f"STAR bigBed created: {bb_file}")
             return bb_file
         except Exception as e:
@@ -923,7 +961,10 @@ class SQANTI3ToBigBed:
             env = os.environ.copy()
             env["LC_COLLATE"] = "C"
             
-            # Filter cage_file to only include chromosomes in valid_chroms AND within bounds
+            r, g, b = self._get_validation_track_color("CAGE_peaks")
+            item_rgb = self._pack_rgb(r, g, b)
+            
+            # Filter and convert to BED9 with embedded itemRgb
             filtered_bed = os.path.join(self.temp_dir, "cage_peaks_filtered.bed")
             filtered_count = 0
             total_count = 0
@@ -932,22 +973,29 @@ class SQANTI3ToBigBed:
             with open(cage_file, 'r') as infile, open(filtered_bed, 'w') as outfile:
                 for line in infile:
                     total_count += 1
-                    parts = line.split('\t')
+                    parts = line.rstrip('\n').split('\t')
                     if parts and len(parts) >= 3 and parts[0] in valid_chroms:
                         try:
-                            # Check bounds: end position must be <= chrom size
-                            # BED end is 0-based exclusive, chrom size is 1-based length
-                            # So end coordinate can be at most chrom_size
                             chrom = parts[0]
+                            start = int(parts[1])
                             end_pos = int(parts[2])
+                            name = parts[3] if len(parts) > 3 else "."
+                            score = parts[4] if len(parts) > 4 else "0"
+                            strand = parts[5] if len(parts) > 5 else "."
+                            if strand not in ('+', '-', '.'):
+                                strand = "."
+                            try:
+                                score = int(float(score))
+                                score = max(0, min(score, 1000))
+                            except (ValueError, TypeError):
+                                score = 0
                             
                             if end_pos <= valid_chroms[chrom]:
-                                outfile.write(line)
+                                outfile.write(f"{chrom}\t{start}\t{end_pos}\t{name}\t{score}\t{strand}\t{start}\t{end_pos}\t{item_rgb}\n")
                                 filtered_count += 1
                             else:
                                 skipped_bounds += 1
-                        except ValueError:
-                            # Skip lines with non-integer coordinates
+                        except (ValueError, IndexError):
                             continue
             
             if filtered_count == 0:
@@ -956,43 +1004,12 @@ class SQANTI3ToBigBed:
             
             if filtered_count < total_count:
                 logger.warning(f"Filtered CAGE peaks to match genome: {filtered_count}/{total_count} peaks kept. ({skipped_bounds} out of bounds, {total_count - filtered_count - skipped_bounds} on unknown chromosomes)")
-
-            # Read first line to determine number of columns to set bigBed type
-            num_cols = 0
-            with open(filtered_bed, 'r') as f:
-                line = f.readline()
-                if line:
-                    num_cols = len(line.strip().split('\t'))
-            
-            if num_cols < 3:
-                logger.error("CAGE file must have at least 3 columns")
-                return None
                 
             sorted_bed = os.path.join(self.temp_dir, "cage_peaks.sorted.bed")
             subprocess.run(['sort', '-k1,1', '-k2,2n', filtered_bed, '-o', sorted_bed], check=True, env=env)
             
             bb_file = self.output_dir / self.genome / f"{self.genome}_cage_peaks.bb"
-            
-            # Determine type argument (e.g., bed9)
-            # Default to bed6 if uncertain, but example suggests bed9
-            # bedToBigBed will fail if type doesn't match column count
-            type_arg = f"bed{min(num_cols, 12)}"
-            
-            # Special handling for bed9: columns 7-9 are thickStart, thickEnd, itemRgb
-            # If the file has 9 columns, bedToBigBed expects them to be thickStart, thickEnd, itemRgb
-            if num_cols == 9:
-                type_arg = "bed9"
-            elif num_cols > 9:
-                # If > 9 cols, we specify bed9+N
-                type_arg = f"bed9+{num_cols-9}"
-            
-            # If using AutoSQL, we could be more specific, but for now we rely on standard BED types
-            
-            # For the specific example file: human.refTSS_v3.1.hg38.bed
-            # It has 9 columns. UCSC bedToBigBed needs correct type.
-            # If it has 9 cols, we use bed9
-            
-            subprocess.run(['bedToBigBed', f'-type={type_arg}', '-tab', sorted_bed, chrom_sizes, str(bb_file)], check=True)
+            subprocess.run(['bedToBigBed', '-type=bed9', '-tab', sorted_bed, chrom_sizes, str(bb_file)], check=True)
             logger.info(f"CAGE bigBed created: {bb_file}")
             return bb_file
         except Exception as e:
@@ -1030,7 +1047,10 @@ class SQANTI3ToBigBed:
             env = os.environ.copy()
             env["LC_COLLATE"] = "C"
             
-            # Filter polya_file to only include chromosomes in valid_chroms AND within bounds
+            r, g, b = self._get_validation_track_color("polyA_peaks")
+            item_rgb = self._pack_rgb(r, g, b)
+            
+            # Filter and convert to BED9 with embedded itemRgb
             filtered_bed = os.path.join(self.temp_dir, "polya_peaks_filtered.bed")
             filtered_count = 0
             total_count = 0
@@ -1039,22 +1059,30 @@ class SQANTI3ToBigBed:
             with open(polya_file, 'r') as infile, open(filtered_bed, 'w') as outfile:
                 for line in infile:
                     total_count += 1
-                    parts = line.split('\t')
+                    parts = line.rstrip('\n').split('\t')
                     if parts and len(parts) >= 3 and parts[0] in valid_chroms:
                         try:
-                            # Check bounds: end position must be <= chrom size
-                            # BED end is 0-based exclusive, chrom size is 1-based length
-                            # So end coordinate can be at most chrom_size
                             chrom = parts[0]
+                            start = int(parts[1])
                             end_pos = int(parts[2])
+                            name = parts[3] if len(parts) > 3 else "."
+                            score_val = parts[4] if len(parts) > 4 else "0"
+                            strand = parts[5] if len(parts) > 5 else "."
+                            if strand not in ('+', '-', '.'):
+                                strand = "."
+                            try:
+                                score_float = float(score_val)
+                                score = min(int(score_float * 1000), 1000)
+                                score = max(0, score)
+                            except (ValueError, TypeError):
+                                score = 0
                             
                             if end_pos <= valid_chroms[chrom]:
-                                outfile.write(line)
+                                outfile.write(f"{chrom}\t{start}\t{end_pos}\t{name}\t{score}\t{strand}\t{start}\t{end_pos}\t{item_rgb}\n")
                                 filtered_count += 1
                             else:
                                 skipped_bounds += 1
-                        except ValueError:
-                            # Skip lines with non-integer coordinates
+                        except (ValueError, IndexError):
                             continue
             
             if filtered_count == 0:
@@ -1063,51 +1091,12 @@ class SQANTI3ToBigBed:
             
             if filtered_count < total_count:
                 logger.warning(f"Filtered PolyA peaks to match genome: {filtered_count}/{total_count} peaks kept. ({skipped_bounds} out of bounds, {total_count - filtered_count - skipped_bounds} on unknown chromosomes)")
-
-            # PolyA peaks often have float scores in column 5, but BED format requires integers (0-1000)
-            # Convert the score column to integers
-            corrected_bed = os.path.join(self.temp_dir, "polya_peaks_corrected.bed")
-            with open(filtered_bed, 'r') as infile, open(corrected_bed, 'w') as outfile:
-                for line in infile:
-                    parts = line.rstrip('\n').split('\t')
-                    if len(parts) >= 5:
-                        try:
-                            # Convert float score to integer (0-1000 range)
-                            # Option 1: multiply by 1000 and cap at 1000
-                            score_float = float(parts[4])
-                            score_int = min(int(score_float * 1000), 1000)
-                            parts[4] = str(score_int)
-                        except ValueError:
-                            # If conversion fails, set to 0
-                            parts[4] = '0'
-                    outfile.write('\t'.join(parts) + '\n')
-
-            # Read first line to determine number of columns to set bigBed type
-            num_cols = 0
-            with open(corrected_bed, 'r') as f:
-                line = f.readline()
-                if line:
-                    num_cols = len(line.strip().split('\t'))
-            
-            if num_cols < 3:
-                logger.error("PolyA file must have at least 3 columns")
-                return None
                 
             sorted_bed = os.path.join(self.temp_dir, "polya_peaks.sorted.bed")
-            subprocess.run(['sort', '-k1,1', '-k2,2n', corrected_bed, '-o', sorted_bed], check=True, env=env)
+            subprocess.run(['sort', '-k1,1', '-k2,2n', filtered_bed, '-o', sorted_bed], check=True, env=env)
             
             bb_file = self.output_dir / self.genome / f"{self.genome}_polya_peaks.bb"
-            
-            # PolyA peaks file format is actually BED6+ with extra fields, not true BED9
-            # Columns: chrom, start, end, name, score, strand, [extra fields...]
-            # Use bed6+N instead of bed9+N
-            if num_cols <= 6:
-                type_arg = f"bed{num_cols}"
-            else:
-                # BED6 + extra fields
-                type_arg = f"bed6+{num_cols-6}"
-            
-            subprocess.run(['bedToBigBed', f'-type={type_arg}', '-tab', sorted_bed, chrom_sizes, str(bb_file)], check=True)
+            subprocess.run(['bedToBigBed', '-type=bed9', '-tab', sorted_bed, chrom_sizes, str(bb_file)], check=True)
             logger.info(f"PolyA bigBed created: {bb_file}")
             return bb_file
         except Exception as e:
@@ -2029,7 +2018,8 @@ class SQANTI3ToBigBed:
                 f.write(f"bigDataUrl {self._get_relative_path(star_bb_name)}\n")
                 f.write(f"shortLabel STAR Junctions\n")
                 f.write(f"longLabel STAR splice junctions (SJ.out.tab)\n")
-                f.write(f"type bigBed 6\n")
+                f.write(f"type bigBed 9\n")
+                f.write(f"itemRgb on\n")
                 f.write(f"visibility full\n")
                 f.write(f"group validation\n")
                 f.write(f"priority 2\n")
@@ -2044,14 +2034,11 @@ class SQANTI3ToBigBed:
                 f.write(f"bigDataUrl {self._get_relative_path(cage_bb_name)}\n")
                 f.write(f"shortLabel CAGE Peaks\n")
                 f.write(f"longLabel CAGE Peaks (TSS Validation)\n")
-                # Use bed9 if colors are present, otherwise bed6 or whatever was detected
-                # The file type isn't strictly checked by hubCheck here but bedToBigBed cares
-                # Ideally we pass the type determined during creation, but for now we'll assume standard
-                f.write(f"type bigBed\n") 
+                f.write(f"type bigBed 9\n")
+                f.write(f"itemRgb on\n")
                 f.write(f"visibility dense\n")
                 f.write(f"group validation\n")
                 f.write(f"priority 3\n")
-                f.write(f"color 0,128,0\n") # Green color for CAGE peaks
                 if cage_html_name:
                     f.write(f"html {self._get_relative_path(cage_html_name)}\n")
 
@@ -2063,11 +2050,11 @@ class SQANTI3ToBigBed:
                 f.write(f"bigDataUrl {self._get_relative_path(polya_bb_name)}\n")
                 f.write(f"shortLabel PolyA Peaks\n")
                 f.write(f"longLabel PolyA Site Peaks (TTS Validation)\n")
-                f.write(f"type bigBed\n") 
+                f.write(f"type bigBed 9\n")
+                f.write(f"itemRgb on\n")
                 f.write(f"visibility dense\n")
                 f.write(f"group validation\n")
                 f.write(f"priority 4\n")
-                f.write(f"color 200,0,0\n") # Dark red for PolyA peaks
                 if polya_html_name:
                     f.write(f"html {self._get_relative_path(polya_html_name)}\n")
 

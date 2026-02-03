@@ -79,6 +79,7 @@ def run_example():
     print("- Add CAGE peaks for TSS validation: --CAGE-peak <CAGE_peaks.bed>")
     print("- Add PolyA peaks for TTS validation: --polyA-peak <polyA_peaks.bed>")
     print("- Add reference annotation for comparison: --refGTF <reference.gtf>")
+    print("  (Validation tracks show by default when the hub is opened; colors are embedded in bigBed)")
     print("- Use a genome .2bit to compute chrom.sizes: --twobit <genome.2bit>")
     print("- Sort isoforms by metric (iso_exp, length, FL, etc.): --sort-by <metric>")
     print("- Skip category-specific tracks: --no-category-tracks")
