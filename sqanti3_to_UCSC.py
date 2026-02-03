@@ -2246,6 +2246,10 @@ You can filter transcripts using dropdown menus and range sliders:
 
 *Right-click on the track and select "Configure" or "Filter" to access these controls.*
 
+## 🔎 Trix Search
+
+Use the search box to find isoforms by attribute. **Search terms use underscores** (e.g., `structural_category_full_splice_match`, `strand_plus`). Category names like `full-splice_match` are indexed as `full_splice_match` so you can search without remembering hyphens.
+
 {color_legend_md}
 """)
 
