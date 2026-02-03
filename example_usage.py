@@ -83,6 +83,7 @@ def run_example():
     print("- Sort isoforms by metric (iso_exp, length, FL, etc.): --sort-by <metric>")
     print("- Skip category-specific tracks: --no-category-tracks")
     print("- Disable highlighted top FL isoforms: --no_highlight")
+    print("- Use custom color palette: --mypalette <palette.json>")
     print("- Validate tools/inputs only (no outputs): --validate-only")
     print("- Dry run (build enhanced BED, skip bigBed/hub): --dry-run")
     print()

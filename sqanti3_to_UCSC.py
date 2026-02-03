@@ -17,6 +17,7 @@ import sys
 import subprocess
 import tempfile
 import shutil
+import json
 from pathlib import Path
 import pandas as pd
 import logging
@@ -30,6 +31,114 @@ try:
     from filter_isoforms import generate_html_reports
 except ImportError:
     generate_html_reports = None
+
+
+# ============================================================================
+# Custom Palette Helper Functions
+# ============================================================================
+
+def parse_color_value(color_value):
+    """Parse a color value from RGB array or hex string to RGB tuple.
+    
+    Args:
+        color_value: Either an RGB array [R, G, B] or hex string "#RRGGBB" or "RRGGBB"
+        
+    Returns:
+        Tuple of (R, G, B) integers
+        
+    Raises:
+        ValueError: If color format is invalid
+    """
+    if isinstance(color_value, (list, tuple)):
+        if len(color_value) != 3:
+            raise ValueError(f"RGB array must have exactly 3 values, got {len(color_value)}")
+        r, g, b = color_value
+        if not all(isinstance(v, (int, float)) and 0 <= v <= 255 for v in [r, g, b]):
+            raise ValueError(f"RGB values must be integers between 0-255, got {color_value}")
+        return (int(r), int(g), int(b))
+    elif isinstance(color_value, str):
+        # Handle hex strings
+        hex_str = color_value.lstrip('#')
+        if len(hex_str) != 6:
+            raise ValueError(f"Hex color must be 6 characters (RRGGBB), got '{color_value}'")
+        try:
+            r = int(hex_str[0:2], 16)
+            g = int(hex_str[2:4], 16)
+            b = int(hex_str[4:6], 16)
+            return (r, g, b)
+        except ValueError:
+            raise ValueError(f"Invalid hex color string: '{color_value}'")
+    else:
+        raise ValueError(f"Color must be RGB array or hex string, got {type(color_value)}")
+
+
+def darken_color(rgb_tuple, factor=0.64):
+    """Darken an RGB color by multiplying each channel by a factor.
+    
+    Args:
+        rgb_tuple: Tuple of (R, G, B) integers
+        factor: Multiplication factor (0.0-1.0), default 0.64
+        
+    Returns:
+        Tuple of darkened (R, G, B) integers
+    """
+    r, g, b = rgb_tuple
+    return (int(r * factor), int(g * factor), int(b * factor))
+
+
+def load_custom_palette(palette_file):
+    """Load and validate a custom color palette from a JSON file.
+    
+    Args:
+        palette_file: Path to JSON file containing palette definition
+        
+    Returns:
+        Tuple of (standard_colors, highlight_colors) dictionaries mapping
+        category names to RGB tuples
+        
+    Raises:
+        ValueError: If JSON is invalid or contains invalid colors
+        FileNotFoundError: If palette file doesn't exist
+    """
+    valid_categories = {
+        "full-splice_match", "incomplete-splice_match", "novel_in_catalog",
+        "novel_not_in_catalog", "genic", "antisense", "fusion", 
+        "intergenic", "genic_intron"
+    }
+    
+    with open(palette_file, 'r') as f:
+        try:
+            palette_data = json.load(f)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in palette file: {e}")
+    
+    standard_colors = {}
+    highlight_colors = {}
+    
+    # Parse standard colors
+    if "standard" in palette_data:
+        for category, color_val in palette_data["standard"].items():
+            if category not in valid_categories:
+                logger.warning(f"Unknown category '{category}' in palette file, skipping")
+                continue
+            try:
+                standard_colors[category] = parse_color_value(color_val)
+            except ValueError as e:
+                raise ValueError(f"Invalid color for standard/{category}: {e}")
+    
+    # Parse highlight colors (optional)
+    if "highlight" in palette_data:
+        for category, color_val in palette_data["highlight"].items():
+            if category not in valid_categories:
+                logger.warning(f"Unknown category '{category}' in highlight palette, skipping")
+                continue
+            try:
+                highlight_colors[category] = parse_color_value(color_val)
+            except ValueError as e:
+                raise ValueError(f"Invalid color for highlight/{category}: {e}")
+    
+    return standard_colors, highlight_colors
+
 
 class SQANTI3ToBigBed:
     # Valid sort-by options for isoform ordering
@@ -45,7 +154,7 @@ class SQANTI3ToBigBed:
         'dist_to_polyA_site'  # Distance to polyA site
     ]
     
-    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, ref_gtf=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='none', no_category_tracks=False, no_highlight=False):
+    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, ref_gtf=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='none', no_category_tracks=False, no_highlight=False, custom_palette=None):
         self.gtf_file = gtf_file
         self.classification_file = classification_file
         self.output_dir = Path(output_dir)
@@ -68,6 +177,21 @@ class SQANTI3ToBigBed:
         self.keep_temp = False
         self.category_bigbeds = {}
         self.sort_by = sort_by
+        
+        # Initialize custom palette (will be merged with defaults)
+        self.custom_standard_colors = {}
+        self.custom_highlight_colors = {}
+        if custom_palette:
+            try:
+                self.custom_standard_colors, self.custom_highlight_colors = load_custom_palette(custom_palette)
+                logger.info(f"Loaded custom palette from {custom_palette}")
+                if self.custom_standard_colors:
+                    logger.info(f"  Custom standard colors: {list(self.custom_standard_colors.keys())}")
+                if self.custom_highlight_colors:
+                    logger.info(f"  Custom highlight colors: {list(self.custom_highlight_colors.keys())}")
+            except (ValueError, FileNotFoundError) as e:
+                logger.error(f"Failed to load custom palette: {e}")
+                sys.exit(1)
         
         # Create output directory (handles both relative and absolute paths)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -358,30 +482,50 @@ class SQANTI3ToBigBed:
             def pack_rgb(r, g, b):
                 return r * 65536 + g * 256 + b
             
-            cat_palette = {
-                "full-splice_match": pack_rgb(107, 174, 214),
-                "incomplete-splice_match": pack_rgb(252, 141, 89),
-                "novel_in_catalog": pack_rgb(120, 198, 121),
-                "novel_not_in_catalog": pack_rgb(214, 47, 75),
-                "genic": pack_rgb(150, 150, 150),
-                "antisense": pack_rgb(102, 194, 164),
-                "fusion": pack_rgb(218, 165, 32),
-                "intergenic": pack_rgb(233, 150, 122),
-                "genic_intron": pack_rgb(65, 182, 196),
-                "NA": pack_rgb(200, 200, 200)
+            # Default color palettes
+            default_standard = {
+                "full-splice_match": (107, 174, 214),
+                "incomplete-splice_match": (252, 141, 89),
+                "novel_in_catalog": (120, 198, 121),
+                "novel_not_in_catalog": (214, 47, 75),
+                "genic": (150, 150, 150),
+                "antisense": (102, 194, 164),
+                "fusion": (218, 165, 32),
+                "intergenic": (233, 150, 122),
+                "genic_intron": (65, 182, 196),
+                "NA": (200, 200, 200)
             }
 
-            highlight_palette = {
-                "full-splice_match": pack_rgb(69, 111, 137),
-                "incomplete-splice_match": pack_rgb(202, 113, 71),
-                "novel_in_catalog": pack_rgb(77, 126, 78),
-                "novel_not_in_catalog": pack_rgb(152, 7, 31),
-                "genic": pack_rgb(96, 96, 96),
-                "antisense": pack_rgb(66, 124, 105),
-                "fusion": pack_rgb(139, 106, 21),
-                "intergenic": pack_rgb(149, 96, 78),
-                "genic_intron": pack_rgb(42, 117, 126),
+            default_highlight = {
+                "full-splice_match": (69, 111, 137),
+                "incomplete-splice_match": (202, 113, 71),
+                "novel_in_catalog": (77, 126, 78),
+                "novel_not_in_catalog": (152, 7, 31),
+                "genic": (96, 96, 96),
+                "antisense": (66, 124, 105),
+                "fusion": (139, 106, 21),
+                "intergenic": (149, 96, 78),
+                "genic_intron": (42, 117, 126),
             }
+            
+            # Merge custom colors with defaults (custom takes precedence)
+            final_standard = {**default_standard}
+            if self.custom_standard_colors:
+                final_standard.update(self.custom_standard_colors)
+            
+            # For highlight: use custom if provided, else auto-darken custom standard, else use default
+            final_highlight = {**default_highlight}
+            if self.custom_highlight_colors:
+                final_highlight.update(self.custom_highlight_colors)
+            elif self.custom_standard_colors:
+                # Auto-generate highlight colors by darkening custom standard colors
+                for cat, rgb in self.custom_standard_colors.items():
+                    if cat not in self.custom_highlight_colors:
+                        final_highlight[cat] = darken_color(rgb)
+            
+            # Convert RGB tuples to packed integers
+            cat_palette = {cat: pack_rgb(*rgb) for cat, rgb in final_standard.items()}
+            highlight_palette = {cat: pack_rgb(*rgb) for cat, rgb in final_highlight.items()}
             
             default_color = pack_rgb(200, 200, 200)
             
@@ -1477,17 +1621,31 @@ class SQANTI3ToBigBed:
 {filter_options_html}
     
     <h2>Color Legend</h2>
+    <h3>Standard Colors</h3>
     <table>
-        <tr><th>Category</th><th>Color</th></tr>
-        <tr><td><span class="color-box" style="background-color: #6BAED6;"></span>Full-splice match (FSM)</td><td>#6BAED6</td></tr>
-        <tr><td><span class="color-box" style="background-color: #FC8D59;"></span>Incomplete-splice match (ISM)</td><td>#FC8D59</td></tr>
-        <tr><td><span class="color-box" style="background-color: #78C679;"></span>Novel in catalog (NIC)</td><td>#78C679</td></tr>
-        <tr><td><span class="color-box" style="background-color: #EE6A50;"></span>Novel not in catalog (NNC)</td><td>#EE6A50</td></tr>
-        <tr><td><span class="color-box" style="background-color: #969696;"></span>Genic</td><td>#969696</td></tr>
-        <tr><td><span class="color-box" style="background-color: #66C2A4;"></span>Antisense</td><td>#66C2A4</td></tr>
-        <tr><td><span class="color-box" style="background-color: #DAA520;"></span>Fusion</td><td>#DAA520</td></tr>
-        <tr><td><span class="color-box" style="background-color: #E9967A;"></span>Intergenic</td><td>#E9967A</td></tr>
-        <tr><td><span class="color-box" style="background-color: #41B6C4;"></span>Genic intron</td><td>#41B6C4</td></tr>
+        <tr><th>Category</th><th>SVG Color Name</th><th>Hex Code</th></tr>
+        <tr><td><span class="color-box" style="background-color: #6BAED6;"></span>Full-splice match (FSM)</td><td>cornflowerblue</td><td>#6BAED6</td></tr>
+        <tr><td><span class="color-box" style="background-color: #FC8D59;"></span>Incomplete-splice match (ISM)</td><td>coral</td><td>#FC8D59</td></tr>
+        <tr><td><span class="color-box" style="background-color: #78C679;"></span>Novel in catalog (NIC)</td><td>mediumseagreen</td><td>#78C679</td></tr>
+        <tr><td><span class="color-box" style="background-color: #D62F4B;"></span>Novel not in catalog (NNC)</td><td>crimson</td><td>#D62F4B</td></tr>
+        <tr><td><span class="color-box" style="background-color: #969696;"></span>Genic</td><td>darkgray</td><td>#969696</td></tr>
+        <tr><td><span class="color-box" style="background-color: #66C2A4;"></span>Antisense</td><td>mediumaquamarine</td><td>#66C2A4</td></tr>
+        <tr><td><span class="color-box" style="background-color: #DAA520;"></span>Fusion</td><td>goldenrod</td><td>#DAA520</td></tr>
+        <tr><td><span class="color-box" style="background-color: #E9967A;"></span>Intergenic</td><td>darksalmon</td><td>#E9967A</td></tr>
+        <tr><td><span class="color-box" style="background-color: #41B6C4;"></span>Genic intron</td><td>mediumturquoise</td><td>#41B6C4</td></tr>
+    </table>
+    <h3>Highlight Colors (top FL isoform per group)</h3>
+    <table>
+        <tr><th>Category</th><th>SVG Color Name</th><th>Hex Code</th></tr>
+        <tr><td><span class="color-box" style="background-color: #456F89;"></span>Full-splice match (FSM)</td><td>steelblue</td><td>#456F89</td></tr>
+        <tr><td><span class="color-box" style="background-color: #CA7147;"></span>Incomplete-splice match (ISM)</td><td>peru</td><td>#CA7147</td></tr>
+        <tr><td><span class="color-box" style="background-color: #4D7E4E;"></span>Novel in catalog (NIC)</td><td>seagreen</td><td>#4D7E4E</td></tr>
+        <tr><td><span class="color-box" style="background-color: #98071F;"></span>Novel not in catalog (NNC)</td><td>darkred</td><td>#98071F</td></tr>
+        <tr><td><span class="color-box" style="background-color: #606060;"></span>Genic</td><td>dimgray</td><td>#606060</td></tr>
+        <tr><td><span class="color-box" style="background-color: #427C69;"></span>Antisense</td><td>cadetblue</td><td>#427C69</td></tr>
+        <tr><td><span class="color-box" style="background-color: #8B6A15;"></span>Fusion</td><td>darkgoldenrod</td><td>#8B6A15</td></tr>
+        <tr><td><span class="color-box" style="background-color: #95604E;"></span>Intergenic</td><td>sienna</td><td>#95604E</td></tr>
+        <tr><td><span class="color-box" style="background-color: #2A757E;"></span>Genic intron</td><td>darkcyan</td><td>#2A757E</td></tr>
     </table>
 </div>
 </body>
@@ -1951,15 +2109,29 @@ You can filter transcripts using dropdown menus and range sliders:
 
 ## 🎨 Color Legend
 
-- **Full-splice Match (FSM):** #6BAED6 (Blue)
-- **Incomplete-splice Match (ISM):** #FC8D59 (Orange)
-- **Novel In Catalog (NIC):** #78C679 (Green)
-- **Novel Not In Catalog (NNC):** #EE6A50 (Red)
-- **Genic:** #969696 (Gray)
-- **Antisense:** #66C2A4 (Teal)
-- **Fusion:** #DAA520 (Gold)
-- **Intergenic:** #E9967A (Salmon)
-- **Genic Intron:** #41B6C4 (Cyan)
+### Standard Colors
+
+- **Full-splice Match (FSM):** #6BAED6 (cornflowerblue)
+- **Incomplete-splice Match (ISM):** #FC8D59 (coral)
+- **Novel In Catalog (NIC):** #78C679 (mediumseagreen)
+- **Novel Not In Catalog (NNC):** #D62F4B (crimson)
+- **Genic:** #969696 (darkgray)
+- **Antisense:** #66C2A4 (mediumaquamarine)
+- **Fusion:** #DAA520 (goldenrod)
+- **Intergenic:** #E9967A (darksalmon)
+- **Genic Intron:** #41B6C4 (mediumturquoise)
+
+### Highlight Colors (top FL isoform per group)
+
+- **Full-splice Match (FSM):** #456F89 (steelblue)
+- **Incomplete-splice Match (ISM):** #CA7147 (peru)
+- **Novel In Catalog (NIC):** #4D7E4E (seagreen)
+- **Novel Not In Catalog (NNC):** #98071F (darkred)
+- **Genic:** #606060 (dimgray)
+- **Antisense:** #427C69 (cadetblue)
+- **Fusion:** #8B6A15 (darkgoldenrod)
+- **Intergenic:** #95604E (sienna)
+- **Genic Intron:** #2A757E (darkcyan)
 """)
 
         logger.info("Hub files created successfully")
@@ -2082,6 +2254,9 @@ def main():
                         help='Only generate the main SQANTI3 track without separate tracks for each structural category')
     parser.add_argument('--no_highlight', action='store_true',
                         help='Disable highlight coloring for top FL isoforms')
+    parser.add_argument('--mypalette', type=str, metavar='JSON_FILE',
+                        help='Custom color palette JSON file. Supports RGB arrays [R,G,B] or hex strings "#RRGGBB". '
+                             'See ./example/example_palette.json for format. Partial specification allowed (missing categories use defaults).')
     
     args = parser.parse_args()
     
@@ -2092,6 +2267,11 @@ def main():
     
     if not os.path.exists(args.classification):
         logger.error(f"Classification file not found: {args.classification}")
+        sys.exit(1)
+    
+    # Check if custom palette file exists
+    if args.mypalette and not os.path.exists(args.mypalette):
+        logger.error(f"Custom palette file not found: {args.mypalette}")
         sys.exit(1)
     
     # Run conversion
@@ -2110,7 +2290,8 @@ def main():
         dry_run=args.dry_run,
         sort_by=args.sort_by,
         no_category_tracks=args.no_category_tracks,
-        no_highlight=args.no_highlight
+        no_highlight=args.no_highlight,
+        custom_palette=args.mypalette
     )
     converter.keep_temp = args.keep_temp
     success = converter.run()
