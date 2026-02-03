@@ -4,6 +4,69 @@ import os
 import json
 from pathlib import Path
 import sys
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Default color palettes (RGB tuples)
+DEFAULT_STANDARD_PALETTE = {
+    "full-splice_match": (107, 174, 214),
+    "incomplete-splice_match": (252, 141, 89),
+    "novel_in_catalog": (120, 198, 121),
+    "novel_not_in_catalog": (214, 47, 75),
+    "genic": (150, 150, 150),
+    "antisense": (102, 194, 164),
+    "fusion": (218, 165, 32),
+    "intergenic": (233, 150, 122),
+    "genic_intron": (65, 182, 196),
+}
+
+def rgb_to_hex(rgb):
+    """Convert RGB tuple to hex string."""
+    return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
+
+def get_category_color(category, palette=None):
+    """Get hex color for a category, using custom palette if provided."""
+    if palette is None:
+        palette = DEFAULT_STANDARD_PALETTE
+    rgb = palette.get(category, (200, 200, 200))
+    return rgb_to_hex(rgb)
+
+
+def generate_category_svg(category, palette=None, include_reference=True):
+    """Generate SVG for a structural category with custom color."""
+    color = get_category_color(category, palette)
+    
+    # SVG templates with placeholders for color
+    if include_reference:
+        # Full SVGs with reference (for individual category reports)
+        templates = {
+            "full-splice_match": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="190" y2="52" stroke="{color}" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="{color}" rx="2"/><rect x="80" y="48" width="40" height="8" fill="{color}" rx="2"/><rect x="150" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (FSM)</text></svg>''',
+            "incomplete-splice_match": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="80" y1="52" x2="190" y2="52" stroke="{color}" stroke-width="2" /><rect x="80" y="48" width="40" height="8" fill="{color}" rx="2"/><rect x="150" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (ISM)</text></svg>''',
+            "novel_in_catalog": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="190" y2="52" stroke="{color}" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="{color}" rx="2"/><rect x="150" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (NIC)</text></svg>''',
+            "novel_not_in_catalog": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="190" y2="52" stroke="{color}" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="{color}" rx="2"/><rect x="80" y="48" width="60" height="8" fill="{color}" rx="2"/><rect x="150" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="130" y="40" font-size="10" fill="{color}" text-anchor="middle">New Site</text><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (NNC)</text></svg>''',
+            "genic_intron": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><rect x="80" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Intron)</text></svg>''',
+            "genic": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="120" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><rect x="40" y="48" width="60" height="8" fill="{color}" rx="2"/><text x="70" y="70" font-size="10" fill="{color}" text-anchor="middle">Overlap</text><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Genic)</text></svg>''',
+            "antisense": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="120" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><text x="130" y="15" font-size="12">→</text><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference (+)</text><line x1="10" y1="52" x2="120" y2="52" stroke="{color}" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="{color}" rx="2"/><rect x="80" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="130" y="55" font-size="12" fill="{color}">←</text><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (-)</text></svg>''',
+            "intergenic": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><rect x="140" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Inter)</text></svg>''',
+            "fusion": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><text x="55" y="15" font-size="10">Gene A</text><rect x="140" y="8" width="40" height="8" fill="black" rx="2"/><text x="185" y="15" font-size="10">Gene B</text><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="180" y2="52" stroke="{color}" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="{color}" rx="2"/><rect x="140" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Fusion)</text></svg>'''
+        }
+    else:
+        # Overview SVGs without reference (for complete transcriptome report)
+        templates = {
+            "full-splice_match": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="{color}" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="{color}" rx="2"/><rect x="80" y="26" width="40" height="8" fill="{color}" rx="2"/><rect x="150" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (FSM)</text></svg>''',
+            "incomplete-splice_match": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="80" y1="30" x2="190" y2="30" stroke="{color}" stroke-width="2" /><rect x="80" y="26" width="40" height="8" fill="{color}" rx="2"/><rect x="150" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (ISM)</text></svg>''',
+            "novel_in_catalog": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="{color}" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="{color}" rx="2"/><rect x="150" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (NIC)</text></svg>''',
+            "novel_not_in_catalog": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="{color}" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="{color}" rx="2"/><rect x="80" y="26" width="60" height="8" fill="{color}" rx="2"/><rect x="150" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="130" y="18" font-size="10" fill="{color}" text-anchor="middle">New Site</text><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (NNC)</text></svg>''',
+            "genic_intron": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><rect x="80" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Intron)</text></svg>''',
+            "genic": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><rect x="40" y="26" width="60" height="8" fill="{color}" rx="2"/><text x="70" y="48" font-size="10" fill="{color}" text-anchor="middle">Overlap</text><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Genic)</text></svg>''',
+            "antisense": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="120" y2="30" stroke="{color}" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="{color}" rx="2"/><rect x="80" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="130" y="33" font-size="12" fill="{color}">←</text><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (-)</text></svg>''',
+            "intergenic": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><rect x="140" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Inter)</text></svg>''',
+            "fusion": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="180" y2="30" stroke="{color}" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="{color}" rx="2"/><rect x="140" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Fusion)</text></svg>'''
+        }
+    
+    return templates.get(category, "")
 
 # HTML Template with DataTables
 # We use CDNs for jQuery and DataTables. 
@@ -470,9 +533,13 @@ CATEGORY_SVGS_OVERVIEW = {
     "fusion": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="180" y2="30" stroke="#DAA520" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#DAA520" rx="2"/><rect x="140" y="26" width="40" height="8" fill="#DAA520" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#DAA520" font-weight="bold">Isoform (Fusion)</text></svg>'''
 }
 
-def build_category_overview_html(categories_present=None):
+def build_category_overview_html(categories_present=None, palette=None):
     """
     Build an HTML block with SVGs and definitions for structural categories.
+    
+    Args:
+        categories_present: Set of categories to include (defaults to all)
+        palette: Optional custom color palette (dict of category -> RGB tuple)
     """
     if categories_present is None:
         categories_present = set(CATEGORY_ORDER)
@@ -493,7 +560,8 @@ def build_category_overview_html(categories_present=None):
         definition = CATEGORY_DEFINITIONS.get(cat)
         if not definition:
             continue
-        svg = CATEGORY_SVGS_OVERVIEW.get(cat, CATEGORY_SVGS.get(cat, ""))
+        # Generate SVG with custom colors if palette provided
+        svg = generate_category_svg(cat, palette, include_reference=False)
         blocks.append(
             f"""
             <div style="display: flex; align-items: center; gap: 8px; margin: 2px 0; padding: 0;">
@@ -508,9 +576,15 @@ def build_category_overview_html(categories_present=None):
     
     return "\n".join(blocks)
 
-def generate_html_reports(classification_file, output_dir, include_sequences=False):
+def generate_html_reports(classification_file, output_dir, include_sequences=False, custom_palette=None):
     """
     Generate HTML reports for each structural category in the classification file.
+    
+    Args:
+        classification_file: Path to SQANTI3 classification file
+        output_dir: Output directory for HTML reports
+        include_sequences: Whether to include ORF_seq column
+        custom_palette: Optional custom color palette (dict of category -> RGB tuple)
     """
     # Opt-in to future pandas behavior to silence downcasting warnings
     try:
@@ -518,11 +592,11 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
     except Exception:
         pass
 
-    print(f"Reading classification file: {classification_file}")
+    logger.info(f"Reading classification file: {classification_file}")
     try:
         df = pd.read_csv(classification_file, sep='\t')
     except Exception as e:
-        print(f"Error reading classification file: {e}")
+        logger.exception(f"Error reading classification file: {e}")
         sys.exit(1)
 
     # Clean column names (remove spaces/special chars for JSON compatibility if needed, 
@@ -530,18 +604,18 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
     
     # Optionally exclude ORF_seq column
     if not include_sequences and 'ORF_seq' in df.columns:
-        print("Excluding 'ORF_seq' column (use --include-sequences to keep it)")
+        logger.info("Excluding 'ORF_seq' column (use --include-sequences to keep it)")
         df = df.drop(columns=['ORF_seq'])
 
     if 'structural_category' not in df.columns:
-        print("Error: 'structural_category' column not found in classification file.")
+        logger.error("Error: 'structural_category' column not found in classification file.")
         sys.exit(1)
 
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
     categories = df['structural_category'].unique()
-    print(f"Found {len(categories)} structural categories.")
+    logger.info(f"Found {len(categories)} structural categories.")
 
     # Columns that should have dropdown filters
     categorical_cols = [
@@ -562,7 +636,7 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
         headers_html += f"<th>{col}</th>"
     
     data_json = full_df.to_json(orient='records')
-    category_overview = build_category_overview_html(categories_present=categories)
+    category_overview = build_category_overview_html(categories_present=categories, palette=custom_palette)
     full_report_title = "SQANTI3 Analysis: complete transcriptome"
     full_export_title = "SQANTI3_complete_transcriptome_Isoforms"
     
@@ -587,20 +661,22 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
     
     with open(full_path, 'w') as f:
         f.write(full_html)
-    print(f"Generated full transcriptome report: {full_path}")
+    logger.info(f"Generated full transcriptome report: {full_path}")
 
     for category in categories:
         if pd.isna(category) or category == 'NA':
             continue
 
         cat_str = str(category)
-        print(f"Processing category: {cat_str}")
+        logger.info(f"Processing category: {cat_str}")
         
         # Get category definition
         cat_def = CATEGORY_DEFINITIONS.get(cat_str, CATEGORY_DEFINITIONS.get(cat_str.replace(' ', '_'), "No definition available."))
         
-        # Get category SVG
-        cat_svg = CATEGORY_SVGS.get(cat_str, CATEGORY_SVGS.get(cat_str.replace(' ', '_'), ""))
+        # Get category SVG (with custom colors if palette provided)
+        cat_svg = generate_category_svg(cat_str, custom_palette, include_reference=True)
+        if not cat_svg:
+            cat_svg = generate_category_svg(cat_str.replace(' ', '_'), custom_palette, include_reference=True)
         
         # Filter data
         cat_df = df[df['structural_category'] == category].copy()
@@ -651,9 +727,9 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
         with open(file_path, 'w') as f:
             f.write(html_content)
         
-        print(f"  -> Generated {file_path}")
+        logger.info(f"  -> Generated {file_path}")
 
-    print("\nDone! All reports generated.")
+    logger.info("Done! All reports generated.")
 
 def main():
     parser = argparse.ArgumentParser(description="Generate filterable HTML tables for SQANTI3 isoform categories.")
@@ -664,7 +740,7 @@ def main():
     args = parser.parse_args()
     
     if not os.path.exists(args.classification):
-        print(f"Error: File not found: {args.classification}")
+        logger.error(f"Error: File not found: {args.classification}")
         sys.exit(1)
 
     generate_html_reports(args.classification, args.output_dir, args.include_sequences)
