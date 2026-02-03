@@ -35,12 +35,26 @@ You can filter transcripts using dropdown menus and range sliders:
 
 ## 🎨 Color Legend
 
-- **Full-splice Match (FSM):** #6BAED6 (Blue)
-- **Incomplete-splice Match (ISM):** #FC8D59 (Orange)
-- **Novel In Catalog (NIC):** #78C679 (Green)
-- **Novel Not In Catalog (NNC):** #EE6A50 (Red)
-- **Genic:** #969696 (Gray)
-- **Antisense:** #66C2A4 (Teal)
-- **Fusion:** #DAA520 (Gold)
-- **Intergenic:** #E9967A (Salmon)
-- **Genic Intron:** #41B6C4 (Cyan)
+### Standard Colors
+
+- **Full-splice Match (FSM):** #6BAED6 (RGB 107, 174, 214)
+- **Incomplete-splice Match (ISM):** #FC8D59 (RGB 252, 141, 89)
+- **Novel In Catalog (NIC):** #78C679 (RGB 120, 198, 121)
+- **Novel Not In Catalog (NNC):** #D62F4B (RGB 214, 47, 75)
+- **Genic:** #969696 (RGB 150, 150, 150)
+- **Antisense:** #66C2A4 (RGB 102, 194, 164)
+- **Fusion:** #DAA520 (RGB 218, 165, 32)
+- **Intergenic:** #E9967A (RGB 233, 150, 122)
+- **Genic Intron:** #41B6C4 (RGB 65, 182, 196)
+
+### Highlight Colors (top FL isoform per group)
+
+- **Full-splice Match (FSM):** #456F89 (RGB 69, 111, 137)
+- **Incomplete-splice Match (ISM):** #CA7147 (RGB 202, 113, 71)
+- **Novel In Catalog (NIC):** #4D7E4E (RGB 77, 126, 78)
+- **Novel Not In Catalog (NNC):** #98071F (RGB 152, 7, 31)
+- **Genic:** #606060 (RGB 96, 96, 96)
+- **Antisense:** #427C69 (RGB 66, 124, 105)
+- **Fusion:** #8B6A15 (RGB 139, 106, 21)
+- **Intergenic:** #95604E (RGB 149, 96, 78)
+- **Genic Intron:** #2A757E (RGB 42, 117, 126)
