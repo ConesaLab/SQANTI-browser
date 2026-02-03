@@ -523,6 +523,10 @@ class SQANTI3ToBigBed:
                     if cat not in self.custom_highlight_colors:
                         final_highlight[cat] = darken_color(rgb)
             
+            # Store final palettes as instance variables for HTML generation
+            self.final_standard_palette = final_standard
+            self.final_highlight_palette = final_highlight
+            
             # Convert RGB tuples to packed integers
             cat_palette = {cat: pack_rgb(*rgb) for cat, rgb in final_standard.items()}
             highlight_palette = {cat: pack_rgb(*rgb) for cat, rgb in final_highlight.items()}
@@ -1183,45 +1187,177 @@ class SQANTI3ToBigBed:
             return filename
     
     def _get_rgb_color(self, structural_category):
-        """Get RGB color for structural category - using original hex colors from color_bed.py"""
-        # Original hex colors from Alejandro Paniagua's color_bed.py
-        cat_palette = {
-            "full-splice_match": "6BAED6",
-            "incomplete-splice_match": "FC8D59",
-            "novel_in_catalog": "78C679",
-            "novel_not_in_catalog": "d62f4b",
-            "genic": "969696",
-            "antisense": "66C2A4",
-            "fusion": "DAA520",
-            "intergenic": "E9967A",
-            "genic_intron": "41B6C4"
+        """Get RGB color for structural category - uses custom palette if available"""
+        # Default colors
+        default_palette = {
+            "full-splice_match": (107, 174, 214),
+            "incomplete-splice_match": (252, 141, 89),
+            "novel_in_catalog": (120, 198, 121),
+            "novel_not_in_catalog": (214, 47, 75),
+            "genic": (150, 150, 150),
+            "antisense": (102, 194, 164),
+            "fusion": (218, 165, 32),
+            "intergenic": (233, 150, 122),
+            "genic_intron": (65, 182, 196)
         }
         
-        # Get HEX code
-        hex_color = cat_palette.get(structural_category.lower(), "FFFFFF")
+        # Use custom palette if available
+        if hasattr(self, 'final_standard_palette') and self.final_standard_palette:
+            palette = self.final_standard_palette
+        else:
+            palette = default_palette
         
-        # Convert HEX to RGB (following color_bed.py logic)
-        rgb = []
-        for i in (0, 2, 4):
-            decimal = int(hex_color[i:i+2], 16)
-            rgb.append(str(decimal))
-        
-        return ",".join(rgb)
+        cat_key = structural_category.lower()
+        rgb_tuple = palette.get(cat_key, (255, 255, 255))
+        return f"{rgb_tuple[0]},{rgb_tuple[1]},{rgb_tuple[2]}"
     
     def _get_category_hex_color(self, structural_category):
-        """Get hex color for structural category"""
-        cat_palette = {
-            "full-splice_match": "#6BAED6",
-            "incomplete-splice_match": "#FC8D59",
-            "novel_in_catalog": "#78C679",
-            "novel_not_in_catalog": "#d62f4b",
-            "genic": "#969696",
-            "antisense": "#66C2A4",
-            "fusion": "#DAA520",
-            "intergenic": "#E9967A",
-            "genic_intron": "#41B6C4"
+        """Get hex color for structural category - uses custom palette if available"""
+        # Default colors
+        default_palette = {
+            "full-splice_match": (107, 174, 214),
+            "incomplete-splice_match": (252, 141, 89),
+            "novel_in_catalog": (120, 198, 121),
+            "novel_not_in_catalog": (214, 47, 75),
+            "genic": (150, 150, 150),
+            "antisense": (102, 194, 164),
+            "fusion": (218, 165, 32),
+            "intergenic": (233, 150, 122),
+            "genic_intron": (65, 182, 196)
         }
-        return cat_palette.get(structural_category.lower().replace(' ', '_'), "#6BAED6")
+        
+        # Use custom palette if available
+        if hasattr(self, 'final_standard_palette') and self.final_standard_palette:
+            palette = self.final_standard_palette
+        else:
+            palette = default_palette
+        
+        cat_key = structural_category.lower().replace(' ', '_')
+        rgb_tuple = palette.get(cat_key, (107, 174, 214))
+        return f"#{rgb_tuple[0]:02X}{rgb_tuple[1]:02X}{rgb_tuple[2]:02X}"
+    
+    def _generate_color_legend_html(self):
+        """Generate HTML color legend using current palette (custom or default)"""
+        # Category display names and order
+        categories = [
+            ("full-splice_match", "Full-splice match (FSM)"),
+            ("incomplete-splice_match", "Incomplete-splice match (ISM)"),
+            ("novel_in_catalog", "Novel in catalog (NIC)"),
+            ("novel_not_in_catalog", "Novel not in catalog (NNC)"),
+            ("genic", "Genic"),
+            ("antisense", "Antisense"),
+            ("fusion", "Fusion"),
+            ("intergenic", "Intergenic"),
+            ("genic_intron", "Genic intron"),
+        ]
+        
+        # Default palettes
+        default_standard = {
+            "full-splice_match": (107, 174, 214),
+            "incomplete-splice_match": (252, 141, 89),
+            "novel_in_catalog": (120, 198, 121),
+            "novel_not_in_catalog": (214, 47, 75),
+            "genic": (150, 150, 150),
+            "antisense": (102, 194, 164),
+            "fusion": (218, 165, 32),
+            "intergenic": (233, 150, 122),
+            "genic_intron": (65, 182, 196),
+        }
+        default_highlight = {
+            "full-splice_match": (69, 111, 137),
+            "incomplete-splice_match": (202, 113, 71),
+            "novel_in_catalog": (77, 126, 78),
+            "novel_not_in_catalog": (152, 7, 31),
+            "genic": (96, 96, 96),
+            "antisense": (66, 124, 105),
+            "fusion": (139, 106, 21),
+            "intergenic": (149, 96, 78),
+            "genic_intron": (42, 117, 126),
+        }
+        
+        # Use custom palette if available
+        standard = getattr(self, 'final_standard_palette', None) or default_standard
+        highlight = getattr(self, 'final_highlight_palette', None) or default_highlight
+        
+        def rgb_to_hex(rgb):
+            return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
+        
+        # Build standard colors table
+        html = ['<h2>Color Legend</h2>', '<h3>Standard Colors</h3>', '<table>',
+                '<tr><th>Category</th><th>Hex Code</th><th>RGB</th></tr>']
+        for cat_key, cat_name in categories:
+            rgb = standard.get(cat_key, (200, 200, 200))
+            hex_color = rgb_to_hex(rgb)
+            html.append(f'<tr><td><span class="color-box" style="background-color: {hex_color};"></span>{cat_name}</td>'
+                       f'<td>{hex_color}</td><td>({rgb[0]}, {rgb[1]}, {rgb[2]})</td></tr>')
+        html.append('</table>')
+        
+        # Build highlight colors table
+        html.extend(['<h3>Highlight Colors (top FL isoform per group)</h3>', '<table>',
+                    '<tr><th>Category</th><th>Hex Code</th><th>RGB</th></tr>'])
+        for cat_key, cat_name in categories:
+            rgb = highlight.get(cat_key, (128, 128, 128))
+            hex_color = rgb_to_hex(rgb)
+            html.append(f'<tr><td><span class="color-box" style="background-color: {hex_color};"></span>{cat_name}</td>'
+                       f'<td>{hex_color}</td><td>({rgb[0]}, {rgb[1]}, {rgb[2]})</td></tr>')
+        html.append('</table>')
+        
+        return '\n    '.join(html)
+    
+    def _generate_color_legend_markdown(self):
+        """Generate Markdown color legend using current palette (custom or default)"""
+        categories = [
+            ("full-splice_match", "Full-splice Match (FSM)"),
+            ("incomplete-splice_match", "Incomplete-splice Match (ISM)"),
+            ("novel_in_catalog", "Novel In Catalog (NIC)"),
+            ("novel_not_in_catalog", "Novel Not In Catalog (NNC)"),
+            ("genic", "Genic"),
+            ("antisense", "Antisense"),
+            ("fusion", "Fusion"),
+            ("intergenic", "Intergenic"),
+            ("genic_intron", "Genic Intron"),
+        ]
+        
+        default_standard = {
+            "full-splice_match": (107, 174, 214),
+            "incomplete-splice_match": (252, 141, 89),
+            "novel_in_catalog": (120, 198, 121),
+            "novel_not_in_catalog": (214, 47, 75),
+            "genic": (150, 150, 150),
+            "antisense": (102, 194, 164),
+            "fusion": (218, 165, 32),
+            "intergenic": (233, 150, 122),
+            "genic_intron": (65, 182, 196),
+        }
+        default_highlight = {
+            "full-splice_match": (69, 111, 137),
+            "incomplete-splice_match": (202, 113, 71),
+            "novel_in_catalog": (77, 126, 78),
+            "novel_not_in_catalog": (152, 7, 31),
+            "genic": (96, 96, 96),
+            "antisense": (66, 124, 105),
+            "fusion": (139, 106, 21),
+            "intergenic": (149, 96, 78),
+            "genic_intron": (42, 117, 126),
+        }
+        
+        standard = getattr(self, 'final_standard_palette', None) or default_standard
+        highlight = getattr(self, 'final_highlight_palette', None) or default_highlight
+        
+        def rgb_to_hex(rgb):
+            return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
+        
+        lines = ['## 🎨 Color Legend', '', '### Standard Colors', '']
+        for cat_key, cat_name in categories:
+            rgb = standard.get(cat_key, (200, 200, 200))
+            lines.append(f'- **{cat_name}:** {rgb_to_hex(rgb)} (RGB {rgb[0]}, {rgb[1]}, {rgb[2]})')
+        
+        lines.extend(['', '### Highlight Colors (top FL isoform per group)', ''])
+        for cat_key, cat_name in categories:
+            rgb = highlight.get(cat_key, (128, 128, 128))
+            lines.append(f'- **{cat_name}:** {rgb_to_hex(rgb)} (RGB {rgb[0]}, {rgb[1]}, {rgb[2]})')
+        
+        return '\n'.join(lines)
     
     def _generate_filter_options_html(self, category_filter=None):
         """Generate HTML documentation for filter options in classification file column order.
@@ -1577,6 +1713,7 @@ class SQANTI3ToBigBed:
 
         # Build filter options documentation from classification data
         filter_options_html = self._generate_filter_options_html()
+        color_legend_html = self._generate_color_legend_html()
 
         # Create per-track HTML files
         transcripts_html_name = f"{self.genome}_sqanti3_track.html"
@@ -1620,33 +1757,7 @@ class SQANTI3ToBigBed:
     
 {filter_options_html}
     
-    <h2>Color Legend</h2>
-    <h3>Standard Colors</h3>
-    <table>
-        <tr><th>Category</th><th>SVG Color Name</th><th>Hex Code</th></tr>
-        <tr><td><span class="color-box" style="background-color: #6BAED6;"></span>Full-splice match (FSM)</td><td>cornflowerblue</td><td>#6BAED6</td></tr>
-        <tr><td><span class="color-box" style="background-color: #FC8D59;"></span>Incomplete-splice match (ISM)</td><td>coral</td><td>#FC8D59</td></tr>
-        <tr><td><span class="color-box" style="background-color: #78C679;"></span>Novel in catalog (NIC)</td><td>mediumseagreen</td><td>#78C679</td></tr>
-        <tr><td><span class="color-box" style="background-color: #D62F4B;"></span>Novel not in catalog (NNC)</td><td>crimson</td><td>#D62F4B</td></tr>
-        <tr><td><span class="color-box" style="background-color: #969696;"></span>Genic</td><td>darkgray</td><td>#969696</td></tr>
-        <tr><td><span class="color-box" style="background-color: #66C2A4;"></span>Antisense</td><td>mediumaquamarine</td><td>#66C2A4</td></tr>
-        <tr><td><span class="color-box" style="background-color: #DAA520;"></span>Fusion</td><td>goldenrod</td><td>#DAA520</td></tr>
-        <tr><td><span class="color-box" style="background-color: #E9967A;"></span>Intergenic</td><td>darksalmon</td><td>#E9967A</td></tr>
-        <tr><td><span class="color-box" style="background-color: #41B6C4;"></span>Genic intron</td><td>mediumturquoise</td><td>#41B6C4</td></tr>
-    </table>
-    <h3>Highlight Colors (top FL isoform per group)</h3>
-    <table>
-        <tr><th>Category</th><th>SVG Color Name</th><th>Hex Code</th></tr>
-        <tr><td><span class="color-box" style="background-color: #456F89;"></span>Full-splice match (FSM)</td><td>steelblue</td><td>#456F89</td></tr>
-        <tr><td><span class="color-box" style="background-color: #CA7147;"></span>Incomplete-splice match (ISM)</td><td>peru</td><td>#CA7147</td></tr>
-        <tr><td><span class="color-box" style="background-color: #4D7E4E;"></span>Novel in catalog (NIC)</td><td>seagreen</td><td>#4D7E4E</td></tr>
-        <tr><td><span class="color-box" style="background-color: #98071F;"></span>Novel not in catalog (NNC)</td><td>darkred</td><td>#98071F</td></tr>
-        <tr><td><span class="color-box" style="background-color: #606060;"></span>Genic</td><td>dimgray</td><td>#606060</td></tr>
-        <tr><td><span class="color-box" style="background-color: #427C69;"></span>Antisense</td><td>cadetblue</td><td>#427C69</td></tr>
-        <tr><td><span class="color-box" style="background-color: #8B6A15;"></span>Fusion</td><td>darkgoldenrod</td><td>#8B6A15</td></tr>
-        <tr><td><span class="color-box" style="background-color: #95604E;"></span>Intergenic</td><td>sienna</td><td>#95604E</td></tr>
-        <tr><td><span class="color-box" style="background-color: #2A757E;"></span>Genic intron</td><td>darkcyan</td><td>#2A757E</td></tr>
-    </table>
+    {color_legend_html}
 </div>
 </body>
 </html>""")
@@ -2070,6 +2181,7 @@ class SQANTI3ToBigBed:
                     f.write(f"filterLabel.blockCount Number of exons (from BED)\n")
         
         # README creation (same as before)
+        color_legend_md = self._generate_color_legend_markdown()
         readme_file = self.output_dir / "README.md"
         with open(readme_file, 'w') as f_md:
             f_md.write(f"""# {hub_name}
@@ -2107,31 +2219,7 @@ You can filter transcripts using dropdown menus and range sliders:
 
 *Right-click on the track and select "Configure" or "Filter" to access these controls.*
 
-## 🎨 Color Legend
-
-### Standard Colors
-
-- **Full-splice Match (FSM):** #6BAED6 (cornflowerblue)
-- **Incomplete-splice Match (ISM):** #FC8D59 (coral)
-- **Novel In Catalog (NIC):** #78C679 (mediumseagreen)
-- **Novel Not In Catalog (NNC):** #D62F4B (crimson)
-- **Genic:** #969696 (darkgray)
-- **Antisense:** #66C2A4 (mediumaquamarine)
-- **Fusion:** #DAA520 (goldenrod)
-- **Intergenic:** #E9967A (darksalmon)
-- **Genic Intron:** #41B6C4 (mediumturquoise)
-
-### Highlight Colors (top FL isoform per group)
-
-- **Full-splice Match (FSM):** #456F89 (steelblue)
-- **Incomplete-splice Match (ISM):** #CA7147 (peru)
-- **Novel In Catalog (NIC):** #4D7E4E (seagreen)
-- **Novel Not In Catalog (NNC):** #98071F (darkred)
-- **Genic:** #606060 (dimgray)
-- **Antisense:** #427C69 (cadetblue)
-- **Fusion:** #8B6A15 (darkgoldenrod)
-- **Intergenic:** #95604E (sienna)
-- **Genic Intron:** #2A757E (darkcyan)
+{color_legend_md}
 """)
 
         logger.info("Hub files created successfully")
@@ -2301,7 +2389,11 @@ def main():
             logger.info("Generating HTML table reports...")
             reports_dir = os.path.join(args.output, "table_reports")
             try:
-                generate_html_reports(args.classification, reports_dir)
+                # Pass custom palette to HTML reports if available
+                custom_palette = None
+                if hasattr(converter, 'final_standard_palette'):
+                    custom_palette = converter.final_standard_palette
+                generate_html_reports(args.classification, reports_dir, custom_palette=custom_palette)
             except Exception as e:
                 logger.error(f"Error generating table reports: {e}")
         else:
