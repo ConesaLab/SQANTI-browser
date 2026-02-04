@@ -1752,8 +1752,8 @@ class SQANTI3ToBigBed:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{self.genome} SQANTI3 Transcripts</title>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.6; margin: 20px; background-color: #f8f9fa; }}
-        .container {{ max-width: 900px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }}
+        html, body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.6; margin: 12px !important; background-color: transparent !important; color: #212529; text-align: left !important; }}
+        .sqanti-wrap {{ max-width: 900px; margin: 0; background: transparent; padding: 0; }}
         h1 {{ color: #333; border-bottom: 2px solid #6BAED6; padding-bottom: 10px; }}
         h2 {{ color: #495057; margin-top: 25px; }}
         h3 {{ color: #6c757d; margin-top: 20px; }}
@@ -1768,7 +1768,7 @@ class SQANTI3ToBigBed:
     </style>
 </head>
 <body>
-<div class="container">
+<div class="sqanti-wrap">
     <h1>SQANTI3 Transcripts ({self.genome})</h1>
     <p>This track displays <strong>{len(self.classification_df)}</strong> SQANTI3 transcript models. Colors indicate structural category.</p>
     
@@ -2108,8 +2108,8 @@ class SQANTI3ToBigBed:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{self.genome} SQANTI3 {cat} Transcripts</title>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.6; margin: 20px; background-color: #f8f9fa; }}
-        .container {{ max-width: 900px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }}
+        html, body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.6; margin: 12px !important; background-color: transparent !important; color: #212529; text-align: left !important; }}
+        .sqanti-wrap {{ max-width: 900px; margin: 0; background: transparent; padding: 0; }}
         h1 {{ color: #333; border-bottom: 2px solid {self._get_category_hex_color(cat)}; padding-bottom: 10px; }}
         h2 {{ color: #495057; margin-top: 25px; }}
         h3 {{ color: #6c757d; margin-top: 20px; }}
@@ -2123,7 +2123,7 @@ class SQANTI3ToBigBed:
     </style>
     </head>
 <body>
-<div class="container">
+<div class="sqanti-wrap">
     <h1>SQANTI3 Transcripts: <span class="category-badge">{cat}</span></h1>
     <p>This track contains <strong>{count}</strong> transcripts classified as <strong>{cat}</strong> for the <strong>{self.genome}</strong> genome assembly.</p>
     
