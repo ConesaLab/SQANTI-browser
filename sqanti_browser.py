@@ -6,8 +6,7 @@ Converts SQANTI3 output files (*_corrected.gtf and *_classification.txt)
 to bigBed format for visualization in the UCSC Genome Browser with hub functionality.
 
 Usage:
-    sqanti_browser --gtf <gtf_file> --classification <classification_file> --output <output_dir> --genome <genome>
-    python sqanti_browser.py --gtf <gtf_file> --classification <classification_file> --output <output_dir> --genome <genome>
+    python -m sqanti_browser --gtf <gtf_file> --classification <classification_file> --output <output_dir> --genome <genome>
 
 Author: Carolina Monzo
 """
@@ -30,6 +29,7 @@ import re
 from collections import defaultdict
 
 from src.bed_processor import BedProcessor
+from src.constants import CATEGORY_ABBREV_TO_FULL
 from src.validation_tracks import ValidationTrackBuilder
 from src.hub_generator import HubGenerator
 
@@ -151,7 +151,7 @@ def load_custom_palette(palette_file: str | Path) -> tuple[dict[str, tuple[int, 
 
 
 class SQANTI3ToBigBed:
-    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, ref_gtf=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='none', no_category_tracks=False, no_highlight=False, custom_palette=None):
+    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, ref_gtf=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='none', no_category_tracks=False, category_tracks=None, no_highlight=False, custom_palette=None):
         self.gtf_file = gtf_file
         self.classification_file = classification_file
         self.output_dir = Path(output_dir)
@@ -167,6 +167,7 @@ class SQANTI3ToBigBed:
         self.polya_bigbed = None
         self.ref_bigbed = None
         self.no_category_tracks = no_category_tracks
+        self.category_tracks = category_tracks  # None = all, or set of full category names
         self.no_highlight = no_highlight
         self.two_bit_file = two_bit_file
         self.validate_only = validate_only
@@ -491,6 +492,10 @@ def main():
                              '(smallest distance first for distance metrics)')
     parser.add_argument('--no-category-tracks', action='store_true',
                         help='Only generate the main SQANTI3 track without separate tracks for each structural category')
+    parser.add_argument('--category-tracks', type=str, metavar='LIST',
+                        help='Only create tracks for these structural categories (comma-separated). '
+                             'Use abbreviated names: FSM, ISM, NIC, NNC, antisense, genic_intron, genic_genomic (or genic), intergenic, fusion. '
+                             'Example: --category-tracks FSM,ISM,NIC')
     parser.add_argument('--no-highlight', action='store_true',
                         help='Disable highlight coloring for top FL isoforms')
     parser.add_argument('--my-palette', type=str, metavar='JSON_FILE',
@@ -513,6 +518,20 @@ def main():
         logger.error(f"Custom palette file not found: {args.my_palette}")
         sys.exit(1)
     
+    # Parse --category-tracks (abbreviated names -> full category names)
+    category_tracks = None
+    if args.category_tracks:
+        allowed = set()
+        for abbr in (s.strip() for s in args.category_tracks.split(',') if s.strip()):
+            full = CATEGORY_ABBREV_TO_FULL.get(abbr)
+            if full:
+                allowed.add(full)
+            else:
+                logger.warning(f"Unknown category abbreviation '{abbr}', skipping. Valid: FSM, ISM, NIC, NNC, antisense, genic_intron, genic_genomic, genic, intergenic, fusion")
+        if allowed:
+            category_tracks = allowed
+            logger.info(f"Creating category tracks only for: {', '.join(sorted(allowed))}")
+    
     # Run conversion
     converter = SQANTI3ToBigBed(
         args.gtf,
@@ -529,6 +548,7 @@ def main():
         dry_run=args.dry_run,
         sort_by=args.sort_by,
         no_category_tracks=args.no_category_tracks,
+        category_tracks=category_tracks,
         no_highlight=args.no_highlight,
         custom_palette=args.my_palette
     )

@@ -32,7 +32,7 @@ class TestMissingFiles(unittest.TestCase):
         result = subprocess.run(
             [
                 "python",
-                str(PROJECT_ROOT / "sqanti_browser.py"),
+                "-m", "sqanti_browser",
                 "--gtf",
                 "/nonexistent/file.gtf",
                 "--classification",
@@ -56,7 +56,7 @@ class TestMissingFiles(unittest.TestCase):
         result = subprocess.run(
             [
                 "python",
-                str(PROJECT_ROOT / "sqanti_browser.py"),
+                "-m", "sqanti_browser",
                 "--gtf",
                 str(PROJECT_ROOT / "example/SQANTI3_QC_output/example_corrected.gtf"),
                 "--classification",
@@ -86,7 +86,7 @@ class TestEmptyFiles(unittest.TestCase):
             result = subprocess.run(
                 [
                     "python",
-                    str(PROJECT_ROOT / "sqanti_browser.py"),
+                    "-m", "sqanti_browser",
                     "--gtf",
                     str(PROJECT_ROOT / "example/SQANTI3_QC_output/example_corrected.gtf"),
                     "--classification",
@@ -115,7 +115,7 @@ class TestEmptyFiles(unittest.TestCase):
             result = subprocess.run(
                 [
                     "python",
-                    str(PROJECT_ROOT / "sqanti_browser.py"),
+                    "-m", "sqanti_browser",
                     "--gtf",
                     str(PROJECT_ROOT / "example/SQANTI3_QC_output/example_corrected.gtf"),
                     "--classification",
@@ -143,7 +143,7 @@ class TestCLIArgs(unittest.TestCase):
     def test_help_succeeds(self):
         """--help should succeed."""
         result = subprocess.run(
-            ["python", str(PROJECT_ROOT / "sqanti_browser.py"), "--help"],
+            ["python", "-m", "sqanti_browser", "--help"],
             capture_output=True,
             text=True,
             cwd=PROJECT_ROOT,
@@ -157,7 +157,7 @@ class TestCLIArgs(unittest.TestCase):
     def test_missing_required_args_fails(self):
         """Omitting required args should fail."""
         result = subprocess.run(
-            ["python", str(PROJECT_ROOT / "sqanti_browser.py")],
+            ["python", "-m", "sqanti_browser"],
             capture_output=True,
             text=True,
             cwd=PROJECT_ROOT,
@@ -170,7 +170,7 @@ class TestCLIArgs(unittest.TestCase):
         result = subprocess.run(
             [
                 "python",
-                str(PROJECT_ROOT / "sqanti_browser.py"),
+                "-m", "sqanti_browser",
                 "--gtf",
                 str(PROJECT_ROOT / "example/SQANTI3_QC_output/example_corrected.gtf"),
                 "--classification",

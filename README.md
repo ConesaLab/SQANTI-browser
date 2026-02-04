@@ -60,7 +60,9 @@ SQANTI-browser/
 │   ├── example_palette.json
 │   └── SQANTI3_QC_output/  # Example data
 ├── tests/
-│   └── test_sqanti_browser.py
+│   ├── test_sqanti_browser.py   # Integration tests
+│   ├── test_unit.py             # Unit tests
+│   └── test_edge_cases.py       # Edge case tests
 └── example_output/         # Sample hub output (pre-generated)
 ```
 
@@ -85,20 +87,16 @@ pip install -e .
 pip install -r requirements.txt
 ```
 
-After `pip install -e .`, you can run `sqanti_browser` from anywhere.
+**How to run:** You can use any of these (run from project root unless you used `pip install -e .`):
+
+- `python -m sqanti_browser` — Recommended. Uses whatever `python` is active (e.g. conda), so you avoid wrong-Python / architecture issues.
+- `sqanti_browser` — After `pip install -e .`, if you installed with the correct Python.
+- `python sqanti_browser.py` — Uses the `python` in your PATH; needs project root in `PYTHONPATH` or package installed.
 
 ### 2. Run the Converter
 
 ```bash
-# If installed: sqanti_browser
-sqanti_browser \
-    --gtf your_corrected.gtf \
-    --classification your_classification.txt \
-    --output my_hub \
-    --genome hg38
-
-# Or run the script directly (from project root)
-python sqanti_browser.py \
+python -m sqanti_browser \
     --gtf your_corrected.gtf \
     --classification your_classification.txt \
     --output my_hub \
@@ -125,6 +123,7 @@ python example/example_usage.py
 | `--tables` | Generate interactive HTML tables for each category |
 | `--sort-by none` | Sort isoforms (Default `none`). Options: `FL`, `iso_exp`, `length`, etc. |
 | `--no-category-tracks` | Only generate the main track |
+| `--category-tracks FSM,ISM,NIC` | Only create tracks for these categories (abbreviated: FSM, ISM, NIC, NNC, antisense, genic_intron, genic_genomic, intergenic, fusion) |
 | `--no-highlight` | Disable highlight coloring for top FL isoforms |
 | `--my-palette FILE` | Custom color palette JSON file (see [Custom palette wiki](../../wiki/custom_palette)) |
 | `--star-sj SJ.out.tab` | Include STAR splice junctions track |
@@ -168,6 +167,10 @@ The hub includes a Trix search index for finding isoforms by attribute. **All se
 By default, the **main SQANTI3 track** opens visible in **pack mode**. **Validation tracks** (STAR junctions, CAGE peaks, PolyA peaks, reference)—when included—also show by default. **Category-specific tracks** (e.g., full-splice_match, novel_in_catalog) start **hidden** so the view stays uncluttered. You can turn on individual category tracks from the track list as needed. Track description pages use left-aligned, transparent styling to match the UCSC Genome Browser interface.
 
 For default color names (e.g. steelblue, coral, peru), custom palette format, validation track colors, and examples, see the **[Custom Color Palettes](../../wiki/custom_palette)** wiki page.
+
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and guidelines.
 
 ## License
 

@@ -120,6 +120,20 @@ DEFAULT_HIGHLIGHT_PALETTE = {
     "genic_intron": (42, 117, 126),
 }
 
+# Abbreviated names for --category-tracks (user input) -> full structural_category values
+CATEGORY_ABBREV_TO_FULL = {
+    "FSM": "full-splice_match",
+    "ISM": "incomplete-splice_match",
+    "NIC": "novel_in_catalog",
+    "NNC": "novel_not_in_catalog",
+    "antisense": "antisense",
+    "genic_intron": "genic_intron",
+    "genic_genomic": "genic",  # SQANTI3 uses "genic"
+    "genic": "genic",
+    "intergenic": "intergenic",
+    "fusion": "fusion",
+}
+
 DEFAULT_VALIDATION_COLORS = {
     "CAGE_peaks": (200, 133, 41),   # Amber/orange - TSS (field standard)
     "polyA_peaks": (17, 76, 145),   # Blue - TTS (field standard)

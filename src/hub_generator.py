@@ -282,6 +282,10 @@ class HubGenerator:
                 logger.warning("structural_category column missing, cannot create category tracks")
                 return False
             categories = df['structural_category'].unique()
+            allowed = getattr(self.converter, 'category_tracks', None)
+            if allowed is not None:
+                categories = [c for c in categories if c in allowed]
+                logger.info(f"Filtering to {len(categories)} requested category tracks")
             self.converter.category_bigbeds = {}
             bed_processor = getattr(self.converter, '_bed_processor', None)
             if bed_processor is None:

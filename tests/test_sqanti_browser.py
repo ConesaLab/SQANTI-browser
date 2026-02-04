@@ -223,20 +223,26 @@ class SQANTIBrowserTester:
         return all_present
         
     def run_sqanti_browser(self, test_name, output_subdir, args):
-        """Run sqanti_browser.py with given arguments"""
+        """Run sqanti_browser via python -m (uses active Python env)"""
         output_dir = self.test_output_dir / output_subdir
         
         cmd = [
             sys.executable,
-            str(self.project_root / "sqanti_browser.py"),
+            "-m", "sqanti_browser",
             "--output", str(output_dir)
         ] + args
         
         print(f"  Running: {' '.join([str(c) for c in cmd])}")
         
+        env = os.environ.copy()
+        if str(self.project_root) not in env.get("PYTHONPATH", ""):
+            env["PYTHONPATH"] = str(self.project_root) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+        
         try:
             result = subprocess.run(
                 cmd,
+                cwd=str(self.project_root),
+                env=env,
                 capture_output=True,
                 text=True,
                 timeout=300  # 5 minute timeout
@@ -590,6 +596,45 @@ class SQANTIBrowserTester:
                 self.print_fail(f"Unexpected category tracks found: {[f.name for f in category_bbs]}")
                 
         return success
+
+    def test_category_tracks_filter(self):
+        """Test 7b: Only create tracks for specified categories (--category-tracks)"""
+        self.print_header("TEST 7b: Category Tracks Filter")
+        self.print_test("Conversion with --category-tracks FSM,ISM,NIC")
+        
+        success, output_dir = self.run_sqanti_browser(
+            "Category tracks filter",
+            "test7b_category_filter",
+            [
+                "--gtf", "example/SQANTI3_QC_output/example_corrected.gtf",
+                "--classification", "example/SQANTI3_QC_output/example_classification.txt",
+                "--genome", "hg38",
+                "--chrom-sizes", "example/SQANTI3_QC_output/chrom.sizes",
+                "--category-tracks", "FSM,ISM,NIC"
+            ]
+        )
+        
+        if success:
+            genome_dir = output_dir / "hg38"
+            expected_suffixes = ["full-splice_match", "incomplete-splice_match", "novel_in_catalog"]
+            for suf in expected_suffixes:
+                bb = genome_dir / f"hg38_sqanti3_{suf}.bb"
+                if bb.exists():
+                    self.print_pass(f"Expected track created: {suf}")
+                else:
+                    self.print_fail(f"Expected track missing: {suf}")
+            
+            # Should NOT have other category tracks (e.g. novel_not_in_catalog, intergenic)
+            all_cat_bbs = [f for f in genome_dir.glob("hg38_sqanti3_*.bb")
+                           if not any(x in f.name for x in ['star', 'cage', 'polya', 'reference'])]
+            allowed_names = {f"hg38_sqanti3_{s}.bb" for s in expected_suffixes}
+            unexpected = [f.name for f in all_cat_bbs if f.name not in allowed_names]
+            if not unexpected:
+                self.print_pass("No unexpected category tracks")
+            else:
+                self.print_fail(f"Unexpected category tracks: {unexpected}")
+                
+        return success
         
     def test_dry_run(self):
         """Test 8: Dry run mode"""
@@ -865,6 +910,7 @@ class SQANTIBrowserTester:
             ("Custom Genome (.2bit)", self.test_custom_genome_twobit),
             ("Validation Tracks", self.test_validation_tracks),
             ("Main Track Only", self.test_no_category_tracks),
+            ("Category Tracks Filter", self.test_category_tracks_filter),
             ("Dry Run Mode", self.test_dry_run),
             ("Hub Validation", self.test_hubcheck_validation),
             ("Validate-Only Mode", self.test_validate_only),

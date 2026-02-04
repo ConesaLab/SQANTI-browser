@@ -93,8 +93,8 @@ done
 
 echo ""
 echo "Next steps:"
-echo "1. Install Python dependencies: pip install -r requirements.txt"
-echo "2. Run the converter: sqanti_browser --help  (or: python sqanti_browser.py --help)"
+echo "1. Install Python package: pip install -e .  (or: pip install -r requirements.txt for deps only)"
+echo "2. Run the converter: python -m sqanti_browser --help"
 echo ""
 echo "Hub troubleshooting (optional):"
 echo "- Validate a hub locally with UCSC hubCheck:"
