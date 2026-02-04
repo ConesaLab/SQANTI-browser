@@ -12,7 +12,6 @@ example/SQANTI3_QC_output/.DS_Store
 
 ## Test outputs
 test_output/
-test_sqanti_browser.py
 
 # C extensions
 *.so
