@@ -13,7 +13,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-# Add project root so "src" and "sqanti3_to_UCSC" can be imported
+# Add project root so "src" and "sqanti_browser" can be imported
 _project_root = Path(__file__).resolve().parent.parent
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
@@ -91,63 +91,63 @@ class TestDarkenColor(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Parse color value (sqanti3_to_UCSC)
+# Parse color value (sqanti_browser)
 # ---------------------------------------------------------------------------
 
 
 class TestParseColorValue(unittest.TestCase):
-    """Tests for parse_color_value in sqanti3_to_UCSC."""
+    """Tests for parse_color_value in sqanti_browser."""
 
     def test_rgb_list(self):
-        from sqanti3_to_UCSC import parse_color_value
+        from sqanti_browser import parse_color_value
 
         self.assertEqual(parse_color_value([100, 150, 200]), (100, 150, 200))
 
     def test_rgb_tuple(self):
-        from sqanti3_to_UCSC import parse_color_value
+        from sqanti_browser import parse_color_value
 
         self.assertEqual(parse_color_value((100, 150, 200)), (100, 150, 200))
 
     def test_hex_with_hash(self):
-        from sqanti3_to_UCSC import parse_color_value
+        from sqanti_browser import parse_color_value
 
         self.assertEqual(parse_color_value("#64FF00"), (100, 255, 0))
 
     def test_hex_without_hash(self):
-        from sqanti3_to_UCSC import parse_color_value
+        from sqanti_browser import parse_color_value
 
         self.assertEqual(parse_color_value("0000FF"), (0, 0, 255))
 
     def test_rgb_out_of_range_raises(self):
-        from sqanti3_to_UCSC import parse_color_value
+        from sqanti_browser import parse_color_value
 
         with self.assertRaises(ValueError):
             parse_color_value([300, 0, 0])
 
     def test_rgb_wrong_length_raises(self):
-        from sqanti3_to_UCSC import parse_color_value
+        from sqanti_browser import parse_color_value
 
         with self.assertRaises(ValueError):
             parse_color_value([100, 200])
 
     def test_hex_wrong_length_raises(self):
-        from sqanti3_to_UCSC import parse_color_value
+        from sqanti_browser import parse_color_value
 
         with self.assertRaises(ValueError):
             parse_color_value("#FFF")
 
     def test_invalid_type_raises(self):
-        from sqanti3_to_UCSC import parse_color_value
+        from sqanti_browser import parse_color_value
 
         with self.assertRaises(ValueError):
             parse_color_value(123)
 
 
 class TestLoadCustomPalette(unittest.TestCase):
-    """Tests for load_custom_palette in sqanti3_to_UCSC."""
+    """Tests for load_custom_palette in sqanti_browser."""
 
     def test_load_valid_palette(self):
-        from sqanti3_to_UCSC import load_custom_palette
+        from sqanti_browser import load_custom_palette
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(
@@ -166,7 +166,7 @@ class TestLoadCustomPalette(unittest.TestCase):
             Path(path).unlink(missing_ok=True)
 
     def test_load_hex_in_palette(self):
-        from sqanti3_to_UCSC import load_custom_palette
+        from sqanti_browser import load_custom_palette
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(
@@ -181,13 +181,13 @@ class TestLoadCustomPalette(unittest.TestCase):
             Path(path).unlink(missing_ok=True)
 
     def test_missing_file_raises(self):
-        from sqanti3_to_UCSC import load_custom_palette
+        from sqanti_browser import load_custom_palette
 
         with self.assertRaises(FileNotFoundError):
             load_custom_palette("/nonexistent/palette.json")
 
     def test_invalid_json_raises(self):
-        from sqanti3_to_UCSC import load_custom_palette
+        from sqanti_browser import load_custom_palette
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             f.write("{ invalid json }")

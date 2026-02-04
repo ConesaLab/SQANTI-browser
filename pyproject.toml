@@ -40,11 +40,11 @@ Repository = "https://github.com/ConesaLab/SQANTI-browser"
 Documentation = "https://github.com/ConesaLab/SQANTI-browser/wiki"
 
 [project.scripts]
-sqanti3-to-ucsc = "sqanti3_to_UCSC:main"
+sqanti_browser = "sqanti_browser:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*"]
 
 [tool.setuptools]
-py-modules = ["sqanti3_to_UCSC"]
+py-modules = ["sqanti_browser"]

@@ -19,7 +19,7 @@ from pathlib import Path
 # Project root for paths
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-# Add project root so "src" and "sqanti3_to_UCSC" can be imported
+# Add project root so "src" and "sqanti_browser" can be imported
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -32,7 +32,7 @@ class TestMissingFiles(unittest.TestCase):
         result = subprocess.run(
             [
                 "python",
-                str(PROJECT_ROOT / "sqanti3_to_UCSC.py"),
+                str(PROJECT_ROOT / "sqanti_browser.py"),
                 "--gtf",
                 "/nonexistent/file.gtf",
                 "--classification",
@@ -56,7 +56,7 @@ class TestMissingFiles(unittest.TestCase):
         result = subprocess.run(
             [
                 "python",
-                str(PROJECT_ROOT / "sqanti3_to_UCSC.py"),
+                str(PROJECT_ROOT / "sqanti_browser.py"),
                 "--gtf",
                 str(PROJECT_ROOT / "example/SQANTI3_QC_output/example_corrected.gtf"),
                 "--classification",
@@ -86,7 +86,7 @@ class TestEmptyFiles(unittest.TestCase):
             result = subprocess.run(
                 [
                     "python",
-                    str(PROJECT_ROOT / "sqanti3_to_UCSC.py"),
+                    str(PROJECT_ROOT / "sqanti_browser.py"),
                     "--gtf",
                     str(PROJECT_ROOT / "example/SQANTI3_QC_output/example_corrected.gtf"),
                     "--classification",
@@ -115,7 +115,7 @@ class TestEmptyFiles(unittest.TestCase):
             result = subprocess.run(
                 [
                     "python",
-                    str(PROJECT_ROOT / "sqanti3_to_UCSC.py"),
+                    str(PROJECT_ROOT / "sqanti_browser.py"),
                     "--gtf",
                     str(PROJECT_ROOT / "example/SQANTI3_QC_output/example_corrected.gtf"),
                     "--classification",
@@ -143,7 +143,7 @@ class TestCLIArgs(unittest.TestCase):
     def test_help_succeeds(self):
         """--help should succeed."""
         result = subprocess.run(
-            ["python", str(PROJECT_ROOT / "sqanti3_to_UCSC.py"), "--help"],
+            ["python", str(PROJECT_ROOT / "sqanti_browser.py"), "--help"],
             capture_output=True,
             text=True,
             cwd=PROJECT_ROOT,
@@ -157,7 +157,7 @@ class TestCLIArgs(unittest.TestCase):
     def test_missing_required_args_fails(self):
         """Omitting required args should fail."""
         result = subprocess.run(
-            ["python", str(PROJECT_ROOT / "sqanti3_to_UCSC.py")],
+            ["python", str(PROJECT_ROOT / "sqanti_browser.py")],
             capture_output=True,
             text=True,
             cwd=PROJECT_ROOT,
@@ -170,7 +170,7 @@ class TestCLIArgs(unittest.TestCase):
         result = subprocess.run(
             [
                 "python",
-                str(PROJECT_ROOT / "sqanti3_to_UCSC.py"),
+                str(PROJECT_ROOT / "sqanti_browser.py"),
                 "--gtf",
                 str(PROJECT_ROOT / "example/SQANTI3_QC_output/example_corrected.gtf"),
                 "--classification",
@@ -227,19 +227,19 @@ class TestParseColorValueEdgeCases(unittest.TestCase):
 
     def test_float_rgb_values_accepted(self):
         """Float RGB values should be coerced to int."""
-        from sqanti3_to_UCSC import parse_color_value
+        from sqanti_browser import parse_color_value
 
         self.assertEqual(parse_color_value([100.7, 150.2, 200.9]), (100, 150, 200))
 
     def test_hex_uppercase(self):
         """Uppercase hex should work."""
-        from sqanti3_to_UCSC import parse_color_value
+        from sqanti_browser import parse_color_value
 
         self.assertEqual(parse_color_value("#FFFFFF"), (255, 255, 255))
 
     def test_hex_lowercase(self):
         """Lowercase hex should work."""
-        from sqanti3_to_UCSC import parse_color_value
+        from sqanti_browser import parse_color_value
 
         self.assertEqual(parse_color_value("#ffffff"), (255, 255, 255))
 

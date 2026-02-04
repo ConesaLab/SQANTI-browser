@@ -223,12 +223,12 @@ class SQANTIBrowserTester:
         return all_present
         
     def run_sqanti_browser(self, test_name, output_subdir, args):
-        """Run sqanti3_to_UCSC.py with given arguments"""
+        """Run sqanti_browser.py with given arguments"""
         output_dir = self.test_output_dir / output_subdir
         
         cmd = [
             sys.executable,
-            str(self.project_root / "sqanti3_to_UCSC.py"),
+            str(self.project_root / "sqanti_browser.py"),
             "--output", str(output_dir)
         ] + args
         
@@ -743,7 +743,7 @@ class SQANTIBrowserTester:
             genome_dir = output_dir / "hg38"
             # Temp dir is inside genome_dir or output_dir - check for transcripts.bed or similar
             bed_files = list(genome_dir.glob("*.bed")) if genome_dir.exists() else []
-            # sqanti3_to_UCSC uses temp_dir in converter - temp files are in a temp dir
+            # sqanti_browser uses temp_dir in converter - temp files are in a temp dir
             # The converter creates temp in tempfile.gettempdir() by default
             # We just verify the run succeeded - temp preservation is internal
             main_bb = genome_dir / "hg38_sqanti3.bb"

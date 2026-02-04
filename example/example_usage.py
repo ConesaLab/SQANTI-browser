@@ -20,7 +20,7 @@ def run_example():
     print("=" * 60)
 
     # Check if the main script exists
-    main_script = "sqanti3_to_UCSC.py"
+    main_script = "sqanti_browser.py"
     filter_script = "src/filter_isoforms.py"
 
     if not (project_root / main_script).exists():

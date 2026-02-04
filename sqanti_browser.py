@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-SQANTI3 to UCSC Genome Browser Hub Converter
+SQANTI-browser: SQANTI3 to UCSC Genome Browser Hub Converter
 
-This script converts SQANTI3 output files (*_corrected.gtf and *_classification.txt)
+Converts SQANTI3 output files (*_corrected.gtf and *_classification.txt)
 to bigBed format for visualization in the UCSC Genome Browser with hub functionality.
 
 Usage:
-    python sqanti3_to_UCSC.py --gtf <gtf_file> --classification <classification_file> --output <output_dir> --genome <genome>
+    sqanti_browser --gtf <gtf_file> --classification <classification_file> --output <output_dir> --genome <genome>
+    python sqanti_browser.py --gtf <gtf_file> --classification <classification_file> --output <output_dir> --genome <genome>
 
 Author: Carolina Monzo
 """

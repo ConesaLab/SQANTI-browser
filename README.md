@@ -46,7 +46,7 @@ All docs live in `wiki/`. Edit there, review, then push when ready (assistants n
 
 ```
 SQANTI-browser/
-├── sqanti3_to_UCSC.py      # Main converter script
+├── sqanti_browser.py       # Main converter script
 ├── install_ucsc_tools.sh   # UCSC tools installer
 ├── src/
 │   ├── bed_processor.py    # BED conversion logic
@@ -85,20 +85,20 @@ pip install -e .
 pip install -r requirements.txt
 ```
 
-After `pip install -e .`, you can run `sqanti3-to-ucsc` from anywhere.
+After `pip install -e .`, you can run `sqanti_browser` from anywhere.
 
 ### 2. Run the Converter
 
 ```bash
-# If installed: sqanti3-to-ucsc
-sqanti3-to-ucsc \
+# If installed: sqanti_browser
+sqanti_browser \
     --gtf your_corrected.gtf \
     --classification your_classification.txt \
     --output my_hub \
     --genome hg38
 
 # Or run the script directly (from project root)
-python sqanti3_to_UCSC.py \
+python sqanti_browser.py \
     --gtf your_corrected.gtf \
     --classification your_classification.txt \
     --output my_hub \

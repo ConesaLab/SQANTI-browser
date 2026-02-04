@@ -94,7 +94,7 @@ done
 echo ""
 echo "Next steps:"
 echo "1. Install Python dependencies: pip install -r requirements.txt"
-echo "2. Run the converter: python sqanti3_to_UCSC.py --help"
+echo "2. Run the converter: sqanti_browser --help  (or: python sqanti_browser.py --help)"
 echo ""
 echo "Hub troubleshooting (optional):"
 echo "- Validate a hub locally with UCSC hubCheck:"
