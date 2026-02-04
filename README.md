@@ -16,7 +16,9 @@
 
 ## Documentation
 
-📖 **[See the Wiki](../../wiki/home)** for detailed documentation:
+📖 **[See the Wiki](../../wiki/home)** for detailed documentation.
+
+All docs live in `wiki/`. Edit there, review, then push when ready (assistants never push to GitHub). See `wiki/README.md` for the workflow.
 
 **Quick Start:**
 - 🚀 **[Quick Reference](../../wiki/quick_reference)** - One-page cheat sheet
@@ -40,6 +42,28 @@
 - [Glossary](../../wiki/glossary)
 - [Troubleshooting](../../wiki/troubleshooting)
 
+## Project Structure
+
+```
+SQANTI-browser/
+├── sqanti3_to_UCSC.py      # Main converter script
+├── install_ucsc_tools.sh   # UCSC tools installer
+├── src/
+│   ├── bed_processor.py    # BED conversion logic
+│   ├── filter_isoforms.py  # Interactive HTML table/report generator
+│   ├── hub_generator.py    # UCSC hub file generation
+│   ├── validation_tracks.py# CAGE, PolyA, STAR, reference tracks
+│   ├── constants.py        # Filter limits, palette defaults
+│   └── utils.py            # Shared utilities
+├── example/
+│   ├── example_usage.py    # Example workflow script
+│   ├── example_palette.json
+│   └── SQANTI3_QC_output/  # Example data
+├── tests/
+│   └── test_sqanti_browser.py
+└── example_output/         # Sample hub output (pre-generated)
+```
+
 ## 🔄 Workflow
 
 ```
@@ -54,18 +78,37 @@ SQANTI3 Output → SQANTI-browser → web-access → UCSC Browser
 # Install UCSC tools
 bash install_ucsc_tools.sh
 
-# Install Python dependencies
+# Install Python package (recommended)
+pip install -e .
+
+# Or install dependencies only
 pip install -r requirements.txt
 ```
+
+After `pip install -e .`, you can run `sqanti3-to-ucsc` from anywhere.
 
 ### 2. Run the Converter
 
 ```bash
+# If installed: sqanti3-to-ucsc
+sqanti3-to-ucsc \
+    --gtf your_corrected.gtf \
+    --classification your_classification.txt \
+    --output my_hub \
+    --genome hg38
+
+# Or run the script directly (from project root)
 python sqanti3_to_UCSC.py \
     --gtf your_corrected.gtf \
     --classification your_classification.txt \
     --output my_hub \
     --genome hg38
+```
+
+Run the example workflow with bundled data:
+
+```bash
+python example/example_usage.py
 ```
 
 ### 3. Upload to UCSC
@@ -83,17 +126,38 @@ python sqanti3_to_UCSC.py \
 | `--sort-by none` | Sort isoforms (Default `none`). Options: `FL`, `iso_exp`, `length`, etc. |
 | `--no-category-tracks` | Only generate the main track |
 | `--no-highlight` | Disable highlight coloring for top FL isoforms |
-| `--my-palette FILE` | Custom color palette JSON file (see [Custom palette wiki](wiki/custom_palette)) |
+| `--my-palette FILE` | Custom color palette JSON file (see [Custom palette wiki](../../wiki/custom_palette)) |
 | `--star-sj SJ.out.tab` | Include STAR splice junctions track |
 | `--CAGE-peak` | Include CAGE peaks for TSS validation (requires BED file) |
 | `--polyA-peak` | Include polyA peaks for TTS validation (requires BED file) |
 | `--refGTF` | Include reference annotation for direct comparison (requires GTF file) |
 
-> 💡 **Tip:** For information on where to obtain and how to format CAGE and polyA peak files, see the [SQANTI3 wiki](https://github.com/ConesaLab/SQANTI3/wiki/Running-SQANTI3-Quality-Control#incorporating-cage-peak-data---cage_peak). See also our [Command Line Reference](wiki/command_line_reference.md#validation-tracks) for details.
+### Testing
+
+```bash
+# Full integration tests (requires UCSC tools)
+python tests/test_sqanti_browser.py
+
+# Unit and edge case tests (no UCSC tools needed)
+python tests/test_unit.py -v
+python tests/test_edge_cases.py -v
+```
+
+Use `--install-only` for a quick environment check (UCSC tools, Python deps).
+
+### Filter Reports (standalone)
+
+Generate interactive HTML reports from a classification file:
+
+```bash
+python src/filter_isoforms.py --classification your_classification.txt --output-dir report_output
+```
+
+> 💡 **Tip:** For information on where to obtain and how to format CAGE and polyA peak files, see the [SQANTI3 wiki](https://github.com/ConesaLab/SQANTI3/wiki/Running-SQANTI3-Quality-Control#incorporating-cage-peak-data---cage_peak). See also our [Command Line Reference](../../wiki/command_line_reference) for details.
 
 ## Viewing Specific Isoforms
 
-To view only a subset of isoforms (e.g., a few of interest): use the **Interactive HTML tables** (`--tables`), select the rows you want (click to select multiple), click **Generate Filter String**, then in UCSC go to **Tools → Table Browser**, choose your hub’s SQANTI3 track, use **Identifiers → paste list** for the newline-separated IDs, set the output format to **custom track**, and load it in the Genome Browser. See the [Filtering in UCSC](wiki/filtering_in_UCSC.md) wiki page for details.
+To view only a subset of isoforms (e.g., a few of interest): use the **Interactive HTML tables** (`--tables`), select the rows you want (click to select multiple), click **Generate Filter String**, then in UCSC go to **Tools → Table Browser**, choose your hub’s SQANTI3 track, use **Identifiers → paste list** for the newline-separated IDs, set the output format to **custom track**, and load it in the Genome Browser. See the [Filtering in UCSC](../../wiki/filtering_in_UCSC) wiki page for details.
 
 ## Trix Search
 
@@ -103,7 +167,7 @@ The hub includes a Trix search index for finding isoforms by attribute. **All se
 
 By default, the **main SQANTI3 track** opens visible in **pack mode**. **Validation tracks** (STAR junctions, CAGE peaks, PolyA peaks, reference)—when included—also show by default. **Category-specific tracks** (e.g., full-splice_match, novel_in_catalog) start **hidden** so the view stays uncluttered. You can turn on individual category tracks from the track list as needed. Track description pages use left-aligned, transparent styling to match the UCSC Genome Browser interface.
 
-For default color names (e.g. steelblue, coral, peru), custom palette format, validation track colors, and examples, see the **[Custom Color Palettes](wiki/custom_palette.md)** wiki page.
+For default color names (e.g. steelblue, coral, peru), custom palette format, validation track colors, and examples, see the **[Custom Color Palettes](../../wiki/custom_palette)** wiki page.
 
 ## License
 

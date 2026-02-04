@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-## Development files
+## Development files (wiki is a separate clone - edit there, review, then push)
 wiki/
 decorators_research/
 .DS_Store

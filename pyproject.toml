@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sqanti-browser"
+version = "1.1.0"
+description = "Convert SQANTI3 output to UCSC Genome Browser track hubs for visualization"
+readme = "README.md"
+license = {text = "GPL-3.0"}
+requires-python = ">=3.8"
+authors = [
+    {name = "Carolina Monzo"}
+]
+keywords = ["SQANTI3", "UCSC", "genome browser", "track hub", "transcriptome"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+    "pandas>=1.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ConesaLab/SQANTI-browser"
+Repository = "https://github.com/ConesaLab/SQANTI-browser"
+Documentation = "https://github.com/ConesaLab/SQANTI-browser/wiki"
+
+[project.scripts]
+sqanti3-to-ucsc = "sqanti3_to_UCSC:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.setuptools]
+py-modules = ["sqanti3_to_UCSC"]
