@@ -10,11 +10,15 @@ Run with: python tests/test_edge_cases.py -v
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+# UCSC tools required for validate-only; skip that test when not installed (e.g. CI before install step)
+UCSC_TOOLS_AVAILABLE = shutil.which("gtfToGenePred") is not None
 
 # Project root for paths
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -165,6 +169,7 @@ class TestCLIArgs(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
 
+    @unittest.skipIf(not UCSC_TOOLS_AVAILABLE, "UCSC tools not installed (gtfToGenePred missing)")
     def test_validate_only_with_valid_files(self):
         """--validate-only with valid files should succeed quickly."""
         result = subprocess.run(

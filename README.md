@@ -9,7 +9,7 @@
 - 🔍 **Advanced filtering** with dropdowns and range definitions in UCSC
 - 📊 **Per-category tracks** for easy exploration
 - 🔎 **Trix search** for finding isoforms by attribute
-- 📋 **Interactive HTML tables** with multi-select rows, export, **Trix string generation**, and **Generate Filter String** (newline-separated list for Table Browser)
+- 📋 **Interactive HTML tables** with multi-select rows, export, **Trix string generation**, and **Generate Filter String** (isoform list for Table Browser)
 - 👁 **View specific isoforms** via Table Browser (Custom Tracks)
 - 🎯 **Validation tracks** (CAGE, PolyA, STAR, reference)
 - 🧬 **SQANTI-reads compatible** – Process multi-sample experiments
@@ -17,8 +17,6 @@
 ## Documentation
 
 📖 **[See the Wiki](../../wiki/home)** for detailed documentation.
-
-All docs live in `wiki/`. Edit there, review, then push when ready (assistants never push to GitHub). See `wiki/README.md` for the workflow.
 
 **Quick Start:**
 - 🚀 **[Quick Reference](../../wiki/quick_reference)** - One-page cheat sheet
@@ -123,7 +121,7 @@ python example/example_usage.py
 | `--tables` | Generate interactive HTML tables for each category |
 | `--sort-by none` | Sort isoforms (Default `none`). Options: `FL`, `iso_exp`, `length`, etc. |
 | `--no-category-tracks` | Only generate the main track |
-| `--category-tracks FSM,ISM,NIC` | Only create tracks for these categories (abbreviated: FSM, ISM, NIC, NNC, antisense, genic_intron, genic_genomic, intergenic, fusion) |
+| `--category-tracks FSM,ISM,NIC` | Only create tracks for these categories (abbreviated: FSM, ISM, NIC, etc) |
 | `--no-highlight` | Disable highlight coloring for top FL isoforms |
 | `--my-palette FILE` | Custom color palette JSON file (see [Custom palette wiki](../../wiki/custom_palette)) |
 | `--star-sj SJ.out.tab` | Include STAR splice junctions track |
