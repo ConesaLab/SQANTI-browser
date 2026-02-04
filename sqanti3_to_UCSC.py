@@ -26,6 +26,7 @@ import re
 from collections import defaultdict
 
 from src.constants import (
+    BED12_BASE_COLS,
     DROPDOWN_COLS,
     DEFAULT_HIGHLIGHT_PALETTE,
     DEFAULT_HIGHLIGHT_COLOR_NAMES,
@@ -34,6 +35,7 @@ from src.constants import (
     DEFAULT_VALIDATION_COLORS,
     ORDERED_FILTERS,
 )
+from src.utils import normalize_trix_token
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -164,23 +166,6 @@ def load_custom_palette(palette_file):
                 raise ValueError(f"Invalid color for validation_tracks/{track}: {e}")
     
     return standard_colors, highlight_colors, validation_colors
-
-
-def normalize_trix_token(value):
-    """Normalize strings for Trix search tokens (lowercase, underscores)."""
-    if value is None:
-        return ""
-    token = str(value).strip().lower()
-    if not token:
-        return ""
-    if token == '+':
-        return 'plus'
-    if token == '-':
-        return 'minus'
-    token = re.sub(r'[^\w]+', '_', token)
-    token = re.sub(r'_+', '_', token)
-    token = token.strip('_')
-    return token
 
 
 class SQANTI3ToBigBed:
@@ -466,16 +451,10 @@ class SQANTI3ToBigBed:
         
         try:
             # Load BED file (headerless)
-            bed_cols = [
-                'chrom', 'chromStart', 'chromEnd', 'name', 'score', 'strand',
-                'thickStart', 'thickEnd', 'itemRgb', 'blockCount', 
-                'blockSizes', 'chromStarts'
-            ]
-            
             bed_df = pd.read_csv(
                 bed_file, 
                 sep='	', 
-                names=bed_cols,
+                names=list(BED12_BASE_COLS),
                 dtype={'chrom': 'string', 'name': 'string', 'strand': 'category'}
             )
             
@@ -485,7 +464,7 @@ class SQANTI3ToBigBed:
 
             # Identify extra columns: those in classification but NOT in standard BED12
             # We exclude standard BED columns to avoid duplicates and merge conflicts
-            exclude_cols = set(bed_cols)
+            exclude_cols = set(BED12_BASE_COLS)
             exclude_cols.add('ORF_seq')  # User requested to exclude this long column
             
             self.extra_cols = [
@@ -595,7 +574,7 @@ class SQANTI3ToBigBed:
                 merged.loc[mask, 'FSM_class'] = 'FSM' + merged.loc[mask, 'FSM_class']
             
             # Write to file
-            final_cols = bed_cols + self.extra_cols
+            final_cols = list(BED12_BASE_COLS) + self.extra_cols
             
             merged[final_cols].to_csv(
                 output_file, 
@@ -1373,12 +1352,7 @@ class SQANTI3ToBigBed:
                     raise Exception("Could not determine chromosome sizes")
 
             # Read, sort with visualization logic, and write
-            bed_cols = [
-                'chrom', 'chromStart', 'chromEnd', 'name', 'score', 'strand',
-                'thickStart', 'thickEnd', 'itemRgb', 'blockCount', 
-                'blockSizes', 'chromStarts'
-            ] + self.extra_cols
-            
+            bed_cols = list(BED12_BASE_COLS) + self.extra_cols
             df = pd.read_csv(bed_file, sep='\t', names=bed_cols, dtype={'chrom': 'string'})
             
             # Apply visualization-optimized sorting
@@ -1422,12 +1396,7 @@ class SQANTI3ToBigBed:
             
             # Read full BED file to filter by category
             # We use the same columns as written in add_classification_data_to_bed
-            bed_cols = [
-                'chrom', 'chromStart', 'chromEnd', 'name', 'score', 'strand',
-                'thickStart', 'thickEnd', 'itemRgb', 'blockCount', 
-                'blockSizes', 'chromStarts'
-            ] + self.extra_cols
-            
+            bed_cols = list(BED12_BASE_COLS) + self.extra_cols
             df = pd.read_csv(main_bed_file, sep='	', names=bed_cols, dtype={'chrom': 'string'})
             
             if 'structural_category' not in df.columns:

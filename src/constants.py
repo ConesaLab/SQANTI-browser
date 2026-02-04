@@ -3,6 +3,15 @@ Centralized constants for SQANTI-browser: filter definitions and color palettes.
 """
 
 # ---------------------------------------------------------------------------
+# BED12 base column names (standard BED columns before any extra fields)
+# ---------------------------------------------------------------------------
+BED12_BASE_COLS = (
+    'chrom', 'chromStart', 'chromEnd', 'name', 'score', 'strand',
+    'thickStart', 'thickEnd', 'itemRgb', 'blockCount',
+    'blockSizes', 'chromStarts',
+)
+
+# ---------------------------------------------------------------------------
 # Filter definitions for UCSC trackDb and HTML documentation
 # Each entry: ('text', col, label) or ('range', col, min, max, label)
 # Order matches classification file column order; strand first for trackDb compatibility.

@@ -5,9 +5,9 @@ import json
 from pathlib import Path
 import sys
 import logging
-import re
 
 from src.constants import DEFAULT_STANDARD_PALETTE
+from src.utils import normalize_trix_token
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -16,23 +16,6 @@ logger = logging.getLogger(__name__)
 def rgb_to_hex(rgb):
     """Convert RGB tuple to hex string."""
     return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
-
-
-def normalize_trix_token(value):
-    """Normalize strings for Trix search tokens (lowercase, underscores)."""
-    if value is None:
-        return ""
-    token = str(value).strip().lower()
-    if not token:
-        return ""
-    if token == '+':
-        return 'plus'
-    if token == '-':
-        return 'minus'
-    token = re.sub(r'[^\w]+', '_', token)
-    token = re.sub(r'_+', '_', token)
-    token = token.strip('_')
-    return token
 
 
 def get_category_color(category, palette=None):
