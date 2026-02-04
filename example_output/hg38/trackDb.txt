@@ -148,6 +148,50 @@ html hg38_sqanti3_track.html
 searchIndex name
 searchTrix trix.ix
 
+track hg38_star_sj
+bigDataUrl hg38_star_sj.bb
+shortLabel STAR Junctions
+longLabel STAR splice junctions (SJ.out.tab)
+type bigBed 9
+itemRgb on
+visibility full
+group validation
+priority 2
+html hg38_star_sj_track.html
+
+track hg38_cage_peaks
+bigDataUrl hg38_cage_peaks.bb
+shortLabel CAGE Peaks
+longLabel CAGE Peaks (TSS Validation)
+type bigBed 9
+itemRgb on
+visibility dense
+group validation
+priority 3
+html hg38_cage_peaks_track.html
+
+track hg38_polya_peaks
+bigDataUrl hg38_polya_peaks.bb
+shortLabel PolyA Peaks
+longLabel PolyA Site Peaks (TTS Validation)
+type bigBed 9
+itemRgb on
+visibility dense
+group validation
+priority 4
+html hg38_polya_peaks_track.html
+
+track hg38_reference
+bigDataUrl hg38_reference.bb
+shortLabel Reference
+longLabel Reference Genome Annotation
+type bigBed 12
+visibility pack
+group validation
+priority 5
+color 70,70,70
+html hg38_reference_track.html
+
 track hg38_sqanti3_intergenic
 bigDataUrl hg38_sqanti3_intergenic.bb
 shortLabel SQANTI3 intergenic

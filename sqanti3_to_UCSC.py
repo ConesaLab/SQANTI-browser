@@ -24,6 +24,17 @@ import numpy as np
 import logging
 import re
 from collections import defaultdict
+
+from src.constants import (
+    DROPDOWN_COLS,
+    DEFAULT_HIGHLIGHT_PALETTE,
+    DEFAULT_HIGHLIGHT_COLOR_NAMES,
+    DEFAULT_STANDARD_PALETTE,
+    DEFAULT_STANDARD_COLOR_NAMES,
+    DEFAULT_VALIDATION_COLORS,
+    ORDERED_FILTERS,
+)
+
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -173,19 +184,6 @@ def normalize_trix_token(value):
 
 
 class SQANTI3ToBigBed:
-    # Valid sort-by options for isoform ordering
-    VALID_SORT_OPTIONS = [
-        'iso_exp',      # Short read expression for this isoform (highest first)
-        'length',       # Transcript length (longest first)
-        'FL',           # Full-length reads (highest first)
-        'diff_to_TSS',  # Distance to reference TSS
-        'diff_to_TTS',  # Distance to reference TTS
-        'diff_to_gene_TSS',   # Distance to gene TSS
-        'diff_to_gene_TTS',   # Distance to gene TTS
-        'dist_to_CAGE_peak',  # Distance to CAGE peak
-        'dist_to_polyA_site'  # Distance to polyA site
-    ]
-    
     def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, ref_gtf=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='none', no_category_tracks=False, no_highlight=False, custom_palette=None):
         self.gtf_file = gtf_file
         self.classification_file = classification_file
@@ -259,14 +257,8 @@ class SQANTI3ToBigBed:
     
     def _get_validation_track_color(self, track_name):
         """Get RGB tuple for a validation track (CAGE_peaks, polyA_peaks, star_sj, reference)."""
-        defaults = {
-            "CAGE_peaks": (0, 128, 0),      # Green - TSS
-            "polyA_peaks": (200, 0, 0),     # Dark red - TTS
-            "star_sj": (21, 101, 192),      # Blue - splice junctions
-            "reference": (70, 70, 70),      # Gray
-        }
         custom = getattr(self, 'custom_validation_colors', {}) or {}
-        return custom.get(track_name, defaults.get(track_name, (128, 128, 128)))
+        return custom.get(track_name, DEFAULT_VALIDATION_COLORS.get(track_name, (128, 128, 128)))
     
     def _pack_rgb(self, r, g, b):
         """Pack RGB to BED itemRgb integer."""
@@ -535,39 +527,13 @@ class SQANTI3ToBigBed:
             def pack_rgb(r, g, b):
                 return r * 65536 + g * 256 + b
             
-            # Default color palettes
-            default_standard = {
-                "full-splice_match": (107, 174, 214),
-                "incomplete-splice_match": (252, 141, 89),
-                "novel_in_catalog": (120, 198, 121),
-                "novel_not_in_catalog": (214, 47, 75),
-                "genic": (150, 150, 150),
-                "antisense": (102, 194, 164),
-                "fusion": (218, 165, 32),
-                "intergenic": (233, 150, 122),
-                "genic_intron": (65, 182, 196),
-                "NA": (200, 200, 200)
-            }
-
-            default_highlight = {
-                "full-splice_match": (69, 111, 137),
-                "incomplete-splice_match": (202, 113, 71),
-                "novel_in_catalog": (77, 126, 78),
-                "novel_not_in_catalog": (152, 7, 31),
-                "genic": (96, 96, 96),
-                "antisense": (66, 124, 105),
-                "fusion": (139, 106, 21),
-                "intergenic": (149, 96, 78),
-                "genic_intron": (42, 117, 126),
-            }
-            
             # Merge custom colors with defaults (custom takes precedence)
-            final_standard = {**default_standard}
+            final_standard = {**DEFAULT_STANDARD_PALETTE}
             if self.custom_standard_colors:
                 final_standard.update(self.custom_standard_colors)
             
             # For highlight: use custom if provided, else auto-darken custom standard, else use default
-            final_highlight = {**default_highlight}
+            final_highlight = {**DEFAULT_HIGHLIGHT_PALETTE}
             if self.custom_highlight_colors:
                 final_highlight.update(self.custom_highlight_colors)
             elif self.custom_standard_colors:
@@ -688,8 +654,7 @@ class SQANTI3ToBigBed:
         
         # Determine the sort metric column
         original_sort_by = sort_by
-        fallback_used = False
-        
+
         # Check if sort column exists and has valid (non-NA) values
         if sort_by is not None:
             if sort_by not in df.columns:
@@ -1214,24 +1179,8 @@ class SQANTI3ToBigBed:
     
     def _get_rgb_color(self, structural_category):
         """Get RGB color for structural category - uses custom palette if available"""
-        # Default colors
-        default_palette = {
-            "full-splice_match": (107, 174, 214),
-            "incomplete-splice_match": (252, 141, 89),
-            "novel_in_catalog": (120, 198, 121),
-            "novel_not_in_catalog": (214, 47, 75),
-            "genic": (150, 150, 150),
-            "antisense": (102, 194, 164),
-            "fusion": (218, 165, 32),
-            "intergenic": (233, 150, 122),
-            "genic_intron": (65, 182, 196)
-        }
-        
-        # Use custom palette if available
-        if hasattr(self, 'final_standard_palette') and self.final_standard_palette:
-            palette = self.final_standard_palette
-        else:
-            palette = default_palette
+        palette = (self.final_standard_palette if hasattr(self, 'final_standard_palette')
+                   and self.final_standard_palette else DEFAULT_STANDARD_PALETTE)
         
         cat_key = structural_category.lower()
         rgb_tuple = palette.get(cat_key, (255, 255, 255))
@@ -1239,32 +1188,15 @@ class SQANTI3ToBigBed:
     
     def _get_category_hex_color(self, structural_category):
         """Get hex color for structural category - uses custom palette if available"""
-        # Default colors
-        default_palette = {
-            "full-splice_match": (107, 174, 214),
-            "incomplete-splice_match": (252, 141, 89),
-            "novel_in_catalog": (120, 198, 121),
-            "novel_not_in_catalog": (214, 47, 75),
-            "genic": (150, 150, 150),
-            "antisense": (102, 194, 164),
-            "fusion": (218, 165, 32),
-            "intergenic": (233, 150, 122),
-            "genic_intron": (65, 182, 196)
-        }
-        
-        # Use custom palette if available
-        if hasattr(self, 'final_standard_palette') and self.final_standard_palette:
-            palette = self.final_standard_palette
-        else:
-            palette = default_palette
+        palette = (self.final_standard_palette if hasattr(self, 'final_standard_palette')
+                   and self.final_standard_palette else DEFAULT_STANDARD_PALETTE)
         
         cat_key = structural_category.lower().replace(' ', '_')
         rgb_tuple = palette.get(cat_key, (107, 174, 214))
         return f"#{rgb_tuple[0]:02X}{rgb_tuple[1]:02X}{rgb_tuple[2]:02X}"
     
     def _generate_color_legend_html(self):
-        """Generate HTML color legend using current palette (custom or default)"""
-        # Category display names and order
+        """Generate HTML color legend with color names, hex, and RGB for each structural category."""
         categories = [
             ("full-splice_match", "Full-splice match (FSM)"),
             ("incomplete-splice_match", "Incomplete-splice match (ISM)"),
@@ -1277,55 +1209,39 @@ class SQANTI3ToBigBed:
             ("genic_intron", "Genic intron"),
         ]
         
-        # Default palettes
-        default_standard = {
-            "full-splice_match": (107, 174, 214),
-            "incomplete-splice_match": (252, 141, 89),
-            "novel_in_catalog": (120, 198, 121),
-            "novel_not_in_catalog": (214, 47, 75),
-            "genic": (150, 150, 150),
-            "antisense": (102, 194, 164),
-            "fusion": (218, 165, 32),
-            "intergenic": (233, 150, 122),
-            "genic_intron": (65, 182, 196),
-        }
-        default_highlight = {
-            "full-splice_match": (69, 111, 137),
-            "incomplete-splice_match": (202, 113, 71),
-            "novel_in_catalog": (77, 126, 78),
-            "novel_not_in_catalog": (152, 7, 31),
-            "genic": (96, 96, 96),
-            "antisense": (66, 124, 105),
-            "fusion": (139, 106, 21),
-            "intergenic": (149, 96, 78),
-            "genic_intron": (42, 117, 126),
-        }
-        
-        # Use custom palette if available
-        standard = getattr(self, 'final_standard_palette', None) or default_standard
-        highlight = getattr(self, 'final_highlight_palette', None) or default_highlight
+        standard = getattr(self, 'final_standard_palette', None) or DEFAULT_STANDARD_PALETTE
+        highlight = getattr(self, 'final_highlight_palette', None) or DEFAULT_HIGHLIGHT_PALETTE
         
         def rgb_to_hex(rgb):
             return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
         
-        # Build standard colors table
+        def get_color_name(cat_key, rgb, palette, name_map):
+            """Return CSS color name if palette matches default, else '-'."""
+            default_rgb = palette.get(cat_key)
+            if default_rgb and rgb == default_rgb:
+                return name_map.get(cat_key, '-')
+            return '-'
+        
+        # Build standard colors table with color names
         html = ['<h2>Color Legend</h2>', '<h3>Standard Colors</h3>', '<table>',
-                '<tr><th>Category</th><th>Hex Code</th><th>RGB</th></tr>']
+                '<tr><th>Category</th><th>Color Name</th><th>Hex</th><th>RGB</th></tr>']
         for cat_key, cat_name in categories:
             rgb = standard.get(cat_key, (200, 200, 200))
             hex_color = rgb_to_hex(rgb)
+            color_name = get_color_name(cat_key, tuple(rgb), DEFAULT_STANDARD_PALETTE, DEFAULT_STANDARD_COLOR_NAMES)
             html.append(f'<tr><td><span class="color-box" style="background-color: {hex_color};"></span>{cat_name}</td>'
-                       f'<td>{hex_color}</td><td>({rgb[0]}, {rgb[1]}, {rgb[2]})</td></tr>')
+                       f'<td>{color_name}</td><td>{hex_color}</td><td>({rgb[0]}, {rgb[1]}, {rgb[2]})</td></tr>')
         html.append('</table>')
         
-        # Build highlight colors table
+        # Build highlight colors table with color names
         html.extend(['<h3>Highlight Colors (top FL isoform per group)</h3>', '<table>',
-                    '<tr><th>Category</th><th>Hex Code</th><th>RGB</th></tr>'])
+                    '<tr><th>Category</th><th>Color Name</th><th>Hex</th><th>RGB</th></tr>'])
         for cat_key, cat_name in categories:
             rgb = highlight.get(cat_key, (128, 128, 128))
             hex_color = rgb_to_hex(rgb)
+            color_name = get_color_name(cat_key, tuple(rgb), DEFAULT_HIGHLIGHT_PALETTE, DEFAULT_HIGHLIGHT_COLOR_NAMES)
             html.append(f'<tr><td><span class="color-box" style="background-color: {hex_color};"></span>{cat_name}</td>'
-                       f'<td>{hex_color}</td><td>({rgb[0]}, {rgb[1]}, {rgb[2]})</td></tr>')
+                       f'<td>{color_name}</td><td>{hex_color}</td><td>({rgb[0]}, {rgb[1]}, {rgb[2]})</td></tr>')
         html.append('</table>')
         
         return '\n    '.join(html)
@@ -1344,31 +1260,8 @@ class SQANTI3ToBigBed:
             ("genic_intron", "Genic Intron"),
         ]
         
-        default_standard = {
-            "full-splice_match": (107, 174, 214),
-            "incomplete-splice_match": (252, 141, 89),
-            "novel_in_catalog": (120, 198, 121),
-            "novel_not_in_catalog": (214, 47, 75),
-            "genic": (150, 150, 150),
-            "antisense": (102, 194, 164),
-            "fusion": (218, 165, 32),
-            "intergenic": (233, 150, 122),
-            "genic_intron": (65, 182, 196),
-        }
-        default_highlight = {
-            "full-splice_match": (69, 111, 137),
-            "incomplete-splice_match": (202, 113, 71),
-            "novel_in_catalog": (77, 126, 78),
-            "novel_not_in_catalog": (152, 7, 31),
-            "genic": (96, 96, 96),
-            "antisense": (66, 124, 105),
-            "fusion": (139, 106, 21),
-            "intergenic": (149, 96, 78),
-            "genic_intron": (42, 117, 126),
-        }
-        
-        standard = getattr(self, 'final_standard_palette', None) or default_standard
-        highlight = getattr(self, 'final_highlight_palette', None) or default_highlight
+        standard = getattr(self, 'final_standard_palette', None) or DEFAULT_STANDARD_PALETTE
+        highlight = getattr(self, 'final_highlight_palette', None) or DEFAULT_HIGHLIGHT_PALETTE
         
         def rgb_to_hex(rgb):
             return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
@@ -1401,64 +1294,13 @@ class SQANTI3ToBigBed:
         if category_filter:
             df = df[df['structural_category'] == category_filter]
         
-        # Filters in classification file column order (matching trackDb.txt order)
-        # Each entry: ('text', col, label) or ('range', col, min, max, label)
-        ordered_filters = [
-            ('range', 'length', 0, 100000, 'Transcript length (bp)'),
-            ('range', 'exons', 0, 200, 'Number of exons'),
-            ('text', 'structural_category', 'Structural Category'),
-            ('text', 'associated_gene', 'Associated Gene'),
-            ('text', 'associated_transcript', 'Associated Transcript'),
-            ('range', 'ref_length', 0, 100000, 'Reference transcript length'),
-            ('range', 'ref_exons', 0, 200, 'Reference exon count'),
-            ('range', 'diff_to_TSS', -100000, 100000, 'Distance to reference TSS'),
-            ('range', 'diff_to_TTS', -100000, 100000, 'Distance to reference TTS'),
-            ('range', 'diff_to_gene_TSS', -100000, 100000, 'Distance to gene TSS'),
-            ('range', 'diff_to_gene_TTS', -100000, 100000, 'Distance to gene TTS'),
-            ('text', 'subcategory', 'Subcategory'),
-            ('text', 'RTS_stage', 'RTS Stage'),
-            ('text', 'all_canonical', 'All Canonical Splice Sites'),
-            ('range', 'min_sample_cov', 0, 10000, 'Minimum sample coverage'),
-            ('range', 'min_cov', 0, 10000, 'Minimum junction coverage'),
-            ('text', 'min_cov_pos', 'Minimum Coverage Position'),
-            ('range', 'sd_cov', 0, 1000, 'Coverage standard deviation'),
-            ('range', 'FL', 0, 100000, 'Full-length read count'),
-            ('range', 'n_indels', 0, 100, 'Number of indels'),
-            ('range', 'n_indels_junc', 0, 100, 'Number of indels at junctions'),
-            ('text', 'bite', 'BITE Status'),
-            ('range', 'iso_exp', 0, 100000, 'Isoform expression (TPM)'),
-            ('range', 'gene_exp', 0, 100000, 'Gene expression (TPM)'),
-            ('range', 'ratio_exp', 0, 1, 'Expression ratio (isoform/gene)'),
-            ('text', 'FSM_class', 'FSM Class'),
-            ('text', 'coding', 'Coding Status'),
-            ('range', 'ORF_length', 0, 50000, 'ORF length (aa)'),
-            ('range', 'CDS_length', 0, 50000, 'CDS length (bp)'),
-            ('range', 'CDS_start', 0, 100000, 'CDS start position'),
-            ('range', 'CDS_end', 0, 100000, 'CDS end position'),
-            ('text', 'predicted_NMD', 'Predicted NMD'),
-            ('range', 'perc_A_downstream_TTS', 0, 100, 'Percent A downstream of TTS'),
-            ('range', 'dist_to_CAGE_peak', -10000, 10000, 'Distance to CAGE peak'),
-            ('text', 'within_CAGE_peak', 'Within CAGE Peak'),
-            ('range', 'dist_to_polyA_site', -10000, 10000, 'Distance to polyA site'),
-            ('range', 'polyA_dist', -1000, 1000, 'PolyA distance'),
-            ('text', 'polyA_motif_found', 'PolyA Motif Found'),
-            ('range', 'ratio_TSS', 0, 10, 'TSS ratio'),
-        ]
-        
         html_parts = []
-        
-        # Columns that use dropdown menus
-        dropdown_cols = {
-            'structural_category', 'subcategory', 'coding', 'FSM_class', 
-            'all_canonical', 'RTS_stage', 'bite', 'predicted_NMD',
-            'within_CAGE_peak', 'polyA_motif_found'
-        }
         
         # Build table with all filters in order
         html_parts.append('<table>')
         html_parts.append('<tr><th>Filter</th><th>Type</th><th>Values / Range</th></tr>')
         
-        for filter_def in ordered_filters:
+        for filter_def in ORDERED_FILTERS:
             if filter_def[0] == 'text':
                 _, col, label = filter_def
                 if col in df.columns:
@@ -1466,7 +1308,7 @@ class SQANTI3ToBigBed:
                         # These have too many unique values - use text filter
                         unique_count = df[col].nunique()
                         html_parts.append(f'<tr><td><strong>{label}</strong></td><td>🔤 Text</td><td>{unique_count} unique values. Use wildcards like <code>*</code></td></tr>')
-                    elif col in dropdown_cols:
+                    elif col in DROPDOWN_COLS:
                         # Dropdown filter - show values vertically
                         value_counts = df[col].value_counts(dropna=False)
                         unique_vals = []
@@ -1901,62 +1743,6 @@ class SQANTI3ToBigBed:
             
             existing_fields = set([sanitize(c) for c in self.extra_cols])
             
-            # Combined filters in classification file column order
-            # Each entry is either:
-            #   ('text', col, label) for categorical/text filters
-            #   ('range', col, min, max, label) for numeric range filters
-            ordered_filters = [
-                # First columns from classification file
-                ('text', 'strand', 'Strand (+ or -)'),
-                ('range', 'length', 0, 100000, 'Transcript length (bp)'),
-                ('range', 'exons', 0, 200, 'Number of exons'),
-                ('text', 'structural_category', 'Structural category (FSM, ISM, NIC, NNC, etc.)'),
-                ('text', 'associated_gene', 'Associated gene'),
-                ('text', 'associated_transcript', 'Associated transcript'),
-                ('range', 'ref_length', 0, 100000, 'Reference transcript length'),
-                ('range', 'ref_exons', 0, 200, 'Reference exon count'),
-                ('range', 'diff_to_TSS', -100000, 100000, 'Distance to reference TSS'),
-                ('range', 'diff_to_TTS', -100000, 100000, 'Distance to reference TTS'),
-                ('range', 'diff_to_gene_TSS', -100000, 100000, 'Distance to gene TSS'),
-                ('range', 'diff_to_gene_TTS', -100000, 100000, 'Distance to gene TTS'),
-                ('text', 'subcategory', 'Subcategory (mono-exon, multi-exon, etc.)'),
-                ('text', 'RTS_stage', 'RTS stage'),
-                ('text', 'all_canonical', 'All canonical splice sites'),
-                ('range', 'min_sample_cov', 0, 10000, 'Minimum sample coverage'),
-                ('range', 'min_cov', 0, 10000, 'Minimum junction coverage'),
-                ('text', 'min_cov_pos', 'Minimum coverage position'),
-                ('range', 'sd_cov', 0, 1000, 'Coverage standard deviation'),
-                ('range', 'FL', 0, 100000, 'Full-length read count'),
-                ('range', 'n_indels', 0, 100, 'Number of indels'),
-                ('range', 'n_indels_junc', 0, 100, 'Number of indels at junctions'),
-                ('text', 'bite', 'BITE status'),
-                ('range', 'iso_exp', 0, 100000, 'Isoform expression (TPM)'),
-                ('range', 'gene_exp', 0, 100000, 'Gene expression (TPM)'),
-                ('range', 'ratio_exp', 0, 1, 'Expression ratio (isoform/gene)'),
-                ('text', 'FSM_class', 'FSM class (A, B, C, D)'),
-                ('text', 'coding', 'Coding status (coding, non_coding)'),
-                ('range', 'ORF_length', 0, 50000, 'ORF length (aa)'),
-                ('range', 'CDS_length', 0, 50000, 'CDS length (bp)'),
-                ('range', 'CDS_start', 0, 100000, 'CDS start position'),
-                ('range', 'CDS_end', 0, 100000, 'CDS end position'),
-                ('text', 'predicted_NMD', 'Predicted NMD'),
-                ('range', 'perc_A_downstream_TTS', 0, 100, 'Percent A downstream of TTS'),
-                ('range', 'dist_to_CAGE_peak', -10000, 10000, 'Distance to CAGE peak'),
-                ('text', 'within_CAGE_peak', 'Within CAGE peak'),
-                ('range', 'dist_to_polyA_site', -10000, 10000, 'Distance to polyA site'),
-                ('range', 'polyA_dist', -1000, 1000, 'PolyA distance'),
-                ('text', 'polyA_motif_found', 'PolyA motif found'),
-                ('range', 'ratio_TSS', 0, 10, 'TSS ratio'),
-            ]
-            
-            # Columns that should use dropdown (filterValues) - those with few unique values
-            # Columns with many unique values (gene, transcript) will use text search
-            dropdown_cols = {
-                'structural_category', 'subcategory', 'coding', 'FSM_class', 
-                'all_canonical', 'RTS_stage', 'bite', 'predicted_NMD',
-                'within_CAGE_peak', 'polyA_motif_found'
-            }
-            
             # Get unique values for dropdown columns from classification data
             def get_unique_values(col):
                 if col in self.classification_df.columns:
@@ -1967,11 +1753,11 @@ class SQANTI3ToBigBed:
                 return []
             
             # Write filters in order
-            for filter_def in ordered_filters:
+            for filter_def in ORDERED_FILTERS:
                 if filter_def[0] == 'text':
                     _, col, label = filter_def
                     if col in existing_fields:
-                        if col in dropdown_cols:
+                        if col in DROPDOWN_COLS:
                             # Use filterValues for dropdown
                             unique_vals = get_unique_values(col)
                             if unique_vals:
@@ -2003,8 +1789,8 @@ class SQANTI3ToBigBed:
             f.write(f"filterLabel.blockCount Number of exons (from BED)\n")
             
             # Keep references to filter definitions for category tracks
-            categorical_filters = {f[1]: f[2] for f in ordered_filters if f[0] == 'text'}
-            numeric_filters = {f[1]: (f[2], f[3], f[4]) for f in ordered_filters if f[0] == 'range'}
+            categorical_filters = {f[1]: f[2] for f in ORDERED_FILTERS if f[0] == 'text'}
+            numeric_filters = {f[1]: (f[2], f[3], f[4]) for f in ORDERED_FILTERS if f[0] == 'range'}
             
             # Main track: pack mode by default (typical user workflow)
             f.write(f"visibility pack\n")
@@ -2175,11 +1961,11 @@ class SQANTI3ToBigBed:
                             return vals
                         return []
                     
-                    for filter_def in ordered_filters:
+                    for filter_def in ORDERED_FILTERS:
                         if filter_def[0] == 'text':
                             _, col, label = filter_def
                             if col in existing_fields:
-                                if col in dropdown_cols:
+                                if col in DROPDOWN_COLS:
                                     unique_vals = get_cat_unique_values(col)
                                     if unique_vals:
                                         vals_str = ','.join(unique_vals)

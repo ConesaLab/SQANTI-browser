@@ -7,21 +7,11 @@ import sys
 import logging
 import re
 
+from src.constants import DEFAULT_STANDARD_PALETTE
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Default color palettes (RGB tuples)
-DEFAULT_STANDARD_PALETTE = {
-    "full-splice_match": (107, 174, 214),
-    "incomplete-splice_match": (252, 141, 89),
-    "novel_in_catalog": (120, 198, 121),
-    "novel_not_in_catalog": (214, 47, 75),
-    "genic": (150, 150, 150),
-    "antisense": (102, 194, 164),
-    "fusion": (218, 165, 32),
-    "intergenic": (233, 150, 122),
-    "genic_intron": (65, 182, 196),
-}
 
 def rgb_to_hex(rgb):
     """Convert RGB tuple to hex string."""
@@ -560,41 +550,8 @@ CATEGORY_ORDER = [
     "NA"
 ]
 
-# SVG Diagrams for structural categories - Text labels moved to the right side
-CATEGORY_SVGS = {
-    "full-splice_match": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="190" y2="52" stroke="#6BAED6" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="#6BAED6" rx="2"/><rect x="80" y="48" width="40" height="8" fill="#6BAED6" rx="2"/><rect x="150" y="48" width="40" height="8" fill="#6BAED6" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#6BAED6" font-weight="bold">Isoform (FSM)</text></svg>''',
-    
-    "incomplete-splice_match": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="80" y1="52" x2="190" y2="52" stroke="#FC8D59" stroke-width="2" /><rect x="80" y="48" width="40" height="8" fill="#FC8D59" rx="2"/><rect x="150" y="48" width="40" height="8" fill="#FC8D59" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#FC8D59" font-weight="bold">Isoform (ISM)</text></svg>''',
-    
-    "novel_in_catalog": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="190" y2="52" stroke="#78C679" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="#78C679" rx="2"/><rect x="150" y="48" width="40" height="8" fill="#78C679" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#78C679" font-weight="bold">Isoform (NIC)</text></svg>''',
-    
-    "novel_not_in_catalog": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="190" y2="52" stroke="#D62F4B" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="#D62F4B" rx="2"/><rect x="80" y="48" width="60" height="8" fill="#D62F4B" rx="2"/><rect x="150" y="48" width="40" height="8" fill="#D62F4B" rx="2"/><text x="130" y="40" font-size="10" fill="#D62F4B" text-anchor="middle">New Site</text><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#D62F4B" font-weight="bold">Isoform (NNC)</text></svg>''',
-    
-    "genic_intron": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><rect x="80" y="48" width="40" height="8" fill="#41B6C4" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#41B6C4" font-weight="bold">Isoform (Intron)</text></svg>''',
-    
-    "genic": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="120" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><rect x="40" y="48" width="60" height="8" fill="#969696" rx="2"/><text x="70" y="70" font-size="10" fill="#969696" text-anchor="middle">Overlap</text><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#969696" font-weight="bold">Isoform (Genic)</text></svg>''',
-    
-    "antisense": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="120" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><text x="130" y="15" font-size="12">→</text><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference (+)</text><line x1="10" y1="52" x2="120" y2="52" stroke="#66C2A4" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="#66C2A4" rx="2"/><rect x="80" y="48" width="40" height="8" fill="#66C2A4" rx="2"/><text x="130" y="55" font-size="12" fill="#66C2A4">←</text><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#66C2A4" font-weight="bold">Isoform (-)</text></svg>''',
-    
-    "intergenic": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><rect x="140" y="48" width="40" height="8" fill="#E9967A" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#E9967A" font-weight="bold">Isoform (Inter)</text></svg>''',
-    
-    "fusion": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><text x="55" y="15" font-size="10">Gene A</text><rect x="140" y="8" width="40" height="8" fill="black" rx="2"/><text x="185" y="15" font-size="10">Gene B</text><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="180" y2="52" stroke="#DAA520" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="#DAA520" rx="2"/><rect x="140" y="48" width="40" height="8" fill="#DAA520" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#DAA520" font-weight="bold">Isoform (Fusion)</text></svg>'''
-}
-
+# Reference SVG for complete transcriptome overview (shared drawing)
 REFERENCE_SVG = '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="black" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="black" rx="2"/><rect x="80" y="26" width="40" height="8" fill="black" rx="2"/><rect x="150" y="26" width="40" height="8" fill="black" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text></svg>'''
-
-# Isoform-only SVGs for complete transcriptome overview (no repeated reference)
-CATEGORY_SVGS_OVERVIEW = {
-    "full-splice_match": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="#6BAED6" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#6BAED6" rx="2"/><rect x="80" y="26" width="40" height="8" fill="#6BAED6" rx="2"/><rect x="150" y="26" width="40" height="8" fill="#6BAED6" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#6BAED6" font-weight="bold">Isoform (FSM)</text></svg>''',
-    "incomplete-splice_match": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="80" y1="30" x2="190" y2="30" stroke="#FC8D59" stroke-width="2" /><rect x="80" y="26" width="40" height="8" fill="#FC8D59" rx="2"/><rect x="150" y="26" width="40" height="8" fill="#FC8D59" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#FC8D59" font-weight="bold">Isoform (ISM)</text></svg>''',
-    "novel_in_catalog": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="#78C679" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#78C679" rx="2"/><rect x="150" y="26" width="40" height="8" fill="#78C679" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#78C679" font-weight="bold">Isoform (NIC)</text></svg>''',
-    "novel_not_in_catalog": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="#D62F4B" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#D62F4B" rx="2"/><rect x="80" y="26" width="60" height="8" fill="#D62F4B" rx="2"/><rect x="150" y="26" width="40" height="8" fill="#D62F4B" rx="2"/><text x="130" y="18" font-size="10" fill="#D62F4B" text-anchor="middle">New Site</text><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#D62F4B" font-weight="bold">Isoform (NNC)</text></svg>''',
-    "genic_intron": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><rect x="80" y="26" width="40" height="8" fill="#41B6C4" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#41B6C4" font-weight="bold">Isoform (Intron)</text></svg>''',
-    "genic": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><rect x="40" y="26" width="60" height="8" fill="#969696" rx="2"/><text x="70" y="48" font-size="10" fill="#969696" text-anchor="middle">Overlap</text><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#969696" font-weight="bold">Isoform (Genic)</text></svg>''',
-    "antisense": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="120" y2="30" stroke="#66C2A4" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#66C2A4" rx="2"/><rect x="80" y="26" width="40" height="8" fill="#66C2A4" rx="2"/><text x="130" y="33" font-size="12" fill="#66C2A4">←</text><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#66C2A4" font-weight="bold">Isoform (-)</text></svg>''',
-    "intergenic": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><rect x="140" y="26" width="40" height="8" fill="#E9967A" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#E9967A" font-weight="bold">Isoform (Inter)</text></svg>''',
-    "fusion": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="180" y2="30" stroke="#DAA520" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#DAA520" rx="2"/><rect x="140" y="26" width="40" height="8" fill="#DAA520" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#DAA520" font-weight="bold">Isoform (Fusion)</text></svg>'''
-}
 
 def build_category_overview_html(categories_present=None, palette=None):
     """

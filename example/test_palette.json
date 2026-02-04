@@ -1,9 +1,0 @@
-{
-    "standard": {
-        "full-splice_match": "003049",
-        "incomplete-splice_match": "D62828",
-        "novel_in_catalog": "ecf39e",
-        "novel_not_in_catalog": [65, 182, 196],
-        "genic": [233, 150, 122]
-    }
-}

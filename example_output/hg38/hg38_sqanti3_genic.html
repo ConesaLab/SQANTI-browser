@@ -35,33 +35,34 @@
     
     <table>
     <tr><th>Filter</th><th>Type</th><th>Values / Range</th></tr>
+    <tr><td><strong>Strand (+ or -)</strong></td><td>🔤 Text</td><td class="filter-values"><code>+</code> (63), <code>-</code> (50)</td></tr>
     <tr><td><strong>Transcript length (bp)</strong></td><td>📊 Slider</td><td>Data range: 83 to 4870</td></tr>
     <tr><td><strong>Number of exons</strong></td><td>📊 Slider</td><td>Data range: 1 to 2</td></tr>
-    <tr><td><strong>Structural Category</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>genic</code> (113)</td></tr>
-    <tr><td><strong>Associated Gene</strong></td><td>🔤 Text</td><td>92 unique values. Use wildcards like <code>*</code></td></tr>
-    <tr><td><strong>Associated Transcript</strong></td><td>🔤 Text</td><td>1 unique values. Use wildcards like <code>*</code></td></tr>
+    <tr><td><strong>Structural category (FSM, ISM, NIC, NNC, etc.)</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>genic</code> (113)</td></tr>
+    <tr><td><strong>Associated gene</strong></td><td>🔤 Text</td><td>92 unique values. Use wildcards like <code>*</code></td></tr>
+    <tr><td><strong>Associated transcript</strong></td><td>🔤 Text</td><td>1 unique values. Use wildcards like <code>*</code></td></tr>
     <tr><td><strong>Reference transcript length</strong></td><td>📊 Slider</td><td>Data range: 104 to 10827</td></tr>
     <tr><td><strong>Reference exon count</strong></td><td>📊 Slider</td><td>Data range: 1 to 9</td></tr>
     <tr><td><strong>Distance to reference TSS</strong></td><td>📊 Slider</td><td>Data range: nan to nan</td></tr>
     <tr><td><strong>Distance to reference TTS</strong></td><td>📊 Slider</td><td>Data range: nan to nan</td></tr>
     <tr><td><strong>Distance to gene TSS</strong></td><td>📊 Slider</td><td>Data range: -262126 to 7739</td></tr>
     <tr><td><strong>Distance to gene TTS</strong></td><td>📊 Slider</td><td>Data range: -238435 to 18847</td></tr>
-    <tr><td><strong>Subcategory</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>mono-exon</code> (106)<br><code>multi-exon</code> (7)</td></tr>
-    <tr><td><strong>RTS Stage</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>False</code> (112)<br><code>True</code> (1)</td></tr>
-    <tr><td><strong>All Canonical Splice Sites</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>non_canonical</code> (6)<br><code>canonical</code> (1)</td></tr>
+    <tr><td><strong>Subcategory (mono-exon, multi-exon, etc.)</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>mono-exon</code> (106)<br><code>multi-exon</code> (7)</td></tr>
+    <tr><td><strong>RTS stage</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>False</code> (112)<br><code>True</code> (1)</td></tr>
+    <tr><td><strong>All canonical splice sites</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>non_canonical</code> (6)<br><code>canonical</code> (1)</td></tr>
     <tr><td><strong>Minimum sample coverage</strong></td><td>📊 Slider</td><td>Data range: 0 to 0</td></tr>
     <tr><td><strong>Minimum junction coverage</strong></td><td>📊 Slider</td><td>Data range: 0 to 0</td></tr>
-    <tr><td><strong>Minimum Coverage Position</strong></td><td>🔤 Text</td><td>1 unique values. Use wildcards like <code>*</code></td></tr>
+    <tr><td><strong>Minimum coverage position</strong></td><td>🔤 Text</td><td>1 unique values. Use wildcards like <code>*</code></td></tr>
     <tr><td><strong>Coverage standard deviation</strong></td><td>📊 Slider</td><td>Data range: 0 to 0</td></tr>
     <tr><td><strong>Full-length read count</strong></td><td>📊 Slider</td><td>Data range: 2 to 87</td></tr>
     <tr><td><strong>Number of indels</strong></td><td>📊 Slider</td><td>Data range: nan to nan</td></tr>
     <tr><td><strong>Number of indels at junctions</strong></td><td>📊 Slider</td><td>Data range: nan to nan</td></tr>
-    <tr><td><strong>BITE Status</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>False</code> (7)</td></tr>
+    <tr><td><strong>BITE status</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>False</code> (7)</td></tr>
     <tr><td><strong>Isoform expression (TPM)</strong></td><td>📊 Slider</td><td>Data range: 0 to 4835</td></tr>
     <tr><td><strong>Gene expression (TPM)</strong></td><td>📊 Slider</td><td>Data range: 0 to 14873</td></tr>
     <tr><td><strong>Expression ratio (isoform/gene)</strong></td><td>📊 Slider</td><td>Data range: 0 to 1</td></tr>
-    <tr><td><strong>FSM Class</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>C</code> (83)<br><code>B</code> (19)<br><code>A</code> (11)</td></tr>
-    <tr><td><strong>Coding Status</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>non_coding</code> (89)<br><code>coding</code> (24)</td></tr>
+    <tr><td><strong>FSM class (A, B, C, D)</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>C</code> (83)<br><code>B</code> (19)<br><code>A</code> (11)</td></tr>
+    <tr><td><strong>Coding status (coding, non_coding)</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>non_coding</code> (89)<br><code>coding</code> (24)</td></tr>
     <tr><td><strong>ORF length (aa)</strong></td><td>📊 Slider</td><td>Data range: 90 to 396</td></tr>
     <tr><td><strong>CDS length (bp)</strong></td><td>📊 Slider</td><td>Data range: 270 to 1188</td></tr>
     <tr><td><strong>CDS start position</strong></td><td>📊 Slider</td><td>Data range: 1 to 3465</td></tr>
@@ -69,10 +70,10 @@
     <tr><td><strong>Predicted NMD</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>True</code> (3)<br><code>False</code> (2)</td></tr>
     <tr><td><strong>Percent A downstream of TTS</strong></td><td>📊 Slider</td><td>Data range: 0 to 100</td></tr>
     <tr><td><strong>Distance to CAGE peak</strong></td><td>📊 Slider</td><td>Data range: -9811 to 37</td></tr>
-    <tr><td><strong>Within CAGE Peak</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>False</code> (68)<br><code>True</code> (45)</td></tr>
+    <tr><td><strong>Within CAGE peak</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>False</code> (68)<br><code>True</code> (45)</td></tr>
     <tr><td><strong>Distance to polyA site</strong></td><td>📊 Slider</td><td>Data range: nan to nan</td></tr>
     <tr><td><strong>PolyA distance</strong></td><td>📊 Slider</td><td>Data range: -45 to -5</td></tr>
-    <tr><td><strong>PolyA Motif Found</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>False</code> (65)<br><code>True</code> (48)</td></tr>
+    <tr><td><strong>PolyA motif found</strong></td><td>📋 Dropdown</td><td class="filter-values"><code>False</code> (65)<br><code>True</code> (48)</td></tr>
     <tr><td><strong>TSS ratio</strong></td><td>📊 Slider</td><td>Data range: 1 to 8001</td></tr>
     <tr><td><strong>Number of exons (from BED)</strong></td><td>📊 Slider</td><td>Range: 0 to 200</td></tr>
     </table>
