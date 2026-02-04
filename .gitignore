@@ -150,3 +150,8 @@ dmypy.json
 /bugfix
 example/ogs
 test/logs/test_module.log
+
+# Local scripts
+get_download_stats.py
+stats_history.csv
+
