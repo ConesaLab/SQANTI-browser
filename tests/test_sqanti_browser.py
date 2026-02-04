@@ -20,8 +20,8 @@ Tests include:
 - File validation
 
 Usage:
-  python test_sqanti_browser.py           # Run full test suite
-  python test_sqanti_browser.py --install-only   # Run only installation checks (fast)
+  python tests/test_sqanti_browser.py           # Run full test suite
+  python tests/test_sqanti_browser.py --install-only   # Run only installation checks (fast)
 
 Author: Carolina Monzo
 Date: January 2026
@@ -52,7 +52,7 @@ class SQANTIBrowserTester:
     """Test suite for SQANTI-browser"""
     
     def __init__(self):
-        self.project_root = Path(__file__).parent
+        self.project_root = Path(__file__).parent.parent
         self.test_output_dir = self.project_root / "test_output"
         self.passed_tests = 0
         self.failed_tests = 0

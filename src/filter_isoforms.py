@@ -6,8 +6,8 @@ from pathlib import Path
 import sys
 import logging
 
-from src.constants import DEFAULT_STANDARD_PALETTE
-from src.utils import normalize_trix_token
+from .constants import DEFAULT_STANDARD_PALETTE
+from .utils import normalize_trix_token
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)

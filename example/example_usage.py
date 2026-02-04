@@ -14,22 +14,23 @@ from pathlib import Path
 
 def run_example():
     """Run an example conversion"""
-    
+    project_root = Path(__file__).parent.parent
+
     print("SQANTI3 to UCSC Genome Browser Integration - Example Usage")
     print("=" * 60)
-    
+
     # Check if the main script exists
     main_script = "sqanti3_to_UCSC.py"
-    filter_script = "filter_isoforms.py"
-    
-    if not os.path.exists(main_script):
-        print(f"Error: {main_script} not found in current directory")
+    filter_script = "src/filter_isoforms.py"
+
+    if not (project_root / main_script).exists():
+        print(f"Error: {main_script} not found in project root")
         return False
-        
-    if not os.path.exists(filter_script):
-        print(f"Warning: {filter_script} not found in current directory")
-    
-    # Example parameters
+
+    if not (project_root / filter_script).exists():
+        print(f"Warning: {filter_script} not found in project")
+
+    # Example parameters (paths relative to project root)
     example_gtf = "example/SQANTI3_QC_output/example_corrected.gtf"
     example_classification = "example/SQANTI3_QC_output/example_classification.txt"
     output_dir = "example_output"
@@ -43,7 +44,7 @@ def run_example():
     print()
     
     # Check if example files exist
-    if not os.path.exists(example_gtf):
+    if not (project_root / example_gtf).exists():
         print(f"Note: Example GTF file not found: {example_gtf}")
         print("This is expected if you haven't downloaded the SQANTI3 example data yet.")
         print()
@@ -52,7 +53,7 @@ def run_example():
         print("  cp -r SQANTI3/example/SQANTI3_QC_output ./example/")
         print()
     
-    if not os.path.exists(example_classification):
+    if not (project_root / example_classification).exists():
         print(f"Note: Example classification file not found: {example_classification}")
         print("This is expected if you haven't downloaded the SQANTI3 example data yet.")
         print()
@@ -119,7 +120,7 @@ def run_example():
     
     # Check if we can run the script
     try:
-        result = subprocess.run([sys.executable, main_script, "--help"], 
+        result = subprocess.run([sys.executable, str(project_root / main_script), "--help"], 
                               capture_output=True, text=True, timeout=10)
         if result.returncode == 0:
             print("✓ Main script is working correctly")

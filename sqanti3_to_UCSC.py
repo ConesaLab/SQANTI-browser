@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 # Try to import the report generator
 try:
-    from filter_isoforms import generate_html_reports
+    from src.filter_isoforms import generate_html_reports
 except ImportError:
     generate_html_reports = None
 
@@ -547,7 +547,7 @@ def main():
             except Exception as e:
                 logger.error(f"Error generating table reports: {e}")
         else:
-            logger.warning("Could not import filter_isoforms.py. Skipping table generation.")
+            logger.warning("Could not import src.filter_isoforms. Skipping table generation.")
     
     if not success:
         sys.exit(1)

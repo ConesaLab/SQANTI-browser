@@ -42,4 +42,4 @@ jobs:
         env:
           PYTHONPATH: .
         run: |
-          python test_sqanti_browser.py
+          python tests/test_sqanti_browser.py
