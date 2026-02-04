@@ -18,3 +18,9 @@ def normalize_trix_token(value):
     token = re.sub(r'_+', '_', token)
     token = token.strip('_')
     return token
+
+
+def darken_color(rgb_tuple, factor=0.64):
+    """Darken an RGB color by multiplying each channel by a factor."""
+    r, g, b = rgb_tuple
+    return (int(r * factor), int(g * factor), int(b * factor))

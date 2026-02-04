@@ -1,11 +1,8 @@
 # example_output_hg38_SQANTI3_Hub
 
 This hub displays SQANTI3 transcriptome analysis results for the hg38 genome assembly.
-This hub visualizes data from the SQANTI3 classification analysis for the example_output_hg38_SQANTI3_Hub sample.
 
 ## 🚀 Usage Instructions
-
-To use this hub in the UCSC Genome Browser:
 
 1. Upload all files in this directory to a web-accessible location (e.g., GitHub).
 2. In the UCSC Genome Browser, go to **My Data → Track Hubs**.
@@ -13,33 +10,13 @@ To use this hub in the UCSC Genome Browser:
 4. Select the appropriate genome assembly (hg38).
 5. The SQANTI3 tracks will appear in your track list.
 
-**Important:** The `hub.txt` file includes a placeholder or GitHub-specific email address. If you need to use a different email:
-- Edit the `hub.txt` file.
-- Change the `email` line to your preferred email address.
-- Re-upload the updated file.
-
 ## 🔍 Advanced Filtering
 
-**This hub uses the bigBed 12+44 format with native UCSC filters.**
-
-You can filter transcripts using:
-- **Structural Category:** full-splice_match, incomplete-splice_match, novel_in_catalog, novel_not_in_catalog, genic, antisense, fusion, intergenic, genic_intron
-- **Subcategory:** mono-exon, multi-exon, 3prime_fragment, 5prime_fragment, reference_match, etc.
-- **Coding Status:** coding, non_coding
-- **FSM Class:** A, B, C, D
-- **Boolean Filters:** RTS_stage, bite, predicted_NMD, within_CAGE_peak, polyA_motif_found
-- **Numeric Ranges:** length, exons, expression, coverage, ORF_length, and more
-- **Expression:** Range-based filtering for isoform expression
-
-*Right-click on the track and select "Configure" or "Filter" to access these controls.*
+This hub uses the bigBed 12+44 format with native UCSC filters. Right-click on the track and select "Configure" or "Filter" to access controls.
 
 ## 🔎 Trix Search
 
-Use the search box to find isoforms by attribute. **Search terms use underscores** (e.g., `structural_category_full_splice_match`, `strand_plus`). Category names like `full-splice_match` are indexed as `full_splice_match` so you can search without remembering hyphens.
-
-## 👁 Viewing Only Specific Isoforms
-
-Use **Tools → Table Browser**: select this hub (listed as `hub_<name>`) and the SQANTI3 track, keep the region set to *Genome*, choose **Identifiers → paste list**, paste the newline-separated isoform IDs (from **Generate Filter String**), set **Output format** to **custom track**, and load it in the Genome Browser to view only those isoforms.
+Use the search box to find isoforms by attribute. Search terms use underscores (e.g., `structural_category_full_splice_match`).
 
 ## 🎨 Color Legend
 

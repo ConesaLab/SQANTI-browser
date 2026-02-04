@@ -18,13 +18,13 @@ BED12_BASE_COLS = (
 # ---------------------------------------------------------------------------
 ORDERED_FILTERS = [
     ('text', 'strand', 'Strand (+ or -)'),
-    ('range', 'length', 0, 100000, 'Transcript length (bp)'),
-    ('range', 'exons', 0, 200, 'Number of exons'),
+    ('range', 'length', 0, 150000, 'Transcript length (bp)'),
+    ('range', 'exons', 0, 400, 'Number of exons'),
     ('text', 'structural_category', 'Structural category (FSM, ISM, NIC, NNC, etc.)'),
     ('text', 'associated_gene', 'Associated gene'),
     ('text', 'associated_transcript', 'Associated transcript'),
-    ('range', 'ref_length', 0, 100000, 'Reference transcript length'),
-    ('range', 'ref_exons', 0, 200, 'Reference exon count'),
+    ('range', 'ref_length', 0, 150000, 'Reference transcript length'),
+    ('range', 'ref_exons', 0, 400, 'Reference exon count'),
     ('range', 'diff_to_TSS', -100000, 100000, 'Distance to reference TSS'),
     ('range', 'diff_to_TTS', -100000, 100000, 'Distance to reference TTS'),
     ('range', 'diff_to_gene_TSS', -100000, 100000, 'Distance to gene TSS'),
