@@ -285,18 +285,19 @@ class TestConstants(unittest.TestCase):
 class TestBedProcessorSort(unittest.TestCase):
     """Tests for BedProcessor.sort_bed_for_visualization."""
 
-    def _make_mock_converter(self, sort_by="none"):
+    def _make_mock_converter(self, sort_by="basic"):
         class Mock:
             pass
 
         m = Mock()
         m.sort_by = sort_by
+        m.gtf_transcript_order = {}  # empty when not using --sort-by none
         return m
 
     def test_sort_by_genomic_position(self):
         from src.bed_processor import BedProcessor
 
-        conv = self._make_mock_converter("none")
+        conv = self._make_mock_converter("basic")
         proc = BedProcessor(conv)
         df = pd.DataFrame(
             {

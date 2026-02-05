@@ -83,7 +83,7 @@ def run_example():
     print("- Add reference annotation for comparison: --refGTF <reference.gtf>")
     print("  (Validation tracks show by default when the hub is opened; colors are embedded in bigBed)")
     print("- Use a genome .2bit to compute chrom.sizes: --twobit <genome.2bit>")
-    print("- Sort isoforms: --sort-by <metric> (default none = preserve original GTF order). Options: FL, iso_exp, length, diff_to_TSS, etc.")
+    print("- Sort isoforms: --sort-by <metric> (default basic = pipeline order; use none to preserve GTF file order). Options: basic, none, FL, iso_exp, length, diff_to_TSS, etc.")
     print("- Skip category-specific tracks: --no-category-tracks")
     print("- Only specific category tracks: --category-tracks FSM,ISM,NIC (abbrev: FSM, ISM, NIC, NNC, antisense, genic_intron, genic_genomic, intergenic, fusion)")
     print("- Disable highlighted top FL isoforms: --no-highlight")

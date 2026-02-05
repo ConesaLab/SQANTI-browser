@@ -119,7 +119,7 @@ python example/example_usage.py
 | Option | Description |
 |--------|-------------|
 | `--tables` | Generate interactive HTML tables for each category |
-| `--sort-by none` | Sort isoforms (Default `none`). Options: `FL`, `iso_exp`, `length`, etc. |
+| `--sort-by` | Sort isoforms. Default: `basic`. Use `none` to preserve GTF file order. Options: `FL`, `iso_exp`, `length`, etc. |
 | `--no-category-tracks` | Only generate the main track |
 | `--category-tracks FSM,ISM,NIC` | Only create tracks for these categories (abbreviated: FSM, ISM, NIC, etc) |
 | `--no-highlight` | Disable highlight coloring for top FL isoforms |

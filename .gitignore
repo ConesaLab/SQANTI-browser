@@ -154,4 +154,7 @@ test/logs/test_module.log
 # Local scripts
 get_download_stats.py
 stats_history.csv
+visualize_stats.py
+traffic_stats_plot.png
+
 

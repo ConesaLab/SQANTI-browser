@@ -432,7 +432,7 @@ class SQANTIBrowserTester:
         """Test 4: Different sorting options"""
         self.print_header("TEST 4: Sorting Options")
         
-        sort_options = ["none", "length", "iso_exp"]
+        sort_options = ["basic", "none", "length", "iso_exp"]
         all_passed = True
         
         for sort_by in sort_options:
@@ -455,7 +455,159 @@ class SQANTIBrowserTester:
                 all_passed = False
                 
         return all_passed
-        
+
+    def test_sort_by_none_preserves_gtf_order(self):
+        """Verify --sort-by none: tie-breaker order matches original GTF file order."""
+        self.print_header("TEST 4b: Sort-by None = GTF Order")
+        self.print_test("Run with --sort-by none and verify sorted BED order matches GTF first-appearance order")
+
+        gtf_path = self.project_root / "example/SQANTI3_QC_output/example_corrected.gtf"
+        classification_path = self.project_root / "example/SQANTI3_QC_output/example_classification.txt"
+        chrom_sizes = self.project_root / "example/SQANTI3_QC_output/chrom.sizes"
+        output_dir = self.test_output_dir / "test4b_sort_none"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        sys.path.insert(0, str(self.project_root))
+        try:
+            from sqanti_browser import SQANTI3ToBigBed
+        except ImportError:
+            self.print_fail("Could not import SQANTI3ToBigBed")
+            return False
+
+        # Extract GTF transcript order (first appearance)
+        gtf_order = {}
+        idx = 0
+        with open(gtf_path) as f:
+            for line in f:
+                if line.startswith('#') or not line.strip():
+                    continue
+                parts = line.split('\t')
+                if len(parts) < 9:
+                    continue
+                for item in parts[8].split(';'):
+                    item = item.strip()
+                    if item.startswith('transcript_id '):
+                        tid = item.split('"')[1]
+                        if tid not in gtf_order:
+                            gtf_order[tid] = idx
+                            idx += 1
+                        break
+
+        conv = SQANTI3ToBigBed(
+            str(gtf_path),
+            str(classification_path),
+            str(output_dir),
+            "hg38",
+            chrom_sizes_file=str(chrom_sizes),
+            sort_by='none',
+            no_category_tracks=True,
+        )
+        conv.keep_temp = True
+        if not conv.run():
+            self.print_fail("Pipeline run with sort_by=none failed")
+            return False
+
+        sorted_bed = Path(conv.temp_dir) / "transcripts_full.sorted.bed"
+        if not sorted_bed.exists():
+            self.print_fail(f"Sorted BED not found: {sorted_bed}")
+            return False
+
+        # Read sorted BED (BED12 + extra columns; name is 4th column)
+        names_by_pos = []
+        with open(sorted_bed) as f:
+            for line in f:
+                parts = line.strip().split('\t')
+                if len(parts) >= 4:
+                    names_by_pos.append((parts[0], int(parts[1]), parts[3]))
+
+        # Group by (chrom, chromStart) and check order within each group matches GTF order
+        from itertools import groupby
+        key_fn = lambda x: (x[0], x[1])
+        all_ok = True
+        for (chrom, start), group in groupby(names_by_pos, key=key_fn):
+            names_in_bed = [x[2] for x in group]
+            order_in_gtf = [gtf_order.get(n, 999999) for n in names_in_bed]
+            if order_in_gtf != sorted(order_in_gtf):
+                self.print_fail(
+                    f"At {chrom}:{start} order in BED is {names_in_bed}; "
+                    f"GTF order indices {order_in_gtf} not ascending"
+                )
+                all_ok = False
+                break
+
+        if all_ok:
+            self.print_pass("With --sort-by none, sorted BED order matches original GTF order within each position")
+        return all_ok
+
+    def test_sort_by_basic_matches_genepredtobed(self):
+        """Verify --sort-by basic: tie-breaker order matches genePredToBed (pipeline) order."""
+        self.print_header("TEST 4c: Sort-by Basic = genePredToBed Order")
+        self.print_test("Run with --sort-by basic and verify sorted BED order matches raw genePredToBed BED order")
+
+        gtf_path = self.project_root / "example/SQANTI3_QC_output/example_corrected.gtf"
+        classification_path = self.project_root / "example/SQANTI3_QC_output/example_classification.txt"
+        chrom_sizes = self.project_root / "example/SQANTI3_QC_output/chrom.sizes"
+        output_dir = self.test_output_dir / "test4c_sort_basic"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        sys.path.insert(0, str(self.project_root))
+        try:
+            from sqanti_browser import SQANTI3ToBigBed
+        except ImportError:
+            self.print_fail("Could not import SQANTI3ToBigBed")
+            return False
+
+        conv = SQANTI3ToBigBed(
+            str(gtf_path),
+            str(classification_path),
+            str(output_dir),
+            "hg38",
+            chrom_sizes_file=str(chrom_sizes),
+            sort_by='basic',
+            no_category_tracks=True,
+        )
+        conv.keep_temp = True
+        if not conv.run():
+            self.print_fail("Pipeline run with sort_by=basic failed")
+            return False
+
+        temp_dir = Path(conv.temp_dir)
+        raw_bed = temp_dir / "transcripts.bed"
+        sorted_bed = temp_dir / "transcripts_full.sorted.bed"
+        if not raw_bed.exists():
+            self.print_fail(f"Raw BED (genePredToBed output) not found: {raw_bed}")
+            return False
+        if not sorted_bed.exists():
+            self.print_fail(f"Sorted BED not found: {sorted_bed}")
+            return False
+
+        def read_names(path):
+            names = []
+            with open(path) as f:
+                for line in f:
+                    parts = line.strip().split('\t')
+                    if len(parts) >= 4:
+                        names.append((parts[0], int(parts[1]), parts[3]))
+            return names
+
+        raw_rows = read_names(raw_bed)
+        sorted_rows = read_names(sorted_bed)
+
+        # Both should be sorted by chrom, chromStart. Order of names at same (chrom, start) should match.
+        raw_names = [r[2] for r in raw_rows]
+        sorted_names = [r[2] for r in sorted_rows]
+        if raw_names != sorted_names:
+            first_diff = next((i for i, (a, b) in enumerate(zip(raw_names, sorted_names)) if a != b), None)
+            msg = (
+                "With --sort-by basic, sorted BED name order does not match genePredToBed BED order."
+            )
+            if first_diff is not None:
+                msg += f" First difference at index {first_diff}: raw {raw_names[first_diff]!r} vs sorted {sorted_names[first_diff]!r}"
+            self.print_fail(msg)
+            return False
+        self.print_pass("With --sort-by basic, sorted BED order matches genePredToBed (pipeline) order")
+        return True
+
     def test_custom_genome_twobit(self):
         """Test 5: Custom genome with .2bit file"""
         self.print_header("TEST 5: Custom Genome (.2bit)")
@@ -907,6 +1059,8 @@ class SQANTIBrowserTester:
             ("Category Tracks", self.test_with_category_tracks),
             ("HTML Tables", self.test_with_tables),
             ("Sorting Options", self.test_sorting_options),
+            ("Sort-by None = GTF Order", self.test_sort_by_none_preserves_gtf_order),
+            ("Sort-by Basic = genePredToBed Order", self.test_sort_by_basic_matches_genepredtobed),
             ("Custom Genome (.2bit)", self.test_custom_genome_twobit),
             ("Validation Tracks", self.test_validation_tracks),
             ("Main Track Only", self.test_no_category_tracks),

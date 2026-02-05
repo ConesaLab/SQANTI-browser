@@ -210,7 +210,9 @@ class BedProcessor:
         df['_original_order'] = np.arange(len(df))
         if sort_by is None:
             sort_by = self.converter.sort_by
-        if sort_by == 'none':
+        # basic = genomic position + pipeline order for ties; none = genomic position + GTF file order for ties
+        use_gtf_order = sort_by == 'none'
+        if sort_by in ('basic', 'none'):
             sort_by = None
         has_associated_transcript = 'associated_transcript' in df.columns
         if not has_associated_transcript:
@@ -227,7 +229,7 @@ class BedProcessor:
                 na_count = df[sort_by].isna().sum() + (df[sort_by].astype(str) == 'NA').sum()
                 if na_count > 0:
                     logger.warning(f"Column '{sort_by}' has {na_count} NA values out of {len(df)} rows. NA values will be sorted last.")
-        if sort_by is None and original_sort_by is not None and original_sort_by != 'none':
+        if sort_by is None and original_sort_by is not None and original_sort_by not in ('basic', 'none'):
             logger.warning(f"Could not sort by '{original_sort_by}'. Falling back to genomic position order.")
 
         if sort_by:
@@ -247,8 +249,17 @@ class BedProcessor:
             else:
                 ascending.append(False)
         else:
-            sort_cols.append('_original_order')
-            ascending.append(True)
+            gtf_order = getattr(self.converter, 'gtf_transcript_order', None) if use_gtf_order else None
+            if use_gtf_order and gtf_order:
+                max_ord = len(gtf_order)
+                df['_gtf_order'] = df['name'].map(gtf_order).fillna(max_ord).astype(int)
+                sort_cols.append('_gtf_order')
+                ascending.append(True)
+            else:
+                if use_gtf_order and not gtf_order:
+                    logger.warning("GTF transcript order not available; using pipeline order for ties")
+                sort_cols.append('_original_order')
+                ascending.append(True)
 
         df_sorted = df.sort_values(
             by=sort_cols,
@@ -259,7 +270,14 @@ class BedProcessor:
         if sort_by:
             df_sorted = df_sorted.drop(columns=[sort_col_numeric])
         df_sorted = df_sorted.drop(columns=['_original_order'])
-        sort_info = f"by {sort_by}" if sort_by else "by genomic position only"
+        if '_gtf_order' in df_sorted.columns:
+            df_sorted = df_sorted.drop(columns=['_gtf_order'])
+        if sort_by:
+            sort_info = f"by {sort_by}"
+        elif use_gtf_order:
+            sort_info = "by genomic position, GTF file order for ties"
+        else:
+            sort_info = "by genomic position, pipeline order for ties (basic)"
         group_info = "grouped by reference transcript, " if use_transcript_grouping else ""
         logger.info(f"Sorted {len(df_sorted)} transcripts: {group_info}{sort_info}")
         return df_sorted

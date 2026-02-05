@@ -151,7 +151,7 @@ def load_custom_palette(palette_file: str | Path) -> tuple[dict[str, tuple[int, 
 
 
 class SQANTI3ToBigBed:
-    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, ref_gtf=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='none', no_category_tracks=False, category_tracks=None, no_highlight=False, custom_palette=None):
+    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, ref_gtf=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='basic', no_category_tracks=False, category_tracks=None, no_highlight=False, custom_palette=None):
         self.gtf_file = gtf_file
         self.classification_file = classification_file
         self.output_dir = Path(output_dir)
@@ -208,6 +208,33 @@ class SQANTI3ToBigBed:
         
         # Check if required tools are available
         self._check_dependencies()
+    
+    def _extract_gtf_transcript_order(self) -> dict[str, int]:
+        """Extract transcript IDs in order of first appearance in the GTF file."""
+        order: dict[str, int] = {}
+        idx = 0
+        try:
+            with open(self.gtf_file, 'r') as f:
+                for line in f:
+                    if line.startswith('#') or not line.strip():
+                        continue
+                    parts = line.split('\t')
+                    if len(parts) < 9:
+                        continue
+                    attrs = parts[8]
+                    for item in attrs.split(';'):
+                        item = item.strip()
+                        if item.startswith('transcript_id '):
+                            tid = item.split('"')[1]
+                            if tid not in order:
+                                order[tid] = idx
+                                idx += 1
+                            break
+            logger.info(f"Extracted GTF transcript order for {len(order)} transcripts")
+        except Exception as e:
+            logger.warning(f"Could not extract GTF transcript order: {e}")
+            return {}
+        return order
     
     def _check_dependencies(self):
         """Check if required UCSC tools are available"""
@@ -383,6 +410,12 @@ class SQANTI3ToBigBed:
             if not self.parse_classification_file():
                 return False
 
+            # Extract GTF transcript order when --sort-by none (preserve GTF file order)
+            if self.sort_by == 'none':
+                self.gtf_transcript_order = self._extract_gtf_transcript_order()
+            else:
+                self.gtf_transcript_order = {}
+
             # If only validating inputs, also check tools and files then exit
             if self.validate_only:
                 logger.info("Validation successful: tools present, inputs readable, classification parsed.")
@@ -480,16 +513,14 @@ def main():
     parser.add_argument('--keep-temp', action='store_true', help='Keep temporary files for debugging')
     parser.add_argument('--tables', action='store_true', help='Generate interactive HTML table reports for each category')
     parser.add_argument('--sort-by', 
-                        choices=['iso_exp', 'length', 'FL', 'diff_to_TSS', 'diff_to_TTS', 
+                        choices=['basic', 'none', 'iso_exp', 'length', 'FL', 'diff_to_TSS', 'diff_to_TTS', 
                                  'diff_to_gene_TSS', 'diff_to_gene_TTS', 'dist_to_CAGE_peak', 
-                                 'dist_to_polyA_site', 'none'],
-                        default='none',
-                        help='Sort isoforms within each reference transcript by this metric. '
-                             'Default: none (sort by genomic position only). Options: '
-                             'iso_exp (short read expression for this isoform), length (longest first), '
-                             'FL (most full-length reads first), diff_to_TSS, diff_to_TTS, '
-                             'diff_to_gene_TSS, diff_to_gene_TTS, dist_to_CAGE_peak, dist_to_polyA_site '
-                             '(smallest distance first for distance metrics)')
+                                 'dist_to_polyA_site'],
+                        default='basic',
+                        help='Sort isoforms. Default: basic (genomic position, pipeline order for ties). '
+                             'Options: none (preserve GTF file order for ties), basic, '
+                             'iso_exp, length, FL, diff_to_TSS, diff_to_TTS, '
+                             'diff_to_gene_TSS, diff_to_gene_TTS, dist_to_CAGE_peak, dist_to_polyA_site')
     parser.add_argument('--no-category-tracks', action='store_true',
                         help='Only generate the main SQANTI3 track without separate tracks for each structural category')
     parser.add_argument('--category-tracks', type=str, metavar='LIST',
