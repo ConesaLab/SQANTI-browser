@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **`--category-tracks`**: Create tracks only for specified structural categories. Comma-separated abbreviated names (FSM, ISM, NIC, NNC, antisense, genic_intron, genic_genomic, intergenic, fusion). Example: `--category-tracks FSM,ISM,NIC`
+- **`--hub-name`**: Optional display name for the hub and prefix for all track labels. Use when loading multiple hubs (e.g. SQANTI-reads samples) so tracks appear as "Name SQANTI3 Transcripts", "Name full-splice_match", etc., making comparison in the UCSC Genome Browser easier.
 - **Packaging**: `pyproject.toml` for modern Python packaging
 - **CLI entry point**: `sqanti_browser` command (after `pip install -e .`)
 - **Modular architecture**: Split core logic into `BedProcessor`, `HubGenerator`, `ValidationTrackBuilder`
