@@ -1,0 +1,30 @@
+{
+    "standard": {
+        "full-splice_match": [107, 174, 214],
+        "incomplete-splice_match": [252, 141, 89],
+        "novel_in_catalog": [120, 198, 121],
+        "novel_not_in_catalog": [214, 47, 75],
+        "genic": [150, 150, 150],
+        "antisense": [102, 194, 164],
+        "fusion": [218, 165, 32],
+        "intergenic": [233, 150, 122],
+        "genic_intron": [65, 182, 196]
+    },
+    "highlight": {
+        "full-splice_match": [69, 111, 137],
+        "incomplete-splice_match": [202, 113, 71],
+        "novel_in_catalog": [77, 126, 78],
+        "novel_not_in_catalog": [152, 7, 31],
+        "genic": [96, 96, 96],
+        "antisense": [66, 124, 105],
+        "fusion": [139, 106, 21],
+        "intergenic": [149, 96, 78],
+        "genic_intron": [42, 117, 126]
+    },
+    "validation_tracks": {
+        "CAGE_peaks": [0, 128, 0],
+        "polyA_peaks": [200, 0, 0],
+        "star_sj": [21, 101, 192],
+        "reference": [70, 70, 70]
+    }
+}

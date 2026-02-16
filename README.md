@@ -5,16 +5,18 @@
 
 ## Features
 
-- 🎨 **Color-coded transcripts** by structural category
-- 🔍 **Advanced filtering** with dropdowns and range sliders
+- 🎨 **Color-coded transcripts** by structural category (custom palettes via `--my-palette`)
+- 🔍 **Advanced filtering** with dropdowns and range definitions in UCSC
 - 📊 **Per-category tracks** for easy exploration
-- 🔎 **Trix search** for finding isoforms using keywords for any attribute
-- 📋 **Interactive HTML tables** with export capabilities
-- 🧬 **SQANTI-reads compatible** - Process multi-sample experiments
+- 🔎 **Trix search** for finding isoforms by attribute
+- 📋 **Interactive HTML tables** with multi-select rows, export, **Trix string generation**, and **Generate Filter String** (isoform list for Table Browser)
+- 👁 **View specific isoforms** via Table Browser (Custom Tracks)
+- 🎯 **Validation tracks** (CAGE, PolyA, STAR, reference)
+- 🧬 **SQANTI-reads compatible** – Process multi-sample experiments
 
 ## Documentation
 
-📖 **[See the Wiki](../../wiki/home)** for detailed documentation:
+📖 **[See the Wiki](../../wiki/home)** for detailed documentation.
 
 **Quick Start:**
 - 🚀 **[Quick Reference](../../wiki/quick_reference)** - One-page cheat sheet
@@ -25,6 +27,7 @@
 
 **Advanced Features:**
 - [Interactive HTML Tables](../../wiki/html_tables) - Offline data exploration
+- [Custom Color Palettes](../../wiki/custom_palette) - Palette format, defaults, and validation track colors
 - [Working with Custom Genomes](../../wiki/custom_genomes) (2bit files)
 - [SQANTI-reads Integration](../../wiki/sqanti_reads_integration) - Multi-sample experiments
 - [Filtering in UCSC](../../wiki/filtering_in_UCSC)
@@ -36,6 +39,30 @@
 - [Output File Formats](../../wiki/output_files)
 - [Glossary](../../wiki/glossary)
 - [Troubleshooting](../../wiki/troubleshooting)
+
+## Project Structure
+
+```
+SQANTI-browser/
+├── sqanti_browser.py       # Main converter script
+├── install_ucsc_tools.sh   # UCSC tools installer
+├── src/
+│   ├── bed_processor.py    # BED conversion logic
+│   ├── filter_isoforms.py  # Interactive HTML table/report generator
+│   ├── hub_generator.py    # UCSC hub file generation
+│   ├── validation_tracks.py# CAGE, PolyA, STAR, reference tracks
+│   ├── constants.py        # Filter limits, palette defaults
+│   └── utils.py            # Shared utilities
+├── example/
+│   ├── example_usage.py    # Example workflow script
+│   ├── example_palette.json
+│   └── SQANTI3_QC_output/  # Example data
+├── tests/
+│   ├── test_sqanti_browser.py   # Integration tests
+│   ├── test_unit.py             # Unit tests
+│   └── test_edge_cases.py       # Edge case tests
+└── example_output/         # Sample hub output (pre-generated)
+```
 
 ## 🔄 Workflow
 
@@ -51,18 +78,33 @@ SQANTI3 Output → SQANTI-browser → web-access → UCSC Browser
 # Install UCSC tools
 bash install_ucsc_tools.sh
 
-# Install Python dependencies
+# Install Python package (recommended)
+pip install -e .
+
+# Or install dependencies only
 pip install -r requirements.txt
 ```
+
+**How to run:** You can use any of these (run from project root unless you used `pip install -e .`):
+
+- `python -m sqanti_browser` — Recommended. Uses whatever `python` is active (e.g. conda), so you avoid wrong-Python / architecture issues.
+- `sqanti_browser` — After `pip install -e .`, if you installed with the correct Python.
+- `python sqanti_browser.py` — Uses the `python` in your PATH; needs project root in `PYTHONPATH` or package installed.
 
 ### 2. Run the Converter
 
 ```bash
-python sqanti3_to_UCSC.py \
+python -m sqanti_browser \
     --gtf your_corrected.gtf \
     --classification your_classification.txt \
     --output my_hub \
     --genome hg38
+```
+
+Run the example workflow with bundled data:
+
+```bash
+python example/example_usage.py
 ```
 
 ### 3. Upload to UCSC
@@ -77,29 +119,57 @@ python sqanti3_to_UCSC.py \
 | Option | Description |
 |--------|-------------|
 | `--tables` | Generate interactive HTML tables for each category |
-| `--sort-by none` | Sort isoforms by (default: `none`). Options: `iso_exp`, `length`, `FL` etc. |
+| `--sort-by` | Sort isoforms. Default: `basic`. Use `none` to preserve GTF file order. Options: `FL`, `iso_exp`, `length`, etc. |
 | `--no-category-tracks` | Only generate the main track |
-| `--no_highlight` | Disable highlight coloring for top FL isoforms |
+| `--category-tracks FSM,ISM,NIC` | Only create tracks for these categories (abbreviated: FSM, ISM, NIC, etc) |
+| `--no-highlight` | Disable highlight coloring for top FL isoforms |
+| `--hub-name NAME` | Display name for this hub and prefix for all track labels. Use when loading multiple hubs to compare (e.g. `--hub-name Sample1`). |
+| `--my-palette FILE` | Custom color palette JSON file (see [Custom palette wiki](../../wiki/custom_palette)) |
 | `--star-sj SJ.out.tab` | Include STAR splice junctions track |
-| `--CAGE_peak` | Include CAGE peaks for TSS validation (requires BED file) |
-| `--polyA_peak` | Include polyA peaks for TTS validation (requires BED file) |
+| `--CAGE-peak` | Include CAGE peaks for TSS validation (requires BED file) |
+| `--polyA-peak` | Include polyA peaks for TTS validation (requires BED file) |
 | `--refGTF` | Include reference annotation for direct comparison (requires GTF file) |
 
-> 💡 **Tip:** For information on where to obtain and how to format CAGE and polyA peak files, see the [SQANTI3 wiki](https://github.com/ConesaLab/SQANTI3/wiki/Running-SQANTI3-Quality-Control#incorporating-cage-peak-data---cage_peak). See also our [Command Line Reference](wiki/command_line_reference.md#validation-tracks) for details.
+### Testing
 
-## Color Legend
+```bash
+# Full integration tests (requires UCSC tools)
+python tests/test_sqanti_browser.py
 
-| Category | Color | Hex Code |
-|----------|-------|----------|
-| Full-splice match (FSM) | Blue | <span style="color:#6BAED6">#6BAED6</span> |
-| Incomplete-splice match (ISM) | Orange | <span style="color:#FC8D59">#FC8D59</span> |
-| Novel in catalog (NIC) | Green | <span style="color:#78C679">#78C679</span> |
-| Novel not in catalog (NNC) | Red | <span style="color:#EE6A50">#EE6A50</span> |
-| Genic | Gray | <span style="color:#969696">#969696</span> |
-| Antisense | Teal | <span style="color:#66C2A4">#66C2A4</span> |
-| Fusion | Gold | <span style="color:#DAA520">#DAA520</span> |
-| Intergenic | Salmon | <span style="color:#E9967A">#E9967A</span> |
-| Genic intron | Cyan | <span style="color:#41B6C4">#41B6C4</span> |
+# Unit and edge case tests (no UCSC tools needed)
+python tests/test_unit.py -v
+python tests/test_edge_cases.py -v
+```
+
+Use `--install-only` for a quick environment check (UCSC tools, Python deps).
+
+### Filter Reports (standalone)
+
+Generate interactive HTML reports from a classification file:
+
+```bash
+python src/filter_isoforms.py --classification your_classification.txt --output-dir report_output
+```
+
+> 💡 **Tip:** For information on where to obtain and how to format CAGE and polyA peak files, see the [SQANTI3 wiki](https://github.com/ConesaLab/SQANTI3/wiki/Running-SQANTI3-Quality-Control#incorporating-cage-peak-data---cage_peak). See also our [Command Line Reference](../../wiki/command_line_reference) for details.
+
+## Viewing Specific Isoforms
+
+To view only a subset of isoforms (e.g., a few of interest): use the **Interactive HTML tables** (`--tables`), select the rows you want (click to select multiple), click **Generate Filter String**, then in UCSC go to **Tools → Table Browser**, choose your hub’s SQANTI3 track, use **Identifiers → paste list** for the newline-separated IDs, set the output format to **custom track**, and load it in the Genome Browser. See the [Filtering in UCSC](../../wiki/filtering_in_UCSC) wiki page for details.
+
+## Trix Search
+
+The hub includes a Trix search index for finding isoforms by attribute. **All search terms use underscores** (e.g., `structural_category_full_splice_match`, `strand_plus`, `coding_coding`). Hyphens and spaces in category names are automatically normalized, so you can search with `full_splice_match` instead of remembering `full-splice_match` (although this will also work). Use the "Generate Trix String" button in the interactive HTML tables to get easy ready-to-paste search terms.
+
+## Default Track Display
+
+By default, the **main SQANTI3 track** opens visible in **pack mode**. **Validation tracks** (STAR junctions, CAGE peaks, PolyA peaks, reference)—when included—also show by default. **Category-specific tracks** (e.g., full-splice_match, novel_in_catalog) start **hidden** so the view stays uncluttered. You can turn on individual category tracks from the track list as needed. Track description pages use left-aligned, transparent styling to match the UCSC Genome Browser interface.
+
+For default color names (e.g. steelblue, coral, peru), custom palette format, validation track colors, and examples, see the **[Custom Color Palettes](../../wiki/custom_palette)** wiki page.
+
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and guidelines.
 
 ## License
 

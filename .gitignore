@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-## Development files
+## Development files (wiki is a separate clone - edit there, review, then push)
 wiki/
 decorators_research/
 .DS_Store
@@ -12,7 +12,6 @@ example/SQANTI3_QC_output/.DS_Store
 
 ## Test outputs
 test_output/
-test_sqanti_browser.py
 
 # C extensions
 *.so
@@ -151,3 +150,11 @@ dmypy.json
 /bugfix
 example/ogs
 test/logs/test_module.log
+
+# Local scripts
+get_download_stats.py
+stats_history.csv
+visualize_stats.py
+traffic_stats_plot.png
+
+

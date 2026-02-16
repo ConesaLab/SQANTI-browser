@@ -15,6 +15,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
+
     steps:
       - name: Checkout your repo
         uses: actions/checkout@v3
@@ -27,12 +31,27 @@ jobs:
           sudo rm -rf /opt/hostedtoolcache/CodeQL
           sudo docker image prune --all --force
 
-      - name: Test python
+      - name: Install package and dependencies
         shell: bash -l {0}
         run: |
-          pip install -r requirements.txt
+          pip install -e .
 
-      - name: Test UCSC
+      - name: Run unit and edge case tests
+        shell: bash -l {0}
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python tests/test_unit.py -v
+          python tests/test_edge_cases.py -v
+
+      - name: Install UCSC tools
         shell: bash -l {0}
         run: |
           bash install_ucsc_tools.sh
+
+      - name: Run integration tests
+        shell: bash -l {0}
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python tests/test_sqanti_browser.py

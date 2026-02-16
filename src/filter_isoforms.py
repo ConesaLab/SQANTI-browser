@@ -4,6 +4,61 @@ import os
 import json
 from pathlib import Path
 import sys
+import logging
+
+from .constants import DEFAULT_STANDARD_PALETTE
+from .utils import normalize_trix_token
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+
+def rgb_to_hex(rgb):
+    """Convert RGB tuple to hex string."""
+    return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
+
+
+def get_category_color(category, palette=None):
+    """Get hex color for a category, using custom palette if provided."""
+    if palette is None:
+        palette = DEFAULT_STANDARD_PALETTE
+    rgb = palette.get(category, (200, 200, 200))
+    return rgb_to_hex(rgb)
+
+
+def generate_category_svg(category, palette=None, include_reference=True):
+    """Generate SVG for a structural category with custom color."""
+    color = get_category_color(category, palette)
+    
+    # SVG templates with placeholders for color
+    if include_reference:
+        # Full SVGs with reference (for individual category reports)
+        templates = {
+            "full-splice_match": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="190" y2="52" stroke="{color}" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="{color}" rx="2"/><rect x="80" y="48" width="40" height="8" fill="{color}" rx="2"/><rect x="150" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (FSM)</text></svg>''',
+            "incomplete-splice_match": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="80" y1="52" x2="190" y2="52" stroke="{color}" stroke-width="2" /><rect x="80" y="48" width="40" height="8" fill="{color}" rx="2"/><rect x="150" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (ISM)</text></svg>''',
+            "novel_in_catalog": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="190" y2="52" stroke="{color}" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="{color}" rx="2"/><rect x="150" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (NIC)</text></svg>''',
+            "novel_not_in_catalog": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="190" y2="52" stroke="{color}" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="{color}" rx="2"/><rect x="80" y="48" width="60" height="8" fill="{color}" rx="2"/><rect x="150" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="130" y="40" font-size="10" fill="{color}" text-anchor="middle">New Site</text><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (NNC)</text></svg>''',
+            "genic_intron": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><rect x="80" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Intron)</text></svg>''',
+            "genic": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="120" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><rect x="40" y="48" width="60" height="8" fill="{color}" rx="2"/><text x="70" y="70" font-size="10" fill="{color}" text-anchor="middle">Overlap</text><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Genic)</text></svg>''',
+            "antisense": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="120" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><text x="130" y="15" font-size="12">→</text><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference (+)</text><line x1="10" y1="52" x2="120" y2="52" stroke="{color}" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="{color}" rx="2"/><rect x="80" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="130" y="55" font-size="12" fill="{color}">←</text><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (-)</text></svg>''',
+            "intergenic": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><rect x="140" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Inter)</text></svg>''',
+            "fusion": f'''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><text x="55" y="15" font-size="10">Gene A</text><rect x="140" y="8" width="40" height="8" fill="black" rx="2"/><text x="185" y="15" font-size="10">Gene B</text><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="180" y2="52" stroke="{color}" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="{color}" rx="2"/><rect x="140" y="48" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Fusion)</text></svg>'''
+        }
+    else:
+        # Overview SVGs without reference (for complete transcriptome report)
+        templates = {
+            "full-splice_match": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="{color}" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="{color}" rx="2"/><rect x="80" y="26" width="40" height="8" fill="{color}" rx="2"/><rect x="150" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (FSM)</text></svg>''',
+            "incomplete-splice_match": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="80" y1="30" x2="190" y2="30" stroke="{color}" stroke-width="2" /><rect x="80" y="26" width="40" height="8" fill="{color}" rx="2"/><rect x="150" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (ISM)</text></svg>''',
+            "novel_in_catalog": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="{color}" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="{color}" rx="2"/><rect x="150" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (NIC)</text></svg>''',
+            "novel_not_in_catalog": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="{color}" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="{color}" rx="2"/><rect x="80" y="26" width="60" height="8" fill="{color}" rx="2"/><rect x="150" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="130" y="18" font-size="10" fill="{color}" text-anchor="middle">New Site</text><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (NNC)</text></svg>''',
+            "genic_intron": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><rect x="80" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Intron)</text></svg>''',
+            "genic": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><rect x="40" y="26" width="60" height="8" fill="{color}" rx="2"/><text x="70" y="48" font-size="10" fill="{color}" text-anchor="middle">Overlap</text><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Genic)</text></svg>''',
+            "antisense": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="120" y2="30" stroke="{color}" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="{color}" rx="2"/><rect x="80" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="130" y="33" font-size="12" fill="{color}">←</text><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (-)</text></svg>''',
+            "intergenic": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><rect x="140" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Inter)</text></svg>''',
+            "fusion": f'''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="180" y2="30" stroke="{color}" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="{color}" rx="2"/><rect x="140" y="26" width="40" height="8" fill="{color}" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="{color}" font-weight="bold">Isoform (Fusion)</text></svg>'''
+        }
+    
+    return templates.get(category, "")
 
 # HTML Template with DataTables
 # We use CDNs for jQuery and DataTables. 
@@ -108,8 +163,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             <ul style="margin-bottom: 5px; padding-left: 20px;">
                 <li>Use dropdown filters and click "Generate Trix String" to get a search based on your filter criteria.</li>
                 <li><em>Note:</em> Range filters (e.g., <code>100:1000</code>) are not supported by Trix and will be ignored, only exact numeric matches are supported.</li>
-                <li>Search terms use underscore format: <code>structural_category_intergenic</code>, <code>strand_plus</code>, <code>coding_coding</code></li>
-                <li>Click on a row to select it (highlighted in blue), then click "Generate Trix String" to get search terms for that specific isoform.</li>
+                <li>Search terms automatically use underscores (e.g., <code>structural_category_full_splice_match</code>, <code>strand_plus</code>, <code>coding_coding</code>).</li>
+                <li>Click rows to select (click again to deselect). Multiple rows can be selected. Then click "Generate Trix String" to get search terms.</li>
+            </ul>
+            <p><strong>Generate Filter String (for Table Browser):</strong></p>
+            <ul style="margin-bottom: 5px; padding-left: 20px;">
+                <li>Select one or more rows (or apply filters to narrow the table), then click "Generate Filter String" to get a newline-separated list of isoform IDs.</li>
+                <li>Copy the list and paste (one ID per line) into UCSC Table Browser when filtering the track by the <code>name</code> field to create a custom track with only those isoforms.</li>
             </ul>
         </div>
 
@@ -135,6 +195,23 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         var categoricalColumns = {categorical_columns_json};
         var currentCategory = "{category_safe}";
         var includeCategoryFilter = {include_category_filter};
+
+        function normalizeForTrix(value) {{
+            if (value === undefined || value === null) {{
+                return '';
+            }}
+            var normalized = String(value).trim().toLowerCase();
+            if (normalized === '+') {{
+                return 'plus';
+            }}
+            if (normalized === '-') {{
+                return 'minus';
+            }}
+            normalized = normalized.replace(/[^\w]+/g, '_');
+            normalized = normalized.replace(/_+/g, '_');
+            normalized = normalized.replace(/^_+|_+$/g, '');
+            return normalized;
+        }}
 
         // Custom filtering function for range search and special exact match cases
         $.fn.dataTable.ext.search.push(
@@ -274,41 +351,37 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                             var selectedData = dt.rows('.selected').data();
                             
                             if (selectedData.length > 0) {{
-                                // Generate Trix string from selected row
-                                var rowData = selectedData[0];
-                                var queryParts = [];
-                                
-                                // Include structural category context if available
-                                if (includeCategoryFilter) {{
-                                    queryParts.push('structural_category_' + currentCategory);
-                                }} else if (rowData['structural_category']) {{
-                                    queryParts.push('structural_category_' + rowData['structural_category']);
-                                }}
-                                
-                                // Columns to include in the Trix string (categorical/useful for searching)
-                                // Note: structural_category is already added above
-                                var trixCols = ['subcategory', 'strand', 'coding', 
-                                                'associated_gene', 'FSM_class', 'RTS_stage', 'all_canonical',
-                                                'bite', 'predicted_NMD', 'within_CAGE_peak', 'polyA_motif_found'];
-                                
-                                trixCols.forEach(function(col) {{
-                                    if (rowData[col] !== undefined && rowData[col] !== '' && rowData[col] !== null) {{
-                                        var val = String(rowData[col]);
-                                        // Convert strand symbols to words (ixIxx strips + and -)
-                                        if (val === '+') val = 'plus';
-                                        else if (val === '-') val = 'minus';
-                                        queryParts.push(col + '_' + val);
+                                var trixStrings = [];
+                                for (var r = 0; r < selectedData.length; r++) {{
+                                    var rowData = selectedData[r];
+                                    var queryParts = [];
+                                    if (includeCategoryFilter) {{
+                                        var normalizedCategory = normalizeForTrix(currentCategory);
+                                        if (normalizedCategory) queryParts.push('structural_category_' + normalizedCategory);
+                                    }} else if (rowData['structural_category']) {{
+                                        var normalizedCategory = normalizeForTrix(rowData['structural_category']);
+                                        if (normalizedCategory) queryParts.push('structural_category_' + normalizedCategory);
                                     }}
-                                }});
-                                
-                                // Also add the isoform name for direct search
-                                var isoformCol = 'isoform';
-                                if (rowData[isoformCol]) {{
-                                    queryParts.unshift(rowData[isoformCol]);
+                                    var trixCols = ['subcategory', 'strand', 'coding', 'associated_gene', 'FSM_class', 'RTS_stage', 'all_canonical', 'bite', 'predicted_NMD', 'within_CAGE_peak', 'polyA_motif_found'];
+                                    trixCols.forEach(function(col) {{
+                                        var value = rowData[col];
+                                        if (value !== undefined && value !== '' && value !== null) {{
+                                            var normalizedCol = normalizeForTrix(col);
+                                            var normalizedVal = normalizeForTrix(value);
+                                            if (normalizedCol && normalizedVal) queryParts.push(normalizedCol + '_' + normalizedVal);
+                                        }}
+                                    }});
+                                    var isoformCol = 'isoform';
+                                    if (rowData[isoformCol]) queryParts.unshift(rowData[isoformCol]);
+                                    var seenParts = new Set();
+                                    var uniqueParts = [];
+                                    queryParts.forEach(function(part) {{
+                                        if (part && !seenParts.has(part)) {{ seenParts.add(part); uniqueParts.push(part); }}
+                                    }});
+                                    trixStrings.push(uniqueParts.join(" "));
                                 }}
-                                
-                                var searchString = queryParts.join(" ");
-                                prompt("Trix search string for selected isoform:\\n(You can use just the isoform ID, or any combination of the terms below)", searchString);
+                                var searchString = trixStrings.join("\\n\\n");
+                                prompt("Trix search string(s) for selected isoform(s):\\n(One per line when multiple selected)", searchString);
                             }} else {{
                                 // Generate from active filters (non-range values only)
                                 var queryParts = [];
@@ -317,7 +390,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                                 
                                 // Include structural category context if available
                                 if (includeCategoryFilter) {{
-                                    queryParts.push('structural_category_' + currentCategory);
+                                    var normalizedCategory = normalizeForTrix(currentCategory);
+                                    if (normalizedCategory) {{
+                                        queryParts.push('structural_category_' + normalizedCategory);
+                                    }}
                                 }}
                                 
                                 api.columns().every(function(i) {{
@@ -336,16 +412,44 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                                         if (val.indexOf(':') !== -1) {{
                                             return; // Skip this column
                                         }}
-                                        // Convert strand symbols
-                                        if (val === '+') val = 'plus';
-                                        else if (val === '-') val = 'minus';
-                                        // Use underscore format for Trix
-                                        queryParts.push(colName + '_' + val);
+                                        var normalizedCol = normalizeForTrix(colName);
+                                        var normalizedVal = normalizeForTrix(val);
+                                        if (normalizedCol && normalizedVal) {{
+                                            queryParts.push(normalizedCol + '_' + normalizedVal);
+                                        }}
                                     }}
                                 }});
                                 
+                                var uniqueParts = [];
+                                var seenParts = new Set();
+                                queryParts.forEach(function(part) {{
+                                    if (part && !seenParts.has(part)) {{
+                                        seenParts.add(part);
+                                        uniqueParts.push(part);
+                                    }}
+                                }});
+
                                 // queryParts always has at least structural_category now
-                                prompt("Trix search string from filters:\\n(Note: Range filters are ignored - Trix doesn't support ranges)", queryParts.join(" "));
+                                prompt("Trix search string from filters:\\n(Note: Range filters are ignored - Trix doesn't support ranges)", uniqueParts.join(" "));
+                            }}
+                        }}
+                    }},
+                    {{
+                        text: 'Generate Filter String',
+                        action: function ( e, dt, node, config ) {{
+                            var rows = dt.rows('.selected').length > 0 ? dt.rows('.selected') : dt.rows({{search:'applied'}});
+                            var rowData = rows.data();
+                            var isoformCol = 'isoform';
+                            var names = [];
+                            for (var i = 0; i < rowData.length; i++) {{
+                                var name = rowData[i][isoformCol];
+                                if (name) names.push(String(name));
+                            }}
+                            var filterString = names.join('\\n');
+                            if (filterString) {{
+                                prompt("Isoform names (one per line, ready to paste into Table Browser):", filterString);
+                            }} else {{
+                                alert("No isoform names to copy. Select rows or apply filters first.");
                             }}
                         }}
                     }},
@@ -364,14 +468,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 }}
             }});
             
-            // Row click handler for selection (toggle)
-            $('#isoformTable tbody').on('click', 'tr', function () {{
-                if ($(this).hasClass('selected')) {{
-                    $(this).removeClass('selected');
-                }} else {{
-                    table.$('tr.selected').removeClass('selected');
-                    $(this).addClass('selected');
-                }}
+            // Row click handler for selection (toggle, multi-select)
+            $('#isoformTable tbody').on('click', 'tr', function (e) {{
+                $(this).toggleClass('selected');
             }});
             
             // Delegated event listener for inputs AND selects
@@ -434,45 +533,16 @@ CATEGORY_ORDER = [
     "NA"
 ]
 
-# SVG Diagrams for structural categories - Text labels moved to the right side
-CATEGORY_SVGS = {
-    "full-splice_match": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="190" y2="52" stroke="#6BAED6" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="#6BAED6" rx="2"/><rect x="80" y="48" width="40" height="8" fill="#6BAED6" rx="2"/><rect x="150" y="48" width="40" height="8" fill="#6BAED6" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#6BAED6" font-weight="bold">Isoform (FSM)</text></svg>''',
-    
-    "incomplete-splice_match": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="80" y1="52" x2="190" y2="52" stroke="#FC8D59" stroke-width="2" /><rect x="80" y="48" width="40" height="8" fill="#FC8D59" rx="2"/><rect x="150" y="48" width="40" height="8" fill="#FC8D59" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#FC8D59" font-weight="bold">Isoform (ISM)</text></svg>''',
-    
-    "novel_in_catalog": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="190" y2="52" stroke="#78C679" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="#78C679" rx="2"/><rect x="150" y="48" width="40" height="8" fill="#78C679" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#78C679" font-weight="bold">Isoform (NIC)</text></svg>''',
-    
-    "novel_not_in_catalog": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="190" y2="52" stroke="#EE6A50" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="#EE6A50" rx="2"/><rect x="80" y="48" width="60" height="8" fill="#EE6A50" rx="2"/><rect x="150" y="48" width="40" height="8" fill="#EE6A50" rx="2"/><text x="130" y="40" font-size="10" fill="#EE6A50" text-anchor="middle">New Site</text><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#EE6A50" font-weight="bold">Isoform (NNC)</text></svg>''',
-    
-    "genic_intron": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="190" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="150" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><rect x="80" y="48" width="40" height="8" fill="#41B6C4" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#41B6C4" font-weight="bold">Isoform (Intron)</text></svg>''',
-    
-    "genic": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="120" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><rect x="40" y="48" width="60" height="8" fill="#969696" rx="2"/><text x="70" y="70" font-size="10" fill="#969696" text-anchor="middle">Overlap</text><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#969696" font-weight="bold">Isoform (Genic)</text></svg>''',
-    
-    "antisense": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="12" x2="120" y2="12" stroke="black" stroke-width="2" /><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><rect x="80" y="8" width="40" height="8" fill="black" rx="2"/><text x="130" y="15" font-size="12">→</text><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference (+)</text><line x1="10" y1="52" x2="120" y2="52" stroke="#66C2A4" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="#66C2A4" rx="2"/><rect x="80" y="48" width="40" height="8" fill="#66C2A4" rx="2"/><text x="130" y="55" font-size="12" fill="#66C2A4">←</text><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#66C2A4" font-weight="bold">Isoform (-)</text></svg>''',
-    
-    "intergenic": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><rect x="140" y="48" width="40" height="8" fill="#E9967A" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#E9967A" font-weight="bold">Isoform (Inter)</text></svg>''',
-    
-    "fusion": '''<svg width="550" height="110" viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="8" width="40" height="8" fill="black" rx="2"/><text x="55" y="15" font-size="10">Gene A</text><rect x="140" y="8" width="40" height="8" fill="black" rx="2"/><text x="185" y="15" font-size="10">Gene B</text><text x="220" y="15" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text><line x1="10" y1="52" x2="180" y2="52" stroke="#DAA520" stroke-width="2" /><rect x="10" y="48" width="40" height="8" fill="#DAA520" rx="2"/><rect x="140" y="48" width="40" height="8" fill="#DAA520" rx="2"/><text x="220" y="55" font-family="sans-serif" font-size="12" fill="#DAA520" font-weight="bold">Isoform (Fusion)</text></svg>'''
-}
-
+# Reference SVG for complete transcriptome overview (shared drawing)
 REFERENCE_SVG = '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="black" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="black" rx="2"/><rect x="80" y="26" width="40" height="8" fill="black" rx="2"/><rect x="150" y="26" width="40" height="8" fill="black" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="black" font-weight="bold">Reference</text></svg>'''
 
-# Isoform-only SVGs for complete transcriptome overview (no repeated reference)
-CATEGORY_SVGS_OVERVIEW = {
-    "full-splice_match": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="#6BAED6" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#6BAED6" rx="2"/><rect x="80" y="26" width="40" height="8" fill="#6BAED6" rx="2"/><rect x="150" y="26" width="40" height="8" fill="#6BAED6" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#6BAED6" font-weight="bold">Isoform (FSM)</text></svg>''',
-    "incomplete-splice_match": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="80" y1="30" x2="190" y2="30" stroke="#FC8D59" stroke-width="2" /><rect x="80" y="26" width="40" height="8" fill="#FC8D59" rx="2"/><rect x="150" y="26" width="40" height="8" fill="#FC8D59" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#FC8D59" font-weight="bold">Isoform (ISM)</text></svg>''',
-    "novel_in_catalog": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="#78C679" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#78C679" rx="2"/><rect x="150" y="26" width="40" height="8" fill="#78C679" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#78C679" font-weight="bold">Isoform (NIC)</text></svg>''',
-    "novel_not_in_catalog": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="190" y2="30" stroke="#EE6A50" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#EE6A50" rx="2"/><rect x="80" y="26" width="60" height="8" fill="#EE6A50" rx="2"/><rect x="150" y="26" width="40" height="8" fill="#EE6A50" rx="2"/><text x="130" y="18" font-size="10" fill="#EE6A50" text-anchor="middle">New Site</text><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#EE6A50" font-weight="bold">Isoform (NNC)</text></svg>''',
-    "genic_intron": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><rect x="80" y="26" width="40" height="8" fill="#41B6C4" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#41B6C4" font-weight="bold">Isoform (Intron)</text></svg>''',
-    "genic": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><rect x="40" y="26" width="60" height="8" fill="#969696" rx="2"/><text x="70" y="48" font-size="10" fill="#969696" text-anchor="middle">Overlap</text><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#969696" font-weight="bold">Isoform (Genic)</text></svg>''',
-    "antisense": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="120" y2="30" stroke="#66C2A4" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#66C2A4" rx="2"/><rect x="80" y="26" width="40" height="8" fill="#66C2A4" rx="2"/><text x="130" y="33" font-size="12" fill="#66C2A4">←</text><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#66C2A4" font-weight="bold">Isoform (-)</text></svg>''',
-    "intergenic": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><rect x="140" y="26" width="40" height="8" fill="#E9967A" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#E9967A" font-weight="bold">Isoform (Inter)</text></svg>''',
-    "fusion": '''<svg width="550" height="70" viewBox="0 10 400 50" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="30" x2="180" y2="30" stroke="#DAA520" stroke-width="2" /><rect x="10" y="26" width="40" height="8" fill="#DAA520" rx="2"/><rect x="140" y="26" width="40" height="8" fill="#DAA520" rx="2"/><text x="220" y="33" font-family="sans-serif" font-size="12" fill="#DAA520" font-weight="bold">Isoform (Fusion)</text></svg>'''
-}
-
-def build_category_overview_html(categories_present=None):
+def build_category_overview_html(categories_present=None, palette=None):
     """
     Build an HTML block with SVGs and definitions for structural categories.
+    
+    Args:
+        categories_present: Set of categories to include (defaults to all)
+        palette: Optional custom color palette (dict of category -> RGB tuple)
     """
     if categories_present is None:
         categories_present = set(CATEGORY_ORDER)
@@ -493,7 +563,8 @@ def build_category_overview_html(categories_present=None):
         definition = CATEGORY_DEFINITIONS.get(cat)
         if not definition:
             continue
-        svg = CATEGORY_SVGS_OVERVIEW.get(cat, CATEGORY_SVGS.get(cat, ""))
+        # Generate SVG with custom colors if palette provided
+        svg = generate_category_svg(cat, palette, include_reference=False)
         blocks.append(
             f"""
             <div style="display: flex; align-items: center; gap: 8px; margin: 2px 0; padding: 0;">
@@ -508,9 +579,15 @@ def build_category_overview_html(categories_present=None):
     
     return "\n".join(blocks)
 
-def generate_html_reports(classification_file, output_dir, include_sequences=False):
+def generate_html_reports(classification_file, output_dir, include_sequences=False, custom_palette=None):
     """
     Generate HTML reports for each structural category in the classification file.
+    
+    Args:
+        classification_file: Path to SQANTI3 classification file
+        output_dir: Output directory for HTML reports
+        include_sequences: Whether to include ORF_seq column
+        custom_palette: Optional custom color palette (dict of category -> RGB tuple)
     """
     # Opt-in to future pandas behavior to silence downcasting warnings
     try:
@@ -518,11 +595,11 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
     except Exception:
         pass
 
-    print(f"Reading classification file: {classification_file}")
+    logger.info(f"Reading classification file: {classification_file}")
     try:
         df = pd.read_csv(classification_file, sep='\t')
     except Exception as e:
-        print(f"Error reading classification file: {e}")
+        logger.exception(f"Error reading classification file: {e}")
         sys.exit(1)
 
     # Clean column names (remove spaces/special chars for JSON compatibility if needed, 
@@ -530,18 +607,18 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
     
     # Optionally exclude ORF_seq column
     if not include_sequences and 'ORF_seq' in df.columns:
-        print("Excluding 'ORF_seq' column (use --include-sequences to keep it)")
+        logger.info("Excluding 'ORF_seq' column (use --include-sequences to keep it)")
         df = df.drop(columns=['ORF_seq'])
 
     if 'structural_category' not in df.columns:
-        print("Error: 'structural_category' column not found in classification file.")
+        logger.error("Error: 'structural_category' column not found in classification file.")
         sys.exit(1)
 
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
     categories = df['structural_category'].unique()
-    print(f"Found {len(categories)} structural categories.")
+    logger.info(f"Found {len(categories)} structural categories.")
 
     # Columns that should have dropdown filters
     categorical_cols = [
@@ -562,15 +639,16 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
         headers_html += f"<th>{col}</th>"
     
     data_json = full_df.to_json(orient='records')
-    category_overview = build_category_overview_html(categories_present=categories)
+    category_overview = build_category_overview_html(categories_present=categories, palette=custom_palette)
     full_report_title = "SQANTI3 Analysis: complete transcriptome"
     full_export_title = "SQANTI3_complete_transcriptome_Isoforms"
     
     full_filename = "complete_transcriptome_isoforms.html"
+    full_category_safe = normalize_trix_token("complete transcriptome") or "complete_transcriptome"
     full_path = output_path / full_filename
     full_html = HTML_TEMPLATE.format(
         category="complete transcriptome",
-        category_safe="complete_transcriptome",
+        category_safe=full_category_safe,
         report_title=full_report_title,
         export_title=full_export_title,
         category_intro_label="Structural Categories:",
@@ -587,20 +665,23 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
     
     with open(full_path, 'w') as f:
         f.write(full_html)
-    print(f"Generated full transcriptome report: {full_path}")
+    logger.info(f"Generated full transcriptome report: {full_path}")
 
     for category in categories:
         if pd.isna(category) or category == 'NA':
             continue
 
         cat_str = str(category)
-        print(f"Processing category: {cat_str}")
+        logger.info(f"Processing category: {cat_str}")
+        cat_safe = normalize_trix_token(cat_str) or cat_str.replace(' ', '_')
         
         # Get category definition
         cat_def = CATEGORY_DEFINITIONS.get(cat_str, CATEGORY_DEFINITIONS.get(cat_str.replace(' ', '_'), "No definition available."))
         
-        # Get category SVG
-        cat_svg = CATEGORY_SVGS.get(cat_str, CATEGORY_SVGS.get(cat_str.replace(' ', '_'), ""))
+        # Get category SVG (with custom colors if palette provided)
+        cat_svg = generate_category_svg(cat_str, custom_palette, include_reference=True)
+        if not cat_svg:
+            cat_svg = generate_category_svg(cat_str.replace(' ', '_'), custom_palette, include_reference=True)
         
         # Filter data
         cat_df = df[df['structural_category'] == category].copy()
@@ -633,7 +714,7 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
         export_title = f"SQANTI3_{safe_cat}_Isoforms"
         html_content = HTML_TEMPLATE.format(
             category=cat_str,
-            category_safe=cat_str,  # Used for Trix string generation (matches Trix index format)
+            category_safe=cat_safe,  # Used for Trix string generation (matches Trix index format)
             report_title=report_title,
             export_title=export_title,
             category_intro_label="Category Definition:",
@@ -651,9 +732,9 @@ def generate_html_reports(classification_file, output_dir, include_sequences=Fal
         with open(file_path, 'w') as f:
             f.write(html_content)
         
-        print(f"  -> Generated {file_path}")
+        logger.info(f"  -> Generated {file_path}")
 
-    print("\nDone! All reports generated.")
+    logger.info("Done! All reports generated.")
 
 def main():
     parser = argparse.ArgumentParser(description="Generate filterable HTML tables for SQANTI3 isoform categories.")
@@ -664,7 +745,7 @@ def main():
     args = parser.parse_args()
     
     if not os.path.exists(args.classification):
-        print(f"Error: File not found: {args.classification}")
+        logger.error(f"Error: File not found: {args.classification}")
         sys.exit(1)
 
     generate_html_reports(args.classification, args.output_dir, args.include_sequences)

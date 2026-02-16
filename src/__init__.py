@@ -1,0 +1,1 @@
+"""SQANTI-browser shared modules."""
