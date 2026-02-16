@@ -1,4 +1,4 @@
-# example_output_hg38_SQANTI3_Hub
+# test1
 
 This hub displays SQANTI3 transcriptome analysis results for the hg38 genome assembly.
 

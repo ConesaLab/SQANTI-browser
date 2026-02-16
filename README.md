@@ -123,6 +123,7 @@ python example/example_usage.py
 | `--no-category-tracks` | Only generate the main track |
 | `--category-tracks FSM,ISM,NIC` | Only create tracks for these categories (abbreviated: FSM, ISM, NIC, etc) |
 | `--no-highlight` | Disable highlight coloring for top FL isoforms |
+| `--hub-name NAME` | Display name for this hub and prefix for all track labels. Use when loading multiple hubs to compare (e.g. `--hub-name Sample1`). |
 | `--my-palette FILE` | Custom color palette JSON file (see [Custom palette wiki](../../wiki/custom_palette)) |
 | `--star-sj SJ.out.tab` | Include STAR splice junctions track |
 | `--CAGE-peak` | Include CAGE peaks for TSS validation (requires BED file) |

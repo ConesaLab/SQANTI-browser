@@ -317,13 +317,13 @@ class HubGenerator:
             logger.error(traceback.format_exc())
             return False
 
-    def _create_hub_txt(self, hub_name: str) -> None:
+    def _create_hub_txt(self, hub_name: str, genome: str) -> None:
         """Create hub.txt."""
         c = self.converter
         with open(c.output_dir / "hub.txt", 'w', newline='\n') as f:
             f.write(f"hub {hub_name}\n")
             f.write(f"shortLabel {hub_name}\n")
-            f.write(f"longLabel SQANTI3 Transcriptome Analysis for {c.genome}\n")
+            f.write(f"longLabel SQANTI3 Transcriptome Analysis for {genome}\n")
             f.write(f"genomesFile {self._get_relative_path('genomes.txt')}\n")
             f.write(f"email sqanti3_user@users.noreply.github.com\n")
             f.write(f"descriptionUrl {self._get_relative_path('README.md')}\n")
@@ -494,10 +494,13 @@ class HubGenerator:
             result['ref'] = name
         return result
 
-    def _write_trackdb(self, transcripts_html_name: str, validation_html: dict, num_extra: int) -> None:
-        """Write trackDb.txt with main track, validation tracks, and category tracks."""
+    def _write_trackdb(self, transcripts_html_name: str, validation_html: dict, num_extra: int, label_prefix: str = "") -> None:
+        """Write trackDb.txt with main track, validation tracks, and category tracks.
+        label_prefix: optional string to prefix all track shortLabel/longLabel (e.g. when comparing multiple hubs).
+        """
         c = self.converter
         genome_dir = c.output_dir / c.genome
+        p = label_prefix  # p is the prefix for every track label (e.g. "Sample1 ")
 
         def sanitize(col):
             return col.replace('.', '_').replace(' ', '_').replace('-', '_').replace('/', '_')
@@ -518,8 +521,8 @@ class HubGenerator:
         with open(trackdb_file, 'w', newline='\n') as f:
             f.write(f"track {c.genome}_sqanti3\n")
             f.write(f"bigDataUrl {self._get_relative_path(f'{c.genome}_sqanti3.bb')}\n")
-            f.write(f"shortLabel SQANTI3 Transcripts\n")
-            f.write(f"longLabel SQANTI3 Transcriptome Analysis Results\n")
+            f.write(f"shortLabel {p}SQANTI3 Transcripts\n")
+            f.write(f"longLabel {p}SQANTI3 Transcriptome Analysis Results\n")
             f.write(f"type bigBed 12 + {num_extra}\n")
             for filter_def in ORDERED_FILTERS:
                 if filter_def[0] == 'text':
@@ -562,8 +565,8 @@ class HubGenerator:
             if c.star_bigbed and os.path.exists(c.star_bigbed):
                 f.write("\ntrack " + f"{c.genome}_star_sj\n")
                 f.write(f"bigDataUrl {self._get_relative_path(os.path.basename(c.star_bigbed))}\n")
-                f.write(f"shortLabel STAR Junctions\n")
-                f.write(f"longLabel STAR splice junctions (SJ.out.tab)\n")
+                f.write(f"shortLabel {p}STAR Junctions\n")
+                f.write(f"longLabel {p}STAR splice junctions (SJ.out.tab)\n")
                 f.write(f"type bigBed 9\n")
                 f.write(f"itemRgb on\nvisibility full\ngroup validation\npriority 2\n")
                 if star_html_name:
@@ -571,21 +574,21 @@ class HubGenerator:
             if c.cage_bigbed and os.path.exists(c.cage_bigbed):
                 f.write("\ntrack " + f"{c.genome}_cage_peaks\n")
                 f.write(f"bigDataUrl {self._get_relative_path(os.path.basename(c.cage_bigbed))}\n")
-                f.write(f"shortLabel CAGE Peaks\nlongLabel CAGE Peaks (TSS Validation)\n")
+                f.write(f"shortLabel {p}CAGE Peaks\nlongLabel {p}CAGE Peaks (TSS Validation)\n")
                 f.write(f"type bigBed 9\nitemRgb on\nvisibility dense\ngroup validation\npriority 3\n")
                 if cage_html_name:
                     f.write(f"html {self._get_relative_path(cage_html_name)}\n")
             if c.polya_bigbed and os.path.exists(c.polya_bigbed):
                 f.write("\ntrack " + f"{c.genome}_polya_peaks\n")
                 f.write(f"bigDataUrl {self._get_relative_path(os.path.basename(c.polya_bigbed))}\n")
-                f.write(f"shortLabel PolyA Peaks\nlongLabel PolyA Site Peaks (TTS Validation)\n")
+                f.write(f"shortLabel {p}PolyA Peaks\nlongLabel {p}PolyA Site Peaks (TTS Validation)\n")
                 f.write(f"type bigBed 9\nitemRgb on\nvisibility dense\ngroup validation\npriority 4\n")
                 if polya_html_name:
                     f.write(f"html {self._get_relative_path(polya_html_name)}\n")
             if c.ref_bigbed and os.path.exists(c.ref_bigbed):
                 f.write("\ntrack " + f"{c.genome}_reference\n")
                 f.write(f"bigDataUrl {self._get_relative_path(os.path.basename(c.ref_bigbed))}\n")
-                f.write(f"shortLabel Reference\nlongLabel Reference Genome Annotation\n")
+                f.write(f"shortLabel {p}Reference\nlongLabel {p}Reference Genome Annotation\n")
                 f.write(f"type bigBed 12\nvisibility pack\ngroup validation\npriority 5\ncolor 70,70,70\n")
                 if ref_html_name:
                     f.write(f"html {self._get_relative_path(ref_html_name)}\n")
@@ -623,8 +626,8 @@ th, td {{ border: 1px solid #dee2e6; padding: 10px; }}
                         logger.error(f"Error creating HTML for category {cat}: {e}")
                     f.write("\ntrack " + f"{c.genome}_sqanti3_{safe_cat}\n")
                     f.write(f"bigDataUrl {self._get_relative_path(os.path.basename(bb_filename))}\n")
-                    f.write(f"shortLabel SQANTI3 {cat}\n")
-                    f.write(f"longLabel SQANTI3 {cat} transcripts\n")
+                    f.write(f"shortLabel {p}SQANTI3 {cat}\n")
+                    f.write(f"longLabel {p}SQANTI3 {cat} transcripts\n")
                     f.write(f"type bigBed 12 + {num_extra}\n")
                     f.write(f"visibility hide\ngroup transcripts\nitemRgb on\npriority 3\n")
                     f.write(f"html {self._get_relative_path(cat_html_name)}\n")
@@ -691,17 +694,19 @@ Use the search box to find isoforms by attribute. Search terms use underscores (
         logger.info("Creating hub files...")
         c = self.converter
         output_dir_name = c.output_dir.name
-        hub_name = f"{output_dir_name}_{c.genome}_SQANTI3_Hub"
+        display_name = (getattr(c, 'hub_name', None) or '').strip()
+        hub_name = display_name or f"{output_dir_name}_{c.genome}_SQANTI3_Hub"
+        label_prefix = f"{display_name} " if display_name else ""
         num_extra = len(c.extra_cols) if hasattr(c, 'extra_cols') else 0
 
-        self._create_hub_txt(hub_name)
+        self._create_hub_txt(hub_name, c.genome)
         self._create_groups_txt()  # Creates genome_dir (needed before genomes.txt 2bit copy)
         self._create_genomes_txt(hub_name)
         filter_options_html = self._generate_filter_options_html()
         color_legend_html = self._generate_color_legend_html()
         transcripts_html_name = self._create_transcripts_track_html(filter_options_html, color_legend_html)
         validation_html = self._create_validation_track_html_files()
-        self._write_trackdb(transcripts_html_name, validation_html, num_extra)
+        self._write_trackdb(transcripts_html_name, validation_html, num_extra, label_prefix)
         self._create_readme(hub_name, num_extra)
 
         logger.info("Hub files created successfully")

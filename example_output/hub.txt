@@ -1,5 +1,5 @@
-hub example_output_hg38_SQANTI3_Hub
-shortLabel example_output_hg38_SQANTI3_Hub
+hub test1
+shortLabel test1
 longLabel SQANTI3 Transcriptome Analysis for hg38
 genomesFile genomes.txt
 email sqanti3_user@users.noreply.github.com

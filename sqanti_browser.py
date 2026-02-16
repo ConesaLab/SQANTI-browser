@@ -151,11 +151,12 @@ def load_custom_palette(palette_file: str | Path) -> tuple[dict[str, tuple[int, 
 
 
 class SQANTI3ToBigBed:
-    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, ref_gtf=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='basic', no_category_tracks=False, category_tracks=None, no_highlight=False, custom_palette=None):
+    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, ref_gtf=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='basic', no_category_tracks=False, category_tracks=None, no_highlight=False, custom_palette=None, hub_name=None):
         self.gtf_file = gtf_file
         self.classification_file = classification_file
         self.output_dir = Path(output_dir)
         self.genome = genome
+        self.hub_name = hub_name  # Optional display name for hub and track labels (enables comparing multiple hubs)
         self.chrom_sizes_file = chrom_sizes_file
         self.temp_dir = None
         self.star_sj = star_sj
@@ -529,6 +530,8 @@ def main():
                              'Example: --category-tracks FSM,ISM,NIC')
     parser.add_argument('--no-highlight', action='store_true',
                         help='Disable highlight coloring for top FL isoforms')
+    parser.add_argument('--hub-name', type=str, metavar='NAME',
+                        help='Display name for this hub and prefix for all track labels. Use different names when loading multiple hubs to compare (e.g. --hub-name Sample1 and --hub-name Sample2).')
     parser.add_argument('--my-palette', type=str, metavar='JSON_FILE',
                         help='Custom color palette JSON file. Supports RGB arrays [R,G,B] or hex strings "#RRGGBB". '
                              'See ./example/example_palette.json for format. Partial specification allowed (missing categories use defaults).')
@@ -581,7 +584,8 @@ def main():
         no_category_tracks=args.no_category_tracks,
         category_tracks=category_tracks,
         no_highlight=args.no_highlight,
-        custom_palette=args.my_palette
+        custom_palette=args.my_palette,
+        hub_name=args.hub_name
     )
     converter.keep_temp = args.keep_temp
     success = converter.run()
