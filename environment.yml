@@ -22,4 +22,5 @@ dependencies:
   
   - pip:
     - pathlib2>=2.3.0; python_version < "3.4"
-    - .  # Install the current package in editable mode
+    # Note: Install the package itself manually via 'pip install -e .'
+    # We do not include '.' here to support Docker builds where code is copied later.  # Install the current package in editable mode

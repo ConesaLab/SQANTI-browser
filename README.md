@@ -74,15 +74,26 @@ SQANTI3 Output → SQANTI-browser → web-access → UCSC Browser
 
 ### 1. Install Dependencies
 
+You can install dependencies using **conda/mamba** (recommended) or pip.
+
+**Option A: Conda/Mamba (Recommended)**
+
 ```bash
-# Install UCSC tools
+# Create environment with all dependencies (including UCSC tools)
+conda env create -f environment.yml
+
+# Activate environment
+conda activate sqanti-browser
+```
+
+**Option B: Pip + Manual Tool Installation**
+
+```bash
+# Install UCSC tools script
 bash install_ucsc_tools.sh
 
-# Install Python package (recommended)
+# Install Python package
 pip install -e .
-
-# Or install dependencies only
-pip install -r requirements.txt
 ```
 
 **How to run:** You can use any of these (run from project root unless you used `pip install -e .`):

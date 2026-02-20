@@ -1,0 +1,52 @@
+Bootstrap: docker
+From: continuumio/miniconda3:latest
+
+%labels
+    Author CarolinaMonzo
+    Version 1.1.0
+    Description SQANTI-browser container
+
+%files
+    environment.yml /app/environment.yml
+    . /app
+
+%post
+    # Set working directory
+    mkdir -p /app
+    cd /app
+    
+    # Initialize conda
+    . /opt/conda/etc/profile.d/conda.sh
+    
+    # Create the Conda environment
+    # Note: Singularity can be sensitive to "environment.yml" path, ensure it exists
+    conda env create -f environment.yml
+    
+    # Activate the environment to install pip package
+    conda activate sqanti-browser
+    
+    # Install the Python package
+    pip install .
+    
+    # Clean up conda cache to reduce image size
+    conda clean -afy
+    
+    # Clean up unnecessary files
+    rm -rf /app/.git /app/tests /app/example /app/example_output
+
+%environment
+    # Add the conda environment to the PATH
+    export PATH="/opt/conda/envs/sqanti-browser/bin:$PATH"
+
+%runscript
+    # Pass all arguments to the tool
+    exec sqanti_browser "$@"
+
+%help
+    This is a Singularity container for SQANTI-browser.
+    
+    Usage:
+        singularity run sqanti-browser.sif [options]
+        
+    Example:
+        singularity run sqanti-browser.sif --gtf corrected.gtf --classification classification.txt --output my_hub --genome hg38
