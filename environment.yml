@@ -1,0 +1,25 @@
+name: sqanti-browser
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.8
+  - pandas>=1.3.0
+  - pip
+  # UCSC Tools (available in Bioconda)
+  - ucsc-bedtobigbed
+  - ucsc-gtftogenepred
+  - ucsc-genepredtobed
+  - ucsc-hubcheck
+  - ucsc-bigbedinfo
+  - ucsc-twobitinfo
+  - ucsc-fatotwobit
+  - ucsc-ixixx
+  # Note: ixIxx might not be available in all channels as a standalone package.
+  # If 'ucsc-ixixx' fails, you may need to install it manually using install_ucsc_tools.sh
+  # or compile from source.
+  
+  - pip:
+    - pathlib2>=2.3.0; python_version < "3.4"
+    - .  # Install the current package in editable mode
