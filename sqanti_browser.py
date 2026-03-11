@@ -268,29 +268,56 @@ class SQANTI3ToBigBed:
             logger.info("Cleaned up temporary directory")
     
     def extract_chrom_sizes(self):
-        """Extract chromosome sizes from GTF file"""
-        logger.info("Extracting chromosome sizes from GTF file...")
+        """Extract chromosome sizes from GTF and validation files to determine max extent"""
+        logger.info("Extracting chromosome sizes from input files...")
         
         chrom_max_pos = defaultdict(int)
         
-        try:
-            with open(self.gtf_file, 'r') as f:
-                for line_num, line in enumerate(f, 1):
-                    line = line.strip()
-                    if line.startswith('#') or not line:
-                        continue
-                    
-                    parts = line.split('\t')
-                    if len(parts) < 5:
-                        continue
-                    
-                    try:
-                        chrom = parts[0]
-                        end = int(parts[4])
-                        chrom_max_pos[chrom] = max(chrom_max_pos[chrom], end)
-                    except (ValueError, IndexError):
-                        continue
+        def scan_file(filepath, filetype):
+            if not filepath or not os.path.exists(filepath):
+                return
             
+            logger.info(f"Scanning {filetype}: {filepath}")
+            try:
+                with open(filepath, 'r') as f:
+                    for line in f:
+                        if line.startswith('#') or not line.strip():
+                            continue
+                        
+                        parts = line.split('\t')
+                        chrom = parts[0]
+                        end = 0
+                        
+                        try:
+                            if filetype == 'gtf':
+                                if len(parts) >= 5:
+                                    end = int(parts[4])
+                            elif filetype == 'bed':
+                                if len(parts) >= 3:
+                                    end = int(parts[2])
+                            elif filetype == 'star':
+                                if len(parts) >= 3:
+                                    end = int(parts[2])
+                            
+                            if end > 0:
+                                chrom_max_pos[chrom] = max(chrom_max_pos[chrom], end)
+                        except (ValueError, IndexError):
+                            continue
+            except Exception as e:
+                logger.warning(f"Error scanning {filepath}: {e}")
+
+        # Scan all sources
+        scan_file(self.gtf_file, 'gtf')
+        scan_file(self.ref_gtf, 'gtf')
+        scan_file(self.star_sj, 'star')
+        scan_file(self.cage_peaks, 'bed')
+        scan_file(self.polya_peaks, 'bed')
+        
+        if not chrom_max_pos:
+            logger.error("No chromosome sizes could be extracted from inputs")
+            return None
+            
+        try:
             # Write chrom.sizes file
             chrom_sizes_file = os.path.join(self.temp_dir, "chrom.sizes")
             with open(chrom_sizes_file, 'w') as f:
@@ -301,7 +328,7 @@ class SQANTI3ToBigBed:
             return chrom_sizes_file
             
         except Exception as e:
-            logger.error(f"Error extracting chromosome sizes: {e}")
+            logger.error(f"Error writing/extracting chrom sizes: {e}")
             return None
 
     def extract_chrom_sizes_from_twobit(self):
