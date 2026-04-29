@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **`--trix` / `--no-trix`**: Explicitly enable/disable Trix index generation. Enabled by default when `ixIxx` is available.
+- Adding docker, singularity and conda support
 
 ### Fixed
 
