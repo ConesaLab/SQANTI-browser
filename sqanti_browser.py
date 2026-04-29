@@ -151,12 +151,13 @@ def load_custom_palette(palette_file: str | Path) -> tuple[dict[str, tuple[int, 
 
 
 class SQANTI3ToBigBed:
-    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, ref_gtf=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='basic', no_category_tracks=False, category_tracks=None, no_highlight=False, custom_palette=None, hub_name=None):
+    def __init__(self, gtf_file, classification_file, output_dir, genome, chrom_sizes_file=None, star_sj=None, cage_peaks=None, polya_peaks=None, ref_gtf=None, two_bit_file=None, validate_only=False, dry_run=False, sort_by='basic', no_category_tracks=False, category_tracks=None, no_highlight=False, custom_palette=None, hub_name=None, trix_enabled: bool = True):
         self.gtf_file = gtf_file
         self.classification_file = classification_file
         self.output_dir = Path(output_dir)
         self.genome = genome
         self.hub_name = hub_name  # Optional display name for hub and track labels (enables comparing multiple hubs)
+        self.trix_enabled = trix_enabled
         self.chrom_sizes_file = chrom_sizes_file
         self.temp_dir = None
         self.star_sj = star_sj
@@ -470,7 +471,10 @@ class SQANTI3ToBigBed:
             # Generate Trix index (after name encoding) if ixIxx is available
             genome_dir = self.output_dir / self.genome
             genome_dir.mkdir(exist_ok=True)
-            self._generate_trix_index(bed_file, genome_dir)
+            if self.trix_enabled:
+                self._generate_trix_index(bed_file, genome_dir)
+            else:
+                logger.info("Skipping Trix index generation (--no-trix)")
 
             # Create bigBed file
             bigbed_file = self.create_bigbed_file(bed_file)
@@ -540,6 +544,11 @@ def main():
     parser.add_argument('--dry-run', action='store_true', help='Prepare intermediates (BED with classification) and exit before bigBed/hub generation')
     parser.add_argument('--keep-temp', action='store_true', help='Keep temporary files for debugging')
     parser.add_argument('--tables', action='store_true', help='Generate interactive HTML table reports for each category')
+    trix_group = parser.add_mutually_exclusive_group()
+    trix_group.add_argument('--trix', action='store_true',
+                            help='Explicitly enable Trix index generation (default behavior). Requires ixIxx in PATH.')
+    trix_group.add_argument('--no-trix', action='store_true',
+                            help='Disable Trix index generation (skip creating trix.ix/trix.ixx).')
     parser.add_argument('--sort-by', 
                         choices=['basic', 'none', 'iso_exp', 'length', 'FL', 'diff_to_TSS', 'diff_to_TTS', 
                                  'diff_to_gene_TSS', 'diff_to_gene_TTS', 'dist_to_CAGE_peak', 
@@ -612,7 +621,8 @@ def main():
         category_tracks=category_tracks,
         no_highlight=args.no_highlight,
         custom_palette=args.my_palette,
-        hub_name=args.hub_name
+        hub_name=args.hub_name,
+        trix_enabled=(not args.no_trix)
     )
     converter.keep_temp = args.keep_temp
     success = converter.run()

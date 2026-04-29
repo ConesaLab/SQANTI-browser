@@ -140,6 +140,8 @@ python example/example_usage.py
 | `--CAGE-peak` | Include CAGE peaks for TSS validation (requires BED file) |
 | `--polyA-peak` | Include polyA peaks for TTS validation (requires BED file) |
 | `--refGTF` | Include reference annotation for direct comparison (requires GTF file) |
+| `--no-trix` | Disable Trix index generation (skip `trix.ix`/`trix.ixx`) |
+| `--trix` | Explicitly enable Trix index generation (default behavior; requires `ixIxx`) |
 
 ### Testing
 
@@ -171,6 +173,8 @@ To view only a subset of isoforms (e.g., a few of interest): use the **Interacti
 ## Trix Search
 
 The hub includes a Trix search index for finding isoforms by attribute. **All search terms use underscores** (e.g., `structural_category_full_splice_match`, `strand_plus`, `coding_coding`). Hyphens and spaces in category names are automatically normalized, so you can search with `full_splice_match` instead of remembering `full-splice_match` (although this will also work). Use the "Generate Trix String" button in the interactive HTML tables to get easy ready-to-paste search terms.
+
+Trix generation is **enabled by default** when `ixIxx` is available. Use `--no-trix` to skip generating `trix.ix`/`trix.ixx`.
 
 ## Default Track Display
 

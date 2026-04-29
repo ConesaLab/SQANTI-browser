@@ -100,7 +100,6 @@ class SQANTIBrowserTester:
             'bedToBigBed',
             'gtfToGenePred',
             'genePredToBed',
-            'ixIxx',
             'twoBitInfo',
             'hubCheck'
         ]
@@ -113,6 +112,13 @@ class SQANTIBrowserTester:
             else:
                 self.print_fail(f"{tool} is not installed")
                 all_present = False
+
+        # Optional tool: ixIxx (Trix index generation)
+        result = subprocess.run(['which', 'ixIxx'], capture_output=True, text=True)
+        if result.returncode == 0:
+            self.print_pass("ixIxx is installed (Trix search enabled)")
+        else:
+            self.print_warning("ixIxx is not installed (Trix search will be skipped). This is OK.")
                 
         # Check Python dependencies
         try:
@@ -147,8 +153,10 @@ class SQANTIBrowserTester:
             ('gtfToGenePred', ['usage:']),
             ('genePredToBed', ['usage:']),
             ('bedToBigBed', ['usage:']),
-            ('ixIxx', ['usage:', 'ixixx']),
         ]
+        # Optional tool: only check if present
+        if subprocess.run(['which', 'ixIxx'], capture_output=True, text=True).returncode == 0:
+            tools_to_check.append(('ixIxx', ['usage:', 'ixixx']))
         all_ok = True
         for tool, keywords in tools_to_check:
             try:
@@ -334,7 +342,8 @@ class SQANTIBrowserTester:
                 "--gtf", "example/SQANTI3_QC_output/example_corrected.gtf",
                 "--classification", "example/SQANTI3_QC_output/example_classification.txt",
                 "--genome", "hg38",
-                "--chrom-sizes", "example/SQANTI3_QC_output/chrom.sizes"
+                "--chrom-sizes", "example/SQANTI3_QC_output/chrom.sizes",
+                "--no-trix"
             ]
         )
         
@@ -344,8 +353,6 @@ class SQANTIBrowserTester:
                 "hg38_sqanti3_track.html",
                 "trackDb.txt",
                 "groups.txt",
-                "trix.ix",
-                "trix.ixx"
             ]
             self.validate_hub_structure(output_dir, "hg38", required_files)
             
@@ -363,7 +370,8 @@ class SQANTIBrowserTester:
                 "--gtf", "example/SQANTI3_QC_output/example_corrected.gtf",
                 "--classification", "example/SQANTI3_QC_output/example_classification.txt",
                 "--genome", "hg38",
-                "--chrom-sizes", "example/SQANTI3_QC_output/chrom.sizes"
+                "--chrom-sizes", "example/SQANTI3_QC_output/chrom.sizes",
+                "--no-trix"
             ]
         )
         
