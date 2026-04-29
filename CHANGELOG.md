@@ -5,6 +5,17 @@ All notable changes to SQANTI-browser are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-04-29
+
+### Added
+
+- **`--trix` / `--no-trix`**: Explicitly enable/disable Trix index generation. Enabled by default when `ixIxx` is available.
+
+### Fixed
+
+- **Chrom sizes for validation tracks**: `chrom.sizes` generation now considers validation inputs (e.g. STAR SJ) to avoid `bedToBigBed` failures when validation coordinates exceed transcript extents.
+- **Trix generation compatibility**: Removed unsupported `ixIxx` argument usage so Trix generation works with standard UCSC binaries.
+
 ## [1.1.0] - 2025-01-19
 
 ### Added

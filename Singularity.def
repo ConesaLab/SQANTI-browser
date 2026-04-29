@@ -3,7 +3,7 @@ From: continuumio/miniconda3:latest
 
 %labels
     Author CarolinaMonzo
-    Version 1.1.0
+    Version 1.1.1
     Description SQANTI-browser container
 
 %files
