@@ -28,6 +28,8 @@ import logging
 import re
 from collections import defaultdict
 
+__version__ = "1.1.1"
+
 from src.bed_processor import BedProcessor
 from src.constants import CATEGORY_ABBREV_TO_FULL
 from src.validation_tracks import ValidationTrackBuilder
@@ -529,7 +531,10 @@ class SQANTI3ToBigBed:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Convert SQANTI3 output to UCSC Genome Browser hub for visualization')
+    parser = argparse.ArgumentParser(
+        description=f'SQANTI-browser v{__version__} — Convert SQANTI3 output to UCSC Genome Browser hub for visualization'
+    )
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     parser.add_argument('--gtf', required=True, help='SQANTI3 corrected GTF file')
     parser.add_argument('--classification', required=True, help='SQANTI3 classification file')
     parser.add_argument('--output', required=True, help='Output directory')
