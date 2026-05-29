@@ -29,6 +29,7 @@
 
 **Advanced Features:**
 - [Interactive HTML Tables](../../wiki/html_tables) - Offline data exploration
+- [Creating curated subset sessions](../../wiki/creating_subset_sessions) - UCSC custom subtracks
 - [Custom Color Palettes](../../wiki/custom_palette) - Palette format, defaults, and validation track colors
 - [Working with Custom Genomes](../../wiki/custom_genomes) (2bit files)
 - [SQANTI-reads Integration](../../wiki/sqanti_reads_integration) - Multi-sample experiments
@@ -168,9 +169,9 @@ python src/filter_isoforms.py --classification your_classification.txt --output-
 
 > 💡 **Tip:** For information on where to obtain and how to format CAGE and polyA peak files, see the [SQANTI3 wiki](https://github.com/ConesaLab/SQANTI3/wiki/Running-SQANTI3-Quality-Control#incorporating-cage-peak-data---cage_peak). See also our [Command Line Reference](../../wiki/command_line_reference) for details.
 
-## Viewing Specific Isoforms
+## Viewing Specific Isoforms (curated subsets)
 
-To view only a subset of isoforms (e.g., a few of interest): use the **Interactive HTML tables** (`--tables`), select the rows you want (click to select multiple), click **Generate Filter String**, then in UCSC go to **Tools → Table Browser**, choose your hub’s SQANTI3 track, use **Identifiers → paste list** for the newline-separated IDs, set the output format to **custom track**, and load it in the Genome Browser. See the [Filtering in UCSC](../../wiki/filtering_in_UCSC) wiki page for details.
+To view only a curated subset while keeping the full hub for context: generate **Interactive HTML tables** (`--tables`), filter and/or select isoforms, click **Generate Filter String**, then import the ID list into the UCSC **Table Browser** as a **custom track**. Step-by-step instructions, tips, and the iterative curation workflow are in **[Creating curated subset sessions](../../wiki/creating_subset_sessions)**. For hub-native filtering without exporting IDs, see [Filtering in UCSC](../../wiki/filtering_in_UCSC).
 
 ## Trix Search
 
@@ -204,7 +205,7 @@ GNU General Public License v3.0 - see [LICENSE](LICENSE)
 
 If you use SQANTI-browser, please cite our bioRxiv preprint:
 
-> Paniagua A, Blanco-Gomez C, Colomer Fernández A, Diekhans M, Conesa A, Monzó C. **SQANTI-browser: visualization and curation of SQANTI3-classified long-read transcriptomes within the UCSC Genome Browser**. *bioRxiv* (2026). https://doi.org/10.64898/2026.05.25.727625  
+> Paniagua A, Blanco-Gómez C, Colomer Fernández A, Diekhans M, Conesa A, Monzó C. **SQANTI-browser: visualization and curation of SQANTI3-classified long-read transcriptomes within the UCSC Genome Browser**. *bioRxiv* (2026). https://doi.org/10.64898/2026.05.25.727625  
 > Preprint: https://www.biorxiv.org/content/10.64898/2026.05.25.727625v1
 
 Related tools and resources used by SQANTI-browser:
