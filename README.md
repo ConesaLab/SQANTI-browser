@@ -3,6 +3,8 @@
   
 **SQANTI-browser** is a tool that converts SQANTI3 transcriptome analysis outputs into UCSC Genome Browser track hubs for interactive visualization.
 
+📄 **Preprint:** [SQANTI-browser on bioRxiv](https://www.biorxiv.org/content/10.64898/2026.05.25.727625v1) — please [cite the preprint](#citation) if you use this tool.
+
 ## Features
 
 - 🎨 **Color-coded transcripts** by structural category (custom palettes via `--my-palette`)
@@ -200,11 +202,16 @@ GNU General Public License v3.0 - see [LICENSE](LICENSE)
 
 ## Citation
 
-If you use this tool, please cite:
-- https://github.com/conesalab/SQANTI-browser
+If you use SQANTI-browser, please cite our bioRxiv preprint:
+
+> Paniagua A, Blanco-Gomez C, Colomer Fernández A, Diekhans M, Conesa A, Monzó C. **SQANTI-browser: visualization and curation of SQANTI3-classified long-read transcriptomes within the UCSC Genome Browser**. *bioRxiv* (2026). https://doi.org/10.64898/2026.05.25.727625  
+> Preprint: https://www.biorxiv.org/content/10.64898/2026.05.25.727625v1
+
+Related tools and resources used by SQANTI-browser:
+
 - Perez, G. et al. **The UCSC Genome Browser database: 2025 update**. *Nucleic Acids Res* (2025). https://doi.org/10.1093/nar/gkae974
+
 - Pardo-Palacios, F.J., Arzalluz-Luque, A. et al. **SQANTI3: curation of long-read transcriptomes for accurate identification of known and novel isoforms**. *Nat Methods* (2024). https://doi.org/10.1038/s41592-024-02229-2
 
-If you used SQANTI-reads for multi-sample visualization, please cite:
 - Keil N, Monzó C, McIntyre L, Conesa A (2025). **Quality assessment of long read data in multisample lrRNA-seq experiments with SQANTI-reads**. *Genome Res*, 35(4), 987. https://doi.org/10.1101/gr.280021.124
 
