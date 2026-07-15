@@ -1,0 +1,2 @@
+# Ensure the bundled Claude Agent Skill (markdown + assets) ships in the sdist/wheel.
+recursive-include src/skills/data *

@@ -28,6 +28,7 @@
 - [Hosting Guide](../../wiki/hosting) - Upload your hub
 
 **Advanced Features:**
+- [Claude Skill](../../wiki/claude_skill) - Drive SQANTI-browser with an AI agent
 - [Interactive HTML Tables](../../wiki/html_tables) - Offline data exploration
 - [Creating curated subset sessions](../../wiki/creating_subset_sessions) - UCSC custom subtracks
 - [Custom Color Palettes](../../wiki/custom_palette) - Palette format, defaults, and validation track colors
@@ -43,6 +44,32 @@
 - [Glossary](../../wiki/glossary)
 - [Troubleshooting](../../wiki/troubleshooting)
 
+## 🤖 Claude / AI agent skill
+
+SQANTI-browser ships an **Agent Skill** for Claude Code that teaches the agent to use the
+tool correctly — the right flags, inputs/outputs, hosting, `hubCheck` validation, UCSC
+filtering and Trix search, and curation workflows. Install it once into your personal
+skills directory:
+
+```bash
+pip install sqanti-browser        # or, from a clone: pip install -e .
+sqanti-browser-install-skills
+```
+
+This copies the skill to `~/.claude/skills/sqanti-browser/`, making it available in every
+project (re-run with `--force` after upgrading). To point a custom skills location at the
+bundled files without copying:
+
+```bash
+export CLAUDE_SKILLS_PATH="$(sqanti-browser-install-skills --print-path)"
+```
+
+Then ask your agent things like *"build a UCSC hub from my SQANTI3 output"* or *"add CAGE
+and polyA validation tracks and generate the HTML tables"*.
+
+📖 See the **[Claude Skill](https://github.com/ConesaLab/SQANTI-browser/wiki/claude_skill)**
+wiki page for full details.
+
 ## Project Structure
 
 ```
@@ -55,7 +82,10 @@ SQANTI-browser/
 │   ├── hub_generator.py    # UCSC hub file generation
 │   ├── validation_tracks.py# CAGE, PolyA, STAR, reference tracks
 │   ├── constants.py        # Filter limits, palette defaults
-│   └── utils.py            # Shared utilities
+│   ├── utils.py            # Shared utilities
+│   └── skills/             # Bundled Claude Agent Skill + installer
+│       ├── install.py     # `sqanti-browser-install-skills` console script
+│       └── data/          # SKILL.md, references/, assets/ (copied to ~/.claude/skills/)
 ├── example/
 │   ├── example_usage.py    # Example workflow script
 │   ├── example_palette.json
@@ -157,7 +187,7 @@ python tests/test_unit.py -v
 python tests/test_edge_cases.py -v
 ```
 
-Use `--install-only` for a quick environment check (UCSC tools, Python deps).
+Use `python tests/test_sqanti_browser.py --install-only` for a quick environment check (UCSC tools, Python deps) without running the full conversion tests. For a check via the main CLI, `python -m sqanti_browser ... --validate-only` validates tools and inputs, then exits without building a hub.
 
 ### Filter Reports (standalone)
 

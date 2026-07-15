@@ -5,6 +5,17 @@ All notable changes to SQANTI-browser are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-07-15
+
+### Added
+
+- **Claude Agent Skill**: SQANTI-browser now ships a bundled Agent Skill (`src/skills/data/`) that teaches Claude Code (and compatible agents) to drive the tool correctly — flags, inputs/outputs, hosting, hubCheck validation, UCSC filtering and Trix search, isoform ordering, custom palettes, non-reference genomes, curated subset sessions, and SQANTI-reads workflows. See the [Claude Skill](https://github.com/ConesaLab/SQANTI-browser/wiki/claude_skill) wiki page.
+- **`sqanti-browser-install-skills`**: console script that installs the bundled skill into `~/.claude/skills/sqanti-browser/` (`--force` to overwrite after an upgrade, `--print-path` to locate the bundled files without copying).
+
+### Fixed
+
+- **`faToTwoBit`** is now downloaded by `install_ucsc_tools.sh` (previously omitted), so pip-based installs get the tool needed to create `.2bit` files for custom genomes.
+
 ## [1.1.1] - 2026-04-29
 
 ### Added
