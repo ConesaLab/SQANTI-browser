@@ -28,7 +28,7 @@ import logging
 import re
 from collections import defaultdict
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 from src.bed_processor import BedProcessor
 from src.constants import CATEGORY_ABBREV_TO_FULL

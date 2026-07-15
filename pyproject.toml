@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sqanti-browser"
-version = "1.1.1"
+version = "1.1.2"
 description = "Convert SQANTI3 output to UCSC Genome Browser track hubs for visualization"
 readme = "README.md"
 license = {text = "GPL-3.0"}
@@ -41,6 +41,7 @@ Documentation = "https://github.com/ConesaLab/SQANTI-browser/wiki"
 
 [project.scripts]
 sqanti_browser = "sqanti_browser:main"
+sqanti-browser-install-skills = "src.skills.install:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -48,3 +49,7 @@ include = ["src*"]
 
 [tool.setuptools]
 py-modules = ["sqanti_browser"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"src.skills" = ["data/**/*"]

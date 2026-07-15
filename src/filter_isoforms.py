@@ -207,7 +207,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             if (normalized === '-') {{
                 return 'minus';
             }}
-            normalized = normalized.replace(/[^\w]+/g, '_');
+            normalized = normalized.replace(/[^\\w]+/g, '_');
             normalized = normalized.replace(/_+/g, '_');
             normalized = normalized.replace(/^_+|_+$/g, '');
             return normalized;
