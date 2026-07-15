@@ -93,7 +93,7 @@ class BedProcessor:
             f.write('    char[1] strand;      "+ or -"\n')
             f.write('    uint   thickStart;   "Start of thick display"\n')
             f.write('    uint   thickEnd;     "End of thick display"\n')
-            f.write('    uint   itemRgb;      "Item color packed as R*256^2+G*256+B"\n')
+            f.write('    uint   reserved;     "Item color (itemRgb), packed as R*256^2+G*256+B"\n')
             f.write('    int    blockCount;   "Number of blocks (exons)"\n')
             f.write('    int[blockCount] blockSizes;  "Comma separated list of block sizes"\n')
             f.write('    int[blockCount] chromStarts; "Start positions relative to chromStart"\n')
